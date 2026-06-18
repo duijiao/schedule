@@ -45,8 +45,8 @@ body {
 }
 .today-btn:hover { background: #d0ede4; }
 .admin-bar {
-  display: none; align-items: center; justify-content: flex-end;
-  gap: 8px; margin-bottom: 12px;
+  display: none; align-items: flex-end; flex-direction: column;
+  gap: 5px;
 }
 .admin-bar.show { display: flex; }
 .admin-badge {
@@ -448,11 +448,61 @@ body {
 .schedule-toggle-btn i { font-size: 14px; transition: transform 0.2s; }
 .schedule-toggle-btn.collapsed i { transform: rotate(180deg); }
 .schedule-body.collapsed { display: none; }
+
+/* View-mode toggle */
+.view-toggle-wrap { display: flex; gap: 4px; }
+.view-toggle-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid rgba(0,0,0,0.1);
+  background: #fff; cursor: pointer; color: #aaa; font-size: 15px; transition: all 0.15s;
+}
+.view-toggle-btn.active { background: #1D9E75; border-color: #1D9E75; color: #fff; }
+.view-toggle-btn:hover:not(.active) { border-color: #1D9E75; color: #1D9E75; }
+
+/* ── Card view (colorful blocks) ──────────────────── */
+.card-view-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.card-view-item {
+  border-radius: 18px; padding: 14px 16px; position: relative; cursor: default;
+}
+.card-view-item.editable { cursor: pointer; }
+.card-view-item.editable:hover { filter: brightness(0.97); }
+.cvi-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.cvi-icon {
+  width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0; background: rgba(0,0,0,0.12);
+}
+.cvi-icon i { font-size: 16px; }
+.cvi-role { font-size: 15px; font-weight: 700; }
+.cvi-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.cvi-chip {
+  padding: 5px 13px; border-radius: 20px;
+  background: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500;
+  color: inherit;
+}
+.cvi-edit-btn {
+  position: absolute; top: 10px; right: 12px;
+  background: rgba(255,255,255,0.4); border: none; border-radius: 8px;
+  padding: 3px 8px; font-size: 13px; cursor: pointer; color: inherit; display: none;
+}
+.card-view-item.editable .cvi-edit-btn { display: block; }
 .bible-search-card {
   background: #fff; border-radius: 18px; padding: 14px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 1rem;
 }
-.bible-search-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.bible-search-head {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  justify-content: space-between; cursor: pointer; user-select: none;
+}
+.bible-search-head-left { display: flex; align-items: center; gap: 8px; }
+.bible-search-head:hover .bible-search-title { color: #1D9E75; }
+.bible-collapse-btn {
+  background: none; border: none; cursor: pointer; color: #bbb;
+  font-size: 16px; padding: 2px; line-height: 1; transition: transform 0.3s, color 0.15s;
+}
+.bible-collapse-btn:hover { color: #1D9E75; }
+.bible-search-card.collapsed .bible-collapse-btn { transform: rotate(180deg); }
+.bible-search-card.collapsed .bible-body { display: none; }
+.bible-search-card.collapsed .bible-search-head { margin-bottom: 0; }
 .bible-search-icon {
   width: 30px; height: 30px; border-radius: 9px; background: #FAECE7;
   display: flex; align-items: center; justify-content: center; color: #993C1D; flex-shrink: 0;
@@ -516,17 +566,22 @@ body {
       <div class="header-mini" id="hdrMini"></div>
     </div>
     <div class="header-right">
-          <button class="login-entry-btn" id="loginEntryBtn" onclick="openLogin()">
-      <i class="ti ti-lock" style="font-size:13px"></i>管理员登录
-    </button>
+      <!-- Logged-out state -->
+      <button class="login-entry-btn" id="loginEntryBtn" onclick="openLogin()">
+        <i class="ti ti-lock" style="font-size:13px"></i>管理员登录
+      </button>
+      <!-- Logged-in state -->
+      <div id="adminBar" class="admin-bar" style="flex-direction:column;align-items:flex-end;gap:5px">
+        <div class="admin-badge"><i class="ti ti-shield-check"></i>管理员</div>
+        <div style="display:flex;gap:5px">
+          <button class="logout-btn" style="background:#e8f5f0;color:#1D9E75;border-color:#1D9E75;font-size:11px;padding:3px 8px" onclick="openRoster()">名单管理</button>
+          <button class="logout-btn" style="font-size:11px;padding:3px 8px" onclick="logout()">退出</button>
+        </div>
+      </div>
       <button class="today-btn" onclick="goToday()">Today</button>
     </div>
   </div>
   <div class="header-collapsible">
-    <div id="adminBar" class="admin-bar">
-      <div class="admin-badge"><i class="ti ti-shield-check"></i>管理员</div>
-      <button class="logout-btn" onclick="logout()">退出</button>
-    </div>
     <div class="week-nav-wrap">
       <button class="nav-arrow" onclick="shiftMonth(-1)"><i class="ti ti-chevron-left"></i></button>
       <div class="week-nav" id="sundayNav"></div>
@@ -580,6 +635,34 @@ body {
     <div class="drawer-actions">
       <button class="btn-cancel" onclick="closeEdit()">取消</button>
       <button class="btn-save" onclick="saveEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="rosterOverlay" onclick="closeRoster(event)">
+  <div class="edit-drawer" onclick="event.stopPropagation()" style="max-height:90vh">
+    <div class="picker-handle"></div>
+    <div class="drawer-title">名单管理</div>
+    <div class="drawer-sub">修改后立即生效，轮流排班自动计算</div>
+    <div class="role-section">
+      <div class="role-section-head"><div class="role-section-badge" style="background:#993C1D"><i class="ti ti-microphone" style="color:#fff"></i><span style="color:#fff">主理名单（轮流）</span></div></div>
+      <div class="people-grid" id="leaderChips"></div>
+      <div class="add-person-row"><input class="add-person-input" id="leaderInput" placeholder="添加主理人员" onkeydown="if(event.key==='Enter')addRosterPerson('leader')"><button class="add-person-btn" onclick="addRosterPerson('leader')">添加</button></div>
+      <div style="font-size:11px;color:#aaa;margin-top:8px;display:flex;align-items:center;gap:8px"><span>起始日期（第一位）：</span><input id="leaderBase" type="date" style="border:1px solid #e0e0e0;border-radius:6px;padding:3px 6px;font-size:12px;font-family:inherit" onchange="saveRosterBase('leader',this.value)"></div>
+    </div>
+    <div class="role-section">
+      <div class="role-section-head"><div class="role-section-badge" style="background:#3B6D11"><i class="ti ti-pray" style="color:#fff"></i><span style="color:#fff">祷告名单（轮流）</span></div></div>
+      <div class="people-grid" id="prayerChips"></div>
+      <div class="add-person-row"><input class="add-person-input" id="prayerInput" placeholder="添加祷告人员" onkeydown="if(event.key==='Enter')addRosterPerson('prayer')"><button class="add-person-btn" onclick="addRosterPerson('prayer')">添加</button></div>
+      <div style="font-size:11px;color:#aaa;margin-top:8px;display:flex;align-items:center;gap:8px"><span>起始日期（第一位）：</span><input id="prayerBase" type="date" style="border:1px solid #e0e0e0;border-radius:6px;padding:3px 6px;font-size:12px;font-family:inherit" onchange="saveRosterBase('prayer',this.value)"></div>
+    </div>
+    <div class="role-section">
+      <div class="role-section-head"><div class="role-section-badge" style="background:#185FA5"><i class="ti ti-book" style="color:#fff"></i><span style="color:#fff">证道名单（按月上传）</span></div></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <input type="month" id="sermonMonthInput" style="flex:1;padding:8px 10px;border:1.5px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;outline:none;font-family:inherit" onchange="renderSermonMonthUI()">
+        <button class="add-person-btn" onclick="renderSermonMonthUI()">载入</button>
+      </div>
+      <div id="sermonMonthList" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
   </div>
 </div>
@@ -664,12 +747,23 @@ body {
 
   <div id="mainSchedule">
     <div id="noticeSection"></div>
+    <div id="bibleSection"></div>
     <div id="songSection"></div>
     <div class="schedule-head">
       <div class="schedule-section-label">本周排班</div>
-      <button class="schedule-toggle-btn" id="scheduleToggleBtn" onclick="toggleScheduleSection()">
-        <i class="ti ti-chevron-up"></i><span id="scheduleToggleText">收起</span>
-      </button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="view-toggle-wrap">
+          <button class="view-toggle-btn" id="viewBtnList" onclick="setViewMode('list')" title="列表视图">
+            <i class="ti ti-layout-list"></i>
+          </button>
+          <button class="view-toggle-btn active" id="viewBtnCard" onclick="setViewMode('card')" title="卡片视图">
+            <i class="ti ti-layout-cards"></i>
+          </button>
+        </div>
+        <button class="schedule-toggle-btn" id="scheduleToggleBtn" onclick="toggleScheduleSection()">
+          <i class="ti ti-chevron-up"></i><span id="scheduleToggleText">收起</span>
+        </button>
+      </div>
     </div>
     <div class="main-card">
       <div class="card-date-row">
@@ -690,20 +784,6 @@ body {
       </div>
     </div>
 	
-    <div class="bible-search-card">
-      <div class="bible-search-head">
-        <div class="bible-search-icon"><i class="ti ti-book-2"></i></div>
-        <div class="bible-search-title">选择圣经书卷和章节</div>
-      </div>
-      <div class="bible-select-row">
-        <select class="bible-select" id="bibleBookSelect" onchange="updateBibleChapterOptions()"></select>
-        <select class="bible-select bible-chapter-select" id="bibleChapterSelect"></select>
-        <button class="bible-search-btn" onclick="loadBibleChapter()"><i class="ti ti-book"></i>读取</button>
-      </div>
-      <div class="bible-source-link" id="bibleSourceLink"></div>
-      <div class="bible-result-list" id="bibleResultList"></div>
-    </div>
-	
   </div>
 </div>
 
@@ -714,13 +794,45 @@ body {
 // ── Data ──────────────────────────────────────────────
 const ZH_MONTHS = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
 
-const noticeData = {
-  '2026-06-07': { leader:'贞惠', sermon:'邹王君', prayer:'吴建斌' },
-  '2026-06-14': { leader:'张荣', sermon:'邹王君', prayer:'林大平' },
-  '2026-06-21': { leader:'上恩', sermon:'邹王君', prayer:'周黛亮' },
-  '2026-06-28': { leader:'根英', sermon:'邹王君', prayer:'梁水根' },
-  '2026-07-05': { leader:'诗泉', sermon:'邹王君' },
+// ── Rotation config (editable) ────────────────────────
+const rotationConfig = {
+  leader: {
+    base: '2026-06-07',
+    list: ['贞惠','张荣','上恩','根英','诗泉'],
+  },
+  prayer: {
+    base: '2026-06-07',
+    list: ['吴建斌','林大平','周黛亮','梁水根'],
+  },
 };
+
+// Per-Sunday sermon: { 'YYYY-MM-DD': '证道人' }
+const sermonByDate = {
+  '2026-06-07': '邹王君',
+  '2026-06-14': '邹王君',
+  '2026-06-21': '邹王君',
+  '2026-06-28': '邹王君',
+};
+
+function getRotationPerson(cfg, key) {
+  const base = new Date(cfg.base + 'T00:00:00');
+  const cur  = new Date(key + 'T00:00:00');
+  const week = Math.round((cur - base) / (7 * 24 * 60 * 60 * 1000));
+  const list = cfg.list;
+  return list[((week % list.length) + list.length) % list.length];
+}
+
+function getSermonForKey(key) {
+  return sermonByDate[key] || '（待上传）';
+}
+
+function getNoticeForKey(key) {
+  return {
+    leader: getRotationPerson(rotationConfig.leader, key),
+    sermon: getSermonForKey(key),
+    prayer: getRotationPerson(rotationConfig.prayer, key),
+  };
+}
 
 // songData: { key: [{title, src}] }
 const songData = {
@@ -935,27 +1047,29 @@ function updateScheduleCollapseUI(){
   btn.classList.toggle('collapsed',scheduleCollapsed);
   txt.textContent=scheduleCollapsed?'展开':'收起';
 }
-function getLeaderPerson(key){
-  const rotation=['贞惠','张荣','上恩','根英','诗泉'];
-  const base=new Date('2026-06-07T00:00:00');
-  const current=new Date(key+'T00:00:00');
-  const week=Math.round((current-base)/(7*24*60*60*1000));
-  return rotation[((week%rotation.length)+rotation.length)%rotation.length];
-}
-function getPrayerPerson(key){
-  const rotation=['吴建斌','林大平','周黛亮','梁水根'];
-  const base=new Date('2026-06-07T00:00:00');
-  const current=new Date(key+'T00:00:00');
-  const week=Math.round((current-base)/(7*24*60*60*1000));
-  return rotation[((week%rotation.length)+rotation.length)%rotation.length];
-}
 function getInitials(n){ if(!n)return'?'; const t=n.trim(); return /[a-zA-Z]/.test(t[0])?t.slice(0,2).toUpperCase():t.slice(0,1); }
 function getSundaysOfMonth(y,m){ const d=new Date(y,m,1),r=[]; while(d.getMonth()===m){if(d.getDay()===0)r.push(new Date(d));d.setDate(d.getDate()+1);}return r; }
 function toKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function monthHasData(y,m){ const p=`${y}-${String(m+1).padStart(2,'0')}-`; return Object.keys(scheduleData).some(k=>k.startsWith(p)); }
 
 // ── State ─────────────────────────────────────────────
-let selectedSunday=null, pickerYear=new Date().getFullYear(), headerCollapsed=false, scheduleCollapsed=false, isAdmin=false;
+let selectedSunday=null, pickerYear=new Date().getFullYear(), headerCollapsed=false, scheduleCollapsed=false, isAdmin=false, viewMode='card';
+
+// ── View mode toggle ──────────────────────────────────
+function setViewMode(mode){
+  viewMode=mode;
+  document.getElementById('viewBtnList').classList.toggle('active', mode==='list');
+  document.getElementById('viewBtnCard').classList.toggle('active', mode==='card');
+  renderShifts(toKey(selectedSunday));
+}
+
+// ── Bible collapse ────────────────────────────────────
+let bibleCollapsed = false;
+function toggleBible(){
+  bibleCollapsed = !bibleCollapsed;
+  const card = document.getElementById('bibleCard');
+  if(card) card.classList.toggle('collapsed', bibleCollapsed);
+}
 
 // ── Collapse ──────────────────────────────────────────
 function toggleCollapse(){
@@ -999,12 +1113,9 @@ function shiftMonth(d){ const n=new Date(selectedSunday.getFullYear(),selectedSu
 // ── Notice ────────────────────────────────────────────
 function renderNotice(key){
   const sec=document.getElementById('noticeSection');
-  const data=noticeData[key];
-  if(!data){ sec.innerHTML=''; return; }
   const d=selectedSunday, dateStr=`${d.getMonth()+1}月${d.getDate()}日（周日）`;
-  const leader=data.leader||getLeaderPerson(key);
-  const prayer=data.prayer||getPrayerPerson(key);
-  const text=`本周主理：${leader} ｜ 证道：${data.sermon} ｜ 祷告：${prayer}`;
+  const data=getNoticeForKey(key);
+  const text=`本周主理：${data.leader} ｜ 证道：${data.sermon} ｜ 祷告：${data.prayer}`;
   sec.innerHTML=`
     <div class="notice-card" onclick="openNoticeDetail('${key}','${dateStr}')">
       <div class="notice-icon-wrap"><i class="ti ti-bell"></i></div>
@@ -1012,14 +1123,12 @@ function renderNotice(key){
     </div>`;
 }
 function openNoticeDetail(key,dateStr){
-  const data=noticeData[key]; if(!data) return;
-  const leader=data.leader||getLeaderPerson(key);
-  const prayer=data.prayer||getPrayerPerson(key);
+  const data=getNoticeForKey(key);
   document.getElementById('noticeDetailTitle').textContent=`本周通知 · ${dateStr}`;
   document.getElementById('noticeDetailBody').innerHTML=`
     <div class="notice-detail-row">
       <div class="nd-icon" style="background:#FAECE7"><i class="ti ti-microphone" style="color:#993C1D"></i></div>
-      <div><div class="nd-label">主理</div><div class="nd-value">${leader}</div></div>
+      <div><div class="nd-label">主理</div><div class="nd-value">${data.leader}</div></div>
     </div>
     <div class="notice-detail-row">
       <div class="nd-icon" style="background:#B5D4F4"><i class="ti ti-book" style="color:#185FA5"></i></div>
@@ -1027,7 +1136,7 @@ function openNoticeDetail(key,dateStr){
     </div>
     <div class="notice-detail-row">
       <div class="nd-icon" style="background:#C0DD97"><i class="ti ti-pray" style="color:#3B6D11"></i></div>
-      <div><div class="nd-label">祷告</div><div class="nd-value">${prayer}</div></div>
+      <div><div class="nd-label">祷告</div><div class="nd-value">${data.prayer}</div></div>
     </div>`;
   document.getElementById('noticeDetailOverlay').classList.add('open');
 }
@@ -1119,28 +1228,34 @@ function saveUploadedSongs(){
   render();
 }
 
-// ── Render ────────────────────────────────────────────
-function render(){
-  const d=selectedSunday, year=d.getFullYear(), month=d.getMonth();
-  const sundays=getSundaysOfMonth(year,month);
-  const now=new Date();
-  const zhWeek=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
-  document.getElementById('hdrDay').textContent=headerCollapsed ? ZH_MONTHS[month]+'月份' : now.getDate();
-  document.getElementById('hdrInfo').textContent=`${zhWeek[now.getDay()]}  ${now.getMonth()+1}月 ${now.getFullYear()}`;
-  document.getElementById('hdrMini').textContent='敬拜排班表';
-  const lbl=document.getElementById('cardDateLabel');
-  if(lbl) lbl.innerHTML=`${month+1}月${d.getDate()}日&nbsp;<span>周日</span>`;
-  // Sunday pills
-  const nav=document.getElementById('sundayNav'); nav.innerHTML='';
-  sundays.forEach(s=>{ const a=s.toDateString()===d.toDateString(); const p=document.createElement('div'); p.className='sunday-pill'+(a?' active':''); p.innerHTML=`<span class="s-label">日</span><span class="s-num">${s.getDate()}</span>`; p.onclick=()=>{selectedSunday=s;render();}; nav.appendChild(p); });
-  const key=toKey(d);
-  renderNotice(key);
-  renderSongs(key);
-  // Shifts
+// ── Render shifts (list or card view) ────────────────
+function renderShifts(key){
   const shifts=scheduleData[key]||[];
   const list=document.getElementById('shiftList'); list.innerHTML='';
-  if(!shifts.length){ list.innerHTML=`<div class="empty-state"><i class="ti ti-calendar-off"></i>本月暂未排班</div>`; }
-  else{
+  if(!shifts.length){ list.innerHTML=`<div class="empty-state"><i class="ti ti-calendar-off"></i>本月暂未排班</div>`; return; }
+
+  if(viewMode==='card'){
+    const wrap=document.createElement('div'); wrap.className='card-view-list';
+    shifts.forEach(s=>{
+      const col=roleColors[s.role]||{bg:'#f0f0ee',text:'#444',badgeBg:'#888',badgeText:'#fff',icon:'ti-user'};
+      const ec=isAdmin?' editable':'';
+      const editHandler=isAdmin?`onclick="openEditDrawer('${s.role}','${key}')"` : '';
+      const chips=s.persons.map(p=>`<span class="cvi-chip">${p}</span>`).join('');
+      const item=document.createElement('div');
+      item.className=`card-view-item${ec}`;
+      item.style.cssText=`background:${col.bg};color:${col.text}`;
+      if(isAdmin) item.setAttribute('onclick',`openEditDrawer('${s.role}','${key}')`);
+      item.innerHTML=`
+        <button class="cvi-edit-btn" onclick="event.stopPropagation();openEditDrawer('${s.role}','${key}')">✎ 编辑</button>
+        <div class="cvi-header">
+          <div class="cvi-icon"><i class="ti ${col.icon}" style="color:${col.text}"></i></div>
+          <span class="cvi-role">${s.role}</span>
+        </div>
+        <div class="cvi-chips">${chips}</div>`;
+      wrap.appendChild(item);
+    });
+    list.appendChild(wrap);
+  } else {
     shifts.forEach((s,i)=>{
       const isFirst=i===0;
       const col=roleColors[s.role]||{bg:'#ddd',text:'#444',badgeBg:'#888',badgeText:'#fff',icon:'ti-user'};
@@ -1158,6 +1273,50 @@ function render(){
       list.appendChild(row);
     });
   }
+}
+function render(){
+  const d=selectedSunday, year=d.getFullYear(), month=d.getMonth();
+  const sundays=getSundaysOfMonth(year,month);
+  const now=new Date();
+  const zhWeek=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  document.getElementById('hdrDay').textContent=headerCollapsed ? ZH_MONTHS[month]+'月份' : now.getDate();
+  document.getElementById('hdrInfo').textContent=`${zhWeek[now.getDay()]}  ${now.getMonth()+1}月 ${now.getFullYear()}`;
+  document.getElementById('hdrMini').textContent='敬拜排班表';
+  const lbl=document.getElementById('cardDateLabel');
+  if(lbl) lbl.innerHTML=`${month+1}月${d.getDate()}日&nbsp;<span>周日</span>`;
+  // Sunday pills
+  const nav=document.getElementById('sundayNav'); nav.innerHTML='';
+  sundays.forEach(s=>{ const a=s.toDateString()===d.toDateString(); const p=document.createElement('div'); p.className='sunday-pill'+(a?' active':''); p.innerHTML=`<span class="s-label">日</span><span class="s-num">${s.getDate()}</span>`; p.onclick=()=>{selectedSunday=s;render();}; nav.appendChild(p); });
+  const key=toKey(d);
+  renderNotice(key);
+
+  // Inject bible card into #bibleSection once
+  const bibleSec=document.getElementById('bibleSection');
+  if(bibleSec && !bibleSec.hasChildNodes()){
+    bibleSec.innerHTML=`
+      <div class="bible-search-card" id="bibleCard">
+        <div class="bible-search-head" onclick="toggleBible()">
+          <div class="bible-search-head-left">
+            <div class="bible-search-icon"><i class="ti ti-book-2"></i></div>
+            <div class="bible-search-title">圣经</div>
+          </div>
+          <button class="bible-collapse-btn" id="bibleCollapseBtn" aria-label="收起/展开"><i class="ti ti-chevron-up"></i></button>
+        </div>
+        <div class="bible-body">
+          <div class="bible-select-row">
+            <select class="bible-select" id="bibleBookSelect" onchange="updateBibleChapterOptions()"></select>
+            <select class="bible-select bible-chapter-select" id="bibleChapterSelect"></select>
+            <button class="bible-search-btn" onclick="loadBibleChapter()"><i class="ti ti-book"></i>读取</button>
+          </div>
+          <div class="bible-source-link" id="bibleSourceLink"></div>
+          <div class="bible-result-list" id="bibleResultList"></div>
+        </div>
+      </div>`;
+    initBibleSelectors();
+  }
+
+  renderSongs(key);
+  renderShifts(key);
   const ab=document.getElementById('addShiftBtn'); if(ab) ab.style.display=isAdmin?'flex':'none';
   updateAdminUI();
 }
@@ -1386,7 +1545,95 @@ function goToday(){
   if(!t){ const f=s.filter(x=>x>=now); t=f.length?f[0]:s[s.length-1]; }
   selectedSunday=t; updateAdminUI(); render();
 }
-initBibleSelectors();
+// ── Roster management ────────────────────────────────
+function openRoster(){
+  renderRosterChips('leader');
+  renderRosterChips('prayer');
+  document.getElementById('leaderBase').value = rotationConfig.leader.base;
+  document.getElementById('prayerBase').value = rotationConfig.prayer.base;
+  // Default to currently selected month
+  const d = selectedSunday || new Date();
+  const monthVal = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('sermonMonthInput').value = monthVal;
+  renderSermonMonthUI();
+  document.getElementById('rosterOverlay').classList.add('open');
+}
+function closeRoster(e){
+  if(!e || e.target===document.getElementById('rosterOverlay'))
+    document.getElementById('rosterOverlay').classList.remove('open');
+  render();
+}
+
+function renderRosterChips(type){
+  const cfg = rotationConfig[type];
+  const containerId = type==='leader' ? 'leaderChips' : 'prayerChips';
+  const container = document.getElementById(containerId);
+  container.innerHTML = cfg.list.map((name,i) =>
+    `<div style="display:flex;align-items:center;gap:4px;background:#f5f5f2;border-radius:20px;padding:5px 8px 5px 12px;font-size:13px;color:#444">
+      <span>${name}</span>
+      <button onclick="removeRosterPerson('${type}',${i})" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:13px;padding:0 2px;line-height:1">×</button>
+    </div>`
+  ).join('');
+}
+
+function addRosterPerson(type){
+  const inputId = type==='leader' ? 'leaderInput' : 'prayerInput';
+  const inp = document.getElementById(inputId);
+  const name = inp.value.trim();
+  if(!name) return;
+  rotationConfig[type].list.push(name);
+  inp.value = '';
+  renderRosterChips(type);
+}
+
+function removeRosterPerson(type, idx){
+  rotationConfig[type].list.splice(idx, 1);
+  renderRosterChips(type);
+}
+
+function saveRosterBase(type, val){
+  if(val) rotationConfig[type].base = val;
+}
+
+function renderSermonMonthUI(){
+  const val = document.getElementById('sermonMonthInput').value; // 'YYYY-MM'
+  const container = document.getElementById('sermonMonthList');
+  if(!val){ container.innerHTML = '<div style="color:#bbb;font-size:13px;text-align:center;padding:8px 0">请先选择月份</div>'; return; }
+  const [y, m] = val.split('-').map(Number);
+  const sundays = getSundaysOfMonth(y, m - 1);
+  if(!sundays.length){ container.innerHTML = '<div style="color:#bbb;font-size:13px;text-align:center;padding:8px 0">该月无周日</div>'; return; }
+  container.innerHTML = sundays.map(s => {
+    const key = toKey(s);
+    const current = sermonByDate[key] || '';
+    const label = `${m}月${s.getDate()}日（周日）`;
+    return `<div style="display:flex;align-items:center;gap:8px;background:#f8f8f6;border-radius:12px;padding:10px 12px">
+      <span style="font-size:12px;font-weight:500;color:#888;min-width:100px;flex-shrink:0">${label}</span>
+      <input value="${current}" placeholder="证道人姓名"
+        id="sermon-inp-${key}"
+        style="flex:1;padding:6px 10px;border:1.5px solid rgba(0,0,0,0.1);border-radius:20px;font-size:13px;outline:none;font-family:inherit"
+        onfocus="this.style.borderColor='#185FA5'"
+        onblur="this.style.borderColor='rgba(0,0,0,0.1)'"
+        onkeydown="if(event.key==='Enter'){saveSermonDate('${key}',this.value);this.blur();}">
+      <button onclick="saveSermonDate('${key}',document.getElementById('sermon-inp-${key}').value)"
+        style="background:#185FA5;color:#fff;border:none;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap">
+        保存
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function saveSermonDate(key, name){
+  const val = name.trim();
+  if(val) sermonByDate[key] = val;
+  else delete sermonByDate[key];
+  // visual feedback
+  const inp = document.getElementById(`sermon-inp-${key}`);
+  if(inp){
+    inp.style.borderColor = '#1D9E75';
+    setTimeout(() => inp.style.borderColor = 'rgba(0,0,0,0.1)', 1000);
+  }
+}
+
 goToday();
 </script>
 </body>
