@@ -259,7 +259,7 @@ body {
   align-items: center; justify-content: center; flex-direction: column; gap: 12px;
 }
 .lightbox.open { display: flex; }
-.lightbox img { max-width: 92vw; max-height: 80vh; border-radius: 12px; object-fit: contain; }
+.lightbox img { max-width: 92vw; max-height: 80vh; border-radius: 12px; object-fit: contain; user-select: none; }
 .lightbox-close {
   position: absolute; top: 16px; right: 16px;
   background: rgba(255,255,255,0.15); border: none; color: #fff;
@@ -267,6 +267,22 @@ body {
   display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px;
 }
 .lightbox-title { color: rgba(255,255,255,0.8); font-size: 14px; }
+.lightbox-nav-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,0.12); border: none; color: #fff;
+  border-radius: 50%; width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 20px; transition: background 0.15s;
+}
+.lightbox-nav-btn:hover:not(:disabled) { background: rgba(255,255,255,0.25); }
+.lightbox-nav-btn:disabled { opacity: 0.25; cursor: default; }
+.lightbox-nav-btn.prev { left: 14px; }
+.lightbox-nav-btn.next { right: 14px; }
+.lightbox-counter {
+  position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500;
+  background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 20px;
+}
 
 /* ── Upload song modal ────────────────────────────── */
 .upload-modal {
@@ -525,6 +541,7 @@ body {
 .bible-text { font-size: 13px; color: #444; line-height: 1.6; }
 .bible-empty { text-align: center; color: #aaa; font-size: 13px; padding: 12px 4px 4px; line-height: 1.6; }
 .bible-select-row { display: grid; grid-template-columns: minmax(0, 1fr) 82px auto; gap: 8px; }
+.bible-select-row.with-version { grid-template-columns: minmax(0,0.9fr) minmax(0,1.3fr) 72px; }
 .bible-select {
   width: 100%; min-width: 0; padding: 10px 10px; border: 1.5px solid rgba(0,0,0,0.1);
   border-radius: 12px; font-size: 14px; color: #1a1a1a; outline: none; font-family: inherit; background: #fff;
@@ -547,6 +564,88 @@ body {
   border-radius: 10px; padding: 7px 12px; color: #666; font-size: 12px;
   cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 5px;
 }
+
+/* ── Bible toolbar: nav + font + fullscreen ───────────── */
+.bible-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 10px; gap: 8px; flex-wrap: wrap;
+}
+.bible-nav-group { display: flex; align-items: center; gap: 4px; }
+.bible-nav-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 9px; border: 1.5px solid rgba(0,0,0,0.1);
+  background: #fff; color: #555; cursor: pointer; font-size: 15px; transition: all 0.15s;
+  flex-shrink: 0;
+}
+.bible-nav-btn:hover:not(:disabled) { border-color: #1D9E75; color: #1D9E75; background: #e8f5f0; }
+.bible-nav-btn:disabled { opacity: 0.35; cursor: default; }
+.bible-nav-label { font-size: 12px; color: #888; padding: 0 4px; white-space: nowrap; }
+.bible-tool-group { display: flex; align-items: center; gap: 6px; }
+.bible-tool-btn {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  height: 32px; padding: 0 11px; border-radius: 9px; border: 1.5px solid rgba(0,0,0,0.1);
+  background: #fff; color: #555; cursor: pointer; font-size: 12px; font-weight: 500;
+  font-family: inherit; transition: all 0.15s;
+}
+.bible-tool-btn:hover { border-color: #1D9E75; color: #1D9E75; background: #e8f5f0; }
+.bible-tool-btn.active { background: #1D9E75; border-color: #1D9E75; color: #fff; }
+
+/* Font size popover */
+.font-popover-wrap { position: relative; }
+.font-popover {
+  display: none; position: absolute; bottom: calc(100% + 8px); right: 0;
+  background: #fff; border-radius: 14px; padding: 14px 16px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.15); width: 200px; z-index: 50;
+}
+.font-popover.open { display: block; }
+.font-popover-label { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 8px; }
+.font-popover-label span:last-child { font-weight: 600; color: #1D9E75; }
+.font-slider {
+  width: 100%; height: 4px; border-radius: 2px; background: #eee;
+  -webkit-appearance: none; appearance: none; outline: none; cursor: pointer;
+}
+.font-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 18px; height: 18px;
+  border-radius: 50%; background: #1D9E75; cursor: pointer; border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+.font-slider::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%; background: #1D9E75; cursor: pointer;
+  border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+.font-preview-row { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: #ccc; }
+
+/* ── Fullscreen reading mode ──────────────────────────── */
+.bible-fullscreen-overlay {
+  display: none; position: fixed; inset: 0; background: #fdfdfb; z-index: 500;
+  flex-direction: column;
+}
+.bible-fullscreen-overlay.open { display: flex; }
+.bfs-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid rgba(0,0,0,0.06); flex-shrink: 0;
+  background: #fff;
+}
+.bfs-title { font-size: 15px; font-weight: 700; color: #1a1a1a; }
+.bfs-close-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 10px; border: none;
+  background: #f0f0ee; color: #666; cursor: pointer; font-size: 17px;
+}
+.bfs-close-btn:hover { background: #e5e5e2; }
+.bfs-body { flex: 1; overflow-y: auto; padding: 18px 20px 40px; max-width: 640px; margin: 0 auto; width: 100%; }
+.bfs-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 16px; border-top: 1px solid rgba(0,0,0,0.06); flex-shrink: 0; background: #fff;
+}
+.bfs-nav-btn {
+  display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 12px;
+  border: 1.5px solid rgba(0,0,0,0.1); background: #fff; color: #444; cursor: pointer;
+  font-size: 13px; font-weight: 500; font-family: inherit; transition: all 0.15s;
+}
+.bfs-nav-btn:hover:not(:disabled) { border-color: #1D9E75; color: #1D9E75; }
+.bfs-nav-btn:disabled { opacity: 0.3; cursor: default; }
+.bfs-footer-center { font-size: 12px; color: #aaa; flex: 1; text-align: center; }
 #exportCanvas { display: none; }
 </style>
 </head>
@@ -722,9 +821,26 @@ body {
 </div>
 
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
-  <button class="lightbox-close"><i class="ti ti-x"></i></button>
-  <img id="lightboxImg" src="" alt="">
+  <button class="lightbox-close" onclick="event.stopPropagation();closeLightbox()"><i class="ti ti-x"></i></button>
+  <span class="lightbox-counter" id="lightboxCounter"></span>
+  <button class="lightbox-nav-btn prev" id="lightboxPrev" onclick="event.stopPropagation();stepLightbox(-1)"><i class="ti ti-chevron-left"></i></button>
+  <img id="lightboxImg" src="" alt="" onclick="event.stopPropagation()">
+  <button class="lightbox-nav-btn next" id="lightboxNext" onclick="event.stopPropagation();stepLightbox(1)"><i class="ti ti-chevron-right"></i></button>
   <div class="lightbox-title" id="lightboxTitle"></div>
+</div>
+
+<!-- Bible fullscreen reading mode -->
+<div class="bible-fullscreen-overlay" id="bibleFullscreenOverlay">
+  <div class="bfs-header">
+    <div class="bfs-title" id="bfsTitle">圣经</div>
+    <button class="bfs-close-btn" onclick="closeBibleFullscreen()" aria-label="关闭"><i class="ti ti-x"></i></button>
+  </div>
+  <div class="bfs-body" id="bfsBody"></div>
+  <div class="bfs-footer">
+    <button class="bfs-nav-btn" id="bfsPrev" onclick="stepBibleChapter(-1,true)"><i class="ti ti-chevron-left"></i>上一章</button>
+    <span class="bfs-footer-center" id="bfsLabel"></span>
+    <button class="bfs-nav-btn" id="bfsNext" onclick="stepBibleChapter(1,true)">下一章<i class="ti ti-chevron-right"></i></button>
+  </div>
 </div>
 
 <!-- ── Scroll area ─────────────────────────────────────── -->
@@ -960,56 +1076,57 @@ const BIBLE_BOOKS = [
   {name:'犹大书', abbr:'jud', chapters:1},
   {name:'启示录', abbr:'rev', chapters:22},
 ];
-let bibleLines = null;
-let bibleIndex = {};
+// ── Bible versions (local text files, format: BOOK chap:verse text) ──
+const BIBLE_VERSIONS = [
+  { id:'cunp',   name:'和合本（CUNP）',     file:'./cmn-cu89s_vpl.txt' },
+  { id:'cunpss', name:'和合本（神版）',     file:'./cmn-cu89ss_vpl.txt' },
+  { id:'rcuv',   name:'和合本修订版（RCUV）', file:'./cmn-rcuv_vpl.txt' },
+];
+let currentBibleVersion = BIBLE_VERSIONS[0].id;
+const bibleLinesCache = {};   // versionId -> lines[]
+const bibleIndexCache = {};   // versionId -> { 'BOOK_chap': [{verse,text}] }
+let bibleFontSize = 15;
 
-async function loadBibleFile(){
-
-  if(bibleLines) return;
-
-  const res = await fetch('./cmn-cu89s_vpl.txt');
-
-  if(!res.ok){
-    throw new Error('无法加载 cmn-cu89s_vpl.txt');
-  }
-
+async function loadBibleFile(versionId){
+  if(bibleIndexCache[versionId]) return;
+  const ver = BIBLE_VERSIONS.find(v=>v.id===versionId);
+  if(!ver) throw new Error('未知版本');
+  const res = await fetch(ver.file);
+  if(!res.ok) throw new Error(`无法加载 ${ver.file}`);
   const text = await res.text();
-
-  bibleLines = text.split(/\r?\n/);
-
-  bibleIndex = {};
-
-  bibleLines.forEach(line=>{
-
-    const match =
-      line.match(
-        /^([A-Z0-9]+)\s+(\d+):(\d+)\s+(.*)$/
-      );
-
+  const lines = text.split(/\r?\n/);
+  const index = {};
+  lines.forEach(line=>{
+    const match = line.match(/^([A-Z0-9]+)\s+(\d+):(\d+)\s+(.*)$/);
     if(!match) return;
-
-    const key =
-      `${match[1]}_${match[2]}`;
-
-    if(!bibleIndex[key]){
-      bibleIndex[key]=[];
-    }
-
-    bibleIndex[key].push({
-      verse:Number(match[3]),
-      text:match[4]
-    });
-
+    const key = `${match[1]}_${match[2]}`;
+    if(!index[key]) index[key]=[];
+    index[key].push({ verse:Number(match[3]), text:match[4] });
   });
-
+  bibleLinesCache[versionId]=lines;
+  bibleIndexCache[versionId]=index;
 }
+
 function escapeHtml(str){ return String(str).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+
 function initBibleSelectors(){
+  const verSel=document.getElementById('bibleVersionSelect');
+  if(verSel){
+    verSel.innerHTML=BIBLE_VERSIONS.map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
+    verSel.value=currentBibleVersion;
+  }
   const bookSel=document.getElementById('bibleBookSelect');
   if(!bookSel) return;
   bookSel.innerHTML=BIBLE_BOOKS.map(b=>`<option value="${b.abbr}">${b.name}</option>`).join('');
   bookSel.value='gen';
   updateBibleChapterOptions(1);
+  // restore saved font size
+  const fs=document.getElementById('fontSlider');
+  if(fs){ fs.value=bibleFontSize; document.getElementById('fontSizeVal').textContent=bibleFontSize+'px'; }
+}
+function onBibleVersionChange(){
+  currentBibleVersion=document.getElementById('bibleVersionSelect').value;
+  loadBibleChapter();
 }
 function getSelectedBibleBook(){
   const bookSel=document.getElementById('bibleBookSelect');
@@ -1023,102 +1140,135 @@ function updateBibleChapterOptions(preferredChapter){
   chapterSel.innerHTML=Array.from({length:book.chapters},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
   chapterSel.value=String(Math.min(current,book.chapters));
   updateBibleSourceLink();
+  updateBibleNavState();
+}
+function updateBibleSourceLink(){
+  const link=document.getElementById('bibleSourceLink');
+  if(!link) return;
+  const ver=BIBLE_VERSIONS.find(v=>v.id===currentBibleVersion);
+  link.innerHTML=`${ver?ver.name:''} · 本地版`;
+}
+function updateBibleNavState(){
+  const book=getSelectedBibleBook();
+  const chapterSel=document.getElementById('bibleChapterSelect');
+  const chapter=parseInt(chapterSel?.value,10)||1;
+  const bookIdx=BIBLE_BOOKS.findIndex(b=>b.abbr===book.abbr);
+  const isFirst = bookIdx===0 && chapter===1;
+  const isLast  = bookIdx===BIBLE_BOOKS.length-1 && chapter===book.chapters;
+  ['bibleChapPrev','bfsPrev'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=isFirst; });
+  ['bibleChapNext','bfsNext'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=isLast; });
+  const label=`${book.name} 第 ${chapter} 章`;
+  const navLabel=document.getElementById('bibleNavLabel'); if(navLabel) navLabel.textContent=label;
+  const bfsLabel=document.getElementById('bfsLabel'); if(bfsLabel) bfsLabel.textContent=label;
+  const bfsTitle=document.getElementById('bfsTitle'); if(bfsTitle) bfsTitle.textContent=label;
 }
 
-function updateBibleSourceLink(){
+function stepBibleChapter(delta, fromFullscreen){
+  const book=getSelectedBibleBook();
+  const chapterSel=document.getElementById('bibleChapterSelect');
+  let chapter=parseInt(chapterSel.value,10)||1;
+  let bookIdx=BIBLE_BOOKS.findIndex(b=>b.abbr===book.abbr);
 
-  const link =
-    document.getElementById(
-      'bibleSourceLink'
-    );
+  chapter += delta;
+  if(chapter < 1){
+    bookIdx -= 1;
+    if(bookIdx < 0) return; // already at very start
+    chapter = BIBLE_BOOKS[bookIdx].chapters;
+  } else if(chapter > book.chapters){
+    bookIdx += 1;
+    if(bookIdx >= BIBLE_BOOKS.length) return; // already at very end
+    chapter = 1;
+  }
 
-  if(!link) return;
-
-  link.innerHTML =
-    '和合本（CUNP）本地版';
-
+  const newBook = bookIdx===BIBLE_BOOKS.findIndex(b=>b.abbr===book.abbr) ? book : BIBLE_BOOKS[bookIdx];
+  document.getElementById('bibleBookSelect').value = newBook.abbr;
+  updateBibleChapterOptions(chapter);
+  loadBibleChapter().then(()=>{ if(fromFullscreen) document.getElementById('bfsBody').scrollTop = 0; });
 }
 
 async function loadBibleChapter(){
-
-  const list =
-    document.getElementById(
-      'bibleResultList'
-    );
-
+  const list=document.getElementById('bibleResultList');
   if(!list) return;
-
-  const book =
-    getSelectedBibleBook();
-
-  const chapter =
-    Number(
-      document.getElementById(
-        'bibleChapterSelect'
-      ).value
-    );
-
-  list.innerHTML =
-    '<div class="bible-loading">正在加载经文...</div>';
-
+  const book=getSelectedBibleBook();
+  const chapter=Number(document.getElementById('bibleChapterSelect').value);
+  updateBibleSourceLink();
+  updateBibleNavState();
+  list.innerHTML='<div class="bible-loading">正在加载经文...</div>';
   try{
-
-    await loadBibleFile();
-
-    const key =
-      `${book.abbr.toUpperCase()}_${chapter}`;
-
-    const verses =
-      bibleIndex[key] || [];
-
+    await loadBibleFile(currentBibleVersion);
+    const index=bibleIndexCache[currentBibleVersion];
+    const key=`${book.abbr.toUpperCase()}_${chapter}`;
+    const verses=index[key]||[];
     if(!verses.length){
-
-      list.innerHTML =
-      `<div class="bible-empty">
-        没有找到经文
-      </div>`;
-
+      list.innerHTML=`<div class="bible-empty">没有找到经文</div>`;
+      syncFullscreenBody(list.innerHTML);
       return;
     }
-
-    let html = `
-      <div class="bible-result-item">
-        <div class="bible-chapter-title">
-          ${book.name} 第 ${chapter} 章
-        </div>
-    `;
-
-    verses.forEach(v=>{
-
-      html += `
-        <div class="bible-verse">
-          <span class="bible-verse-num">
-            ${v.verse}
-          </span>
-
-          <div class="bible-verse-text">
-            ${escapeHtml(v.text)}
-          </div>
-        </div>
-      `;
-
-    });
-
-    html += '</div>';
-
-    list.innerHTML = html;
-
+    const html=renderBibleVerses(book.name, chapter, verses);
+    list.innerHTML=html;
+    applyBibleFontSize();
+    syncFullscreenBody(html);
   }catch(err){
-
     console.error(err);
-
-    list.innerHTML =
-    `<div class="bible-empty">
-      圣经文件读取失败
+    const ver=BIBLE_VERSIONS.find(v=>v.id===currentBibleVersion);
+    const msg=`<div class="bible-empty">
+      <i class="ti ti-file-off" style="font-size:26px;display:block;margin-bottom:8px;color:#ddd"></i>
+      未找到经文文件 <code style="font-size:11px">${ver?ver.file:''}</code><br>
+      请将该文本文件与本页面放在同一目录下。
     </div>`;
-
+    list.innerHTML=msg;
+    syncFullscreenBody(msg);
   }
+}
+function renderBibleVerses(bookName, chapter, verses){
+  let html=`<div class="bible-result-item"><div class="bible-chapter-title">${escapeHtml(bookName)} 第 ${chapter} 章</div>`;
+  verses.forEach(v=>{
+    html+=`<div class="bible-verse"><span class="bible-verse-num">${v.verse}</span><div class="bible-verse-text">${escapeHtml(v.text)}</div></div>`;
+  });
+  html+='</div>';
+  return html;
+}
 
+// ── Font size control ─────────────────────────────────
+function toggleFontPopover(e){
+  e.stopPropagation();
+  const pop=document.getElementById('fontPopover');
+  pop.classList.toggle('open');
+}
+document.addEventListener('click', ()=>{
+  const pop=document.getElementById('fontPopover');
+  if(pop) pop.classList.remove('open');
+});
+function onFontSliderChange(val){
+  bibleFontSize=Number(val);
+  document.getElementById('fontSizeVal').textContent=bibleFontSize+'px';
+  applyBibleFontSize();
+}
+function applyBibleFontSize(){
+  document.querySelectorAll('.bible-verse-text').forEach(el=>{ el.style.fontSize=bibleFontSize+'px'; });
+  document.querySelectorAll('.bible-chapter-title').forEach(el=>{ el.style.fontSize=(bibleFontSize+2)+'px'; });
+}
+
+// ── Fullscreen reading mode ───────────────────────────
+function openBibleFullscreen(){
+  const overlay=document.getElementById('bibleFullscreenOverlay');
+  const body=document.getElementById('bfsBody');
+  body.innerHTML=document.getElementById('bibleResultList').innerHTML;
+  applyBibleFontSize();
+  updateBibleNavState();
+  overlay.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeBibleFullscreen(){
+  document.getElementById('bibleFullscreenOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+function syncFullscreenBody(html){
+  const overlay=document.getElementById('bibleFullscreenOverlay');
+  if(overlay && overlay.classList.contains('open')){
+    document.getElementById('bfsBody').innerHTML=html;
+    applyBibleFontSize();
+  }
 }
 function toggleScheduleSection(){
   scheduleCollapsed=!scheduleCollapsed;
@@ -1227,6 +1377,7 @@ function openNoticeDetail(key,dateStr){
 
 // ── Songs ─────────────────────────────────────────────
 let uploadEditKey=null, uploadDraft=[];
+let lightboxSongs=[], lightboxIndex=0;
 
 function renderSongs(key){
   const sec=document.getElementById('songSection');
@@ -1242,7 +1393,7 @@ function renderSongs(key){
     const img=s.src
       ? `<img src="${s.src}" alt="${s.title}" loading="lazy">`
       : `<div class="song-card-placeholder"><i class="ti ti-photo"></i></div>`;
-    const click=s.src?`openLightbox('${s.src.replace(/'/g,"\\'")}','${s.title.replace(/'/g,"\\'")}')`:''
+    const click=s.src?`openLightbox('${key}',${i})`:''
     return `<div class="song-card" onclick="${click}">${img}<div class="song-card-label">${s.title}</div></div>`;
   }).join('');
   const pages=Math.ceil(songs.length/3);
@@ -1256,12 +1407,66 @@ function updateDots(el,pages){
   const idx=Math.round(el.scrollLeft/(el.scrollWidth/pages));
   document.querySelectorAll('.song-dot').forEach((d,i)=>d.classList.toggle('active',i===idx));
 }
-function openLightbox(src,title){
-  document.getElementById('lightboxImg').src=src;
-  document.getElementById('lightboxTitle').textContent=title;
+
+function openLightbox(key, index){
+  const songs=(songData[key]||[]).filter(s=>s.src);
+  // map index from full list to filtered list with src
+  const fullList=songData[key]||[];
+  const targetSrc=fullList[index]?.src;
+  const filteredIdx=songs.findIndex(s=>s===fullList[index]);
+  lightboxSongs=songs;
+  lightboxIndex=filteredIdx>=0?filteredIdx:0;
+  showLightboxImage();
   document.getElementById('lightbox').classList.add('open');
+  document.addEventListener('keydown', onLightboxKeydown);
 }
-function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); }
+function showLightboxImage(){
+  const s=lightboxSongs[lightboxIndex];
+  if(!s) return;
+  document.getElementById('lightboxImg').src=s.src;
+  document.getElementById('lightboxTitle').textContent=s.title;
+  const total=lightboxSongs.length;
+  document.getElementById('lightboxCounter').textContent=total>1?`${lightboxIndex+1} / ${total}`:'';
+  document.getElementById('lightboxPrev').style.display=total>1?'flex':'none';
+  document.getElementById('lightboxNext').style.display=total>1?'flex':'none';
+  document.getElementById('lightboxPrev').disabled=lightboxIndex<=0;
+  document.getElementById('lightboxNext').disabled=lightboxIndex>=total-1;
+}
+function stepLightbox(delta){
+  const newIdx=lightboxIndex+delta;
+  if(newIdx<0||newIdx>=lightboxSongs.length) return;
+  lightboxIndex=newIdx;
+  showLightboxImage();
+}
+function onLightboxKeydown(e){
+  if(e.key==='ArrowLeft') stepLightbox(-1);
+  else if(e.key==='ArrowRight') stepLightbox(1);
+  else if(e.key==='Escape') closeLightbox();
+}
+function closeLightbox(){
+  document.getElementById('lightbox').classList.remove('open');
+  document.removeEventListener('keydown', onLightboxKeydown);
+}
+
+// Swipe support for lightbox
+(function(){
+  let touchStartX=0, touchStartY=0;
+  document.addEventListener('touchstart', e=>{
+    const lb=document.getElementById('lightbox');
+    if(!lb||!lb.classList.contains('open')) return;
+    touchStartX=e.touches[0].clientX;
+    touchStartY=e.touches[0].clientY;
+  }, {passive:true});
+  document.addEventListener('touchend', e=>{
+    const lb=document.getElementById('lightbox');
+    if(!lb||!lb.classList.contains('open')) return;
+    const dx=e.changedTouches[0].clientX-touchStartX;
+    const dy=e.changedTouches[0].clientY-touchStartY;
+    if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)){
+      if(dx>0) stepLightbox(-1); else stepLightbox(1);
+    }
+  }, {passive:true});
+})();
 
 // Upload songs
 function openUploadSong(key){
@@ -1387,10 +1592,29 @@ function render(){
           <button class="bible-collapse-btn" id="bibleCollapseBtn" aria-label="收起/展开"><i class="ti ti-chevron-up"></i></button>
         </div>
         <div class="bible-body">
-          <div class="bible-select-row">
+          <div class="bible-select-row with-version">
+            <select class="bible-select" id="bibleVersionSelect" onchange="onBibleVersionChange()"></select>
             <select class="bible-select" id="bibleBookSelect" onchange="updateBibleChapterOptions()"></select>
             <select class="bible-select bible-chapter-select" id="bibleChapterSelect"></select>
-            <button class="bible-search-btn" onclick="loadBibleChapter()"><i class="ti ti-book"></i>读取</button>
+          </div>
+          <div class="bible-toolbar">
+            <div class="bible-nav-group">
+              <button class="bible-nav-btn" id="bibleChapPrev" onclick="stepBibleChapter(-1)" title="上一章"><i class="ti ti-chevron-left"></i></button>
+              <span class="bible-nav-label" id="bibleNavLabel"></span>
+              <button class="bible-nav-btn" id="bibleChapNext" onclick="stepBibleChapter(1)" title="下一章"><i class="ti ti-chevron-right"></i></button>
+            </div>
+            <div class="bible-tool-group">
+              <button class="bible-search-btn" style="padding:0 12px;height:32px" onclick="loadBibleChapter()"><i class="ti ti-book"></i>读取</button>
+              <div class="font-popover-wrap">
+                <button class="bible-tool-btn" id="bibleFontBtn" onclick="toggleFontPopover(event)" title="字体大小"><i class="ti ti-text-size"></i></button>
+                <div class="font-popover" id="fontPopover" onclick="event.stopPropagation()">
+                  <div class="font-popover-label"><span>字体大小</span><span id="fontSizeVal">15px</span></div>
+                  <input type="range" class="font-slider" id="fontSlider" min="12" max="26" value="15" oninput="onFontSliderChange(this.value)">
+                  <div class="font-preview-row"><span>A</span><span style="font-size:18px">A</span></div>
+                </div>
+              </div>
+              <button class="bible-tool-btn" onclick="openBibleFullscreen()" title="全屏阅读"><i class="ti ti-maximize"></i></button>
+            </div>
           </div>
           <div class="bible-source-link" id="bibleSourceLink"></div>
           <div class="bible-result-list" id="bibleResultList"></div>
