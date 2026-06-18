@@ -1008,8 +1008,8 @@ function initBibleSelectors(){
   const bookSel=document.getElementById('bibleBookSelect');
   if(!bookSel) return;
   bookSel.innerHTML=BIBLE_BOOKS.map(b=>`<option value="${b.abbr}">${b.name}</option>`).join('');
-  bookSel.value='jhn';
-  updateBibleChapterOptions(3);
+  bookSel.value='gen';
+  updateBibleChapterOptions(1);
 }
 function getSelectedBibleBook(){
   const bookSel=document.getElementById('bibleBookSelect');
