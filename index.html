@@ -960,6 +960,49 @@ const BIBLE_BOOKS = [
   {name:'犹大书', abbr:'jud', chapters:1},
   {name:'启示录', abbr:'rev', chapters:22},
 ];
+let bibleLines = null;
+let bibleIndex = {};
+
+async function loadBibleFile(){
+
+  if(bibleLines) return;
+
+  const res = await fetch('./cmn-cu89s_vpl.txt');
+
+  if(!res.ok){
+    throw new Error('无法加载 cmn-cu89s_vpl.txt');
+  }
+
+  const text = await res.text();
+
+  bibleLines = text.split(/\r?\n/);
+
+  bibleIndex = {};
+
+  bibleLines.forEach(line=>{
+
+    const match =
+      line.match(
+        /^([A-Z0-9]+)\s+(\d+):(\d+)\s+(.*)$/
+      );
+
+    if(!match) return;
+
+    const key =
+      `${match[1]}_${match[2]}`;
+
+    if(!bibleIndex[key]){
+      bibleIndex[key]=[];
+    }
+
+    bibleIndex[key].push({
+      verse:Number(match[3]),
+      text:match[4]
+    });
+
+  });
+
+}
 function escapeHtml(str){ return String(str).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 function initBibleSelectors(){
   const bookSel=document.getElementById('bibleBookSelect');
@@ -981,60 +1024,101 @@ function updateBibleChapterOptions(preferredChapter){
   chapterSel.value=String(Math.min(current,book.chapters));
   updateBibleSourceLink();
 }
-function getBibleChapterUrl(){
-  const book=getSelectedBibleBook();
-  const chapter=document.getElementById('bibleChapterSelect')?.value||1;
-  return `https://wd.bible/bible/${book.abbr}.${chapter}.cunps`;
-}
+
 function updateBibleSourceLink(){
-  const link=document.getElementById('bibleSourceLink');
+
+  const link =
+    document.getElementById(
+      'bibleSourceLink'
+    );
+
   if(!link) return;
-  const book=getSelectedBibleBook(), chapter=document.getElementById('bibleChapterSelect')?.value||1, url=getBibleChapterUrl();
-  link.innerHTML=`来源：<a href="${url}" target="_blank" rel="noopener">${book.name} ${chapter}章 · 微读圣经</a>`;
+
+  link.innerHTML =
+    '和合本（CUNP）本地版';
+
 }
-function parseBibleChapter(html, bookName, chapter){
-  const doc=new DOMParser().parseFromString(html,'text/html');
-  doc.querySelectorAll('script,style,nav,header,footer,button,input,svg').forEach(el=>el.remove());
-  const raw=(doc.body?.textContent||'').replace(/\u00a0/g,' ');
-  const lines=raw.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-  const titleRe=new RegExp(`${bookName}\\s*第\\s*${chapter}\\s*章`);
-  let start=lines.findIndex(line=>titleRe.test(line));
-  if(start<0) start=lines.findIndex(line=>line.includes(bookName)&&line.includes(`第 ${chapter} 章`));
-  const kept=[];
-  for(let i=Math.max(start+1,0); i<lines.length; i++){
-    const line=lines[i];
-    if(/Copyright|Used by permission|WeDevote|隐私政策|使用条款|反馈|奉献/.test(line)) break;
-    if(/^(首页|圣经|资源|计划|搜索|播放|全屏|版本对照|APP下载|联系我们|更多)$/.test(line)) continue;
-    kept.push(line);
-  }
-  return kept;
-}
-function renderBibleLines(bookName, chapter, lines){
-  if(!lines.length) return '<div class="bible-empty">没有截取到正文，可点击上方来源链接查看原文。</div>';
-  const html=lines.map(line=>{
-    const verse=line.match(/^(\d+)\s*(.+)$/);
-    if(verse) return `<div class="bible-verse"><span class="bible-verse-num">${verse[1]}</span><div class="bible-verse-text">${escapeHtml(verse[2])}</div></div>`;
-    return `<div class="bible-subtitle">${escapeHtml(line.replace(/^#+\s*/,''))}</div>`;
-  }).join('');
-  return `<div class="bible-result-item"><div class="bible-chapter-title">${escapeHtml(bookName)} 第 ${chapter} 章</div>${html}</div>`;
-}
+
 async function loadBibleChapter(){
-  const list=document.getElementById('bibleResultList');
-  const book=getSelectedBibleBook();
-  const chapter=document.getElementById('bibleChapterSelect')?.value||1;
-  const url=getBibleChapterUrl();
-  updateBibleSourceLink();
+
+  const list =
+    document.getElementById(
+      'bibleResultList'
+    );
+
   if(!list) return;
-  list.innerHTML='<div class="bible-loading">正在读取经文...</div>';
+
+  const book =
+    getSelectedBibleBook();
+
+  const chapter =
+    Number(
+      document.getElementById(
+        'bibleChapterSelect'
+      ).value
+    );
+
+  list.innerHTML =
+    '<div class="bible-loading">正在加载经文...</div>';
+
   try{
-    const res=await fetch(url,{mode:'cors'});
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    const html=await res.text();
-    const lines=parseBibleChapter(html,book.name,chapter);
-    list.innerHTML=renderBibleLines(book.name,chapter,lines);
+
+    await loadBibleFile();
+
+    const key =
+      `${book.abbr.toUpperCase()}_${chapter}`;
+
+    const verses =
+      bibleIndex[key] || [];
+
+    if(!verses.length){
+
+      list.innerHTML =
+      `<div class="bible-empty">
+        没有找到经文
+      </div>`;
+
+      return;
+    }
+
+    let html = `
+      <div class="bible-result-item">
+        <div class="bible-chapter-title">
+          ${book.name} 第 ${chapter} 章
+        </div>
+    `;
+
+    verses.forEach(v=>{
+
+      html += `
+        <div class="bible-verse">
+          <span class="bible-verse-num">
+            ${v.verse}
+          </span>
+
+          <div class="bible-verse-text">
+            ${escapeHtml(v.text)}
+          </div>
+        </div>
+      `;
+
+    });
+
+    html += '</div>';
+
+    list.innerHTML = html;
+
   }catch(err){
-    list.innerHTML=`<div class="bible-result-item"><div class="bible-chapter-title">${escapeHtml(book.name)} 第 ${chapter} 章</div><iframe class="bible-frame" src="${url}" loading="lazy"></iframe><div class="bible-empty"><button class="bible-external-btn" onclick="window.open('${url}','_blank')"><i class="ti ti-external-link"></i>打开原文网页</button></div></div>`;
+
+    console.error(err);
+
+    list.innerHTML =
+    `<div class="bible-empty">
+      圣经文件读取失败
+    </div>`;
+
   }
+
 }
 function toggleScheduleSection(){
   scheduleCollapsed=!scheduleCollapsed;
@@ -1633,6 +1717,9 @@ function saveSermonDate(key, name){
     setTimeout(() => inp.style.borderColor = 'rgba(0,0,0,0.1)', 1000);
   }
 }
+
+loadBibleFile()
+  .catch(console.error);
 
 goToday();
 </script>
