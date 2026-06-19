@@ -1616,15 +1616,20 @@ function populateBookOptions(){
   const books = currentTestament==='nt' ? BIBLE_BOOKS.slice(NT_START_INDEX) : BIBLE_BOOKS.slice(0, NT_START_INDEX);
   bookSel.innerHTML = books.map(b=>`<option value="${b.abbr}">${b.name}</option>`).join('');
 }
+function getTestamentLastPosition(testament){
+  const saved = getLastRead(testament);
+  if (saved && saved.bookAbbr && isNewTestamentBook(saved.bookAbbr) === (testament === 'nt')) return saved;
+  return { bookAbbr: testament==='nt' ? 'mat' : 'gen', chapter: 1 };
+}
 function setTestamentFilter(testament, skipLoad){
   currentTestament = testament;
   document.getElementById('testamentBtnOT').classList.toggle('active', testament==='ot');
   document.getElementById('testamentBtnNT').classList.toggle('active', testament==='nt');
   populateBookOptions();
   const bookSel=document.getElementById('bibleBookSelect');
-  const defaultAbbr = testament==='nt' ? 'mat' : 'gen';
-  bookSel.value = defaultAbbr;
-  updateBibleChapterOptions(1);
+  const target = getTestamentLastPosition(testament);
+  bookSel.value = target.bookAbbr;
+  updateBibleChapterOptions(target.chapter);
   if(!skipLoad) loadBibleChapter();
 }
 function onBibleVersionChange(){
@@ -2131,7 +2136,7 @@ function render(){
             </div>
             <div class="bible-book-chapter-row">
               <select class="bible-select" id="bibleBookSelect" onchange="updateBibleChapterOptions()"></select>
-              <select class="bible-select bible-chapter-select" id="bibleChapterSelect"></select>
+              <select class="bible-select bible-chapter-select" id="bibleChapterSelect" onchange="loadBibleChapter()"></select>
             </div>
           </div>
 
