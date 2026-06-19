@@ -323,6 +323,16 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
   background: #fff; border-radius: 18px; padding: 16px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 1rem;
 }
+.sermon-theme-box {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: #f8f8f6; border-radius: 14px; padding: 12px 13px; margin-bottom: 12px;
+}
+.sermon-theme-icon {
+  width: 34px; height: 34px; border-radius: 10px; background: #FAECE7;
+  color: #993C1D; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.sermon-theme-label { font-size: 11px; color: #aaa; margin-bottom: 3px; }
+.sermon-theme-value { font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.5; }
 .sermon-edit-btn {
   display: none; align-items: center; gap: 4px; background: #EEF2FF;
   color: #3B5BDB; border: none; border-radius: 8px; padding: 5px 10px;
@@ -342,10 +352,22 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
   border: 1px solid transparent; cursor: pointer; transition: all 0.15s;
 }
 .sermon-preview-item:hover { border-color: var(--primary); background: var(--primary-light); }
+.sermon-preview-item.open { border-color: var(--primary); background: var(--primary-light); }
 .sermon-preview-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
 .sermon-preview-ref { font-size: 13px; font-weight: 700; color: #1a1a1a; }
-.sermon-preview-tip { font-size: 11px; color: #aaa; white-space: nowrap; }
+.sermon-preview-tip { font-size: 11px; color: #aaa; white-space: nowrap; display:flex; align-items:center; gap:4px; }
+.sermon-preview-tip i { font-size: 14px; transition: transform 0.2s; }
+.sermon-preview-item.open .sermon-preview-tip i { transform: rotate(180deg); }
+.sermon-preview-text-wrap { display: none; padding-top: 2px; }
+.sermon-preview-item.open .sermon-preview-text-wrap { display: block; }
 .sermon-preview-text { font-size: 13px; color: #555; line-height: 1.7; }
+.sermon-preview-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+.sermon-preview-link {
+  display: inline-flex; align-items: center; gap: 4px; background: #fff; color: var(--primary);
+  border: 1px solid rgba(0,0,0,0.08); border-radius: 999px; padding: 5px 10px;
+  font-size: 12px; cursor: pointer; font-family: inherit;
+}
+.sermon-preview-link:hover { border-color: var(--primary); }
 .sermon-preview-empty {
   background: #fff; border-radius: 14px; padding: 24px 16px;
   text-align: center; color: #bbb; font-size: 13px;
@@ -355,6 +377,12 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
 
 /* ── Sermon passage editor ───────────────────────── */
 .sermon-editor-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.sermon-theme-input {
+  width: 100%; padding: 10px 12px; border: 1.5px solid rgba(0,0,0,0.1);
+  border-radius: 12px; font-size: 13px; color: #1a1a1a; outline: none;
+  font-family: inherit; background: #fff; margin-bottom: 12px;
+}
+.sermon-theme-input:focus { border-color: var(--primary); }
 .sermon-editor-row {
   display: flex; align-items: center; gap: 8px;
   background: #f8f8f6; border-radius: 12px; padding: 11px 12px;
@@ -1358,6 +1386,7 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
     <div class="picker-handle"></div>
     <div class="upload-modal-title">设置本周证道经文</div>
     <div class="upload-modal-sub" id="sermonPassageSub"></div>
+    <input class="sermon-theme-input" id="sermonThemeInput" placeholder="输入本周证道主题（可选）">
     <div class="sermon-editor-list" id="sermonPassageList"></div>
     <div class="sermon-add-box">
       <div class="sermon-add-title">添加经文段落</div>
@@ -1538,8 +1567,10 @@ const songData = {
   '2026-06-28': [],
 };
 const LS_SERMON_PASSAGES = 'churchSermonPassages';
+const LS_SERMON_THEMES = 'churchSermonThemes';
 let sermonPassagesByDate = {}; // { 'YYYY-MM-DD': [{ bookAbbr, chapter, verseStart, verseEnd }] }
-let sermonPassageEditKey = null, sermonPassageDraft = [], sermonDraftTestament = 'ot';
+let sermonThemesByDate = {};   // { 'YYYY-MM-DD': '主题' }
+let sermonPassageEditKey = null, sermonPassageDraft = [], sermonThemeDraft = '', sermonDraftTestament = 'ot';
 
 function getBibleBookByAbbr(abbr) {
   return BIBLE_BOOKS.find(b => b.abbr === abbr);
@@ -1550,11 +1581,23 @@ function loadSermonPassages() {
     sermonPassagesByDate = raw ? JSON.parse(raw) : {};
   } catch(e) { sermonPassagesByDate = {}; }
 }
+function loadSermonThemes() {
+  try {
+    const raw = localStorage.getItem(LS_SERMON_THEMES);
+    sermonThemesByDate = raw ? JSON.parse(raw) : {};
+  } catch(e) { sermonThemesByDate = {}; }
+}
 function persistSermonPassages() {
   try { localStorage.setItem(LS_SERMON_PASSAGES, JSON.stringify(sermonPassagesByDate)); } catch(e) {}
 }
+function persistSermonThemes() {
+  try { localStorage.setItem(LS_SERMON_THEMES, JSON.stringify(sermonThemesByDate)); } catch(e) {}
+}
 function getSermonPassagesForKey(key) {
   return Array.isArray(sermonPassagesByDate[key]) ? sermonPassagesByDate[key] : [];
+}
+function getSermonThemeForKey(key) {
+  return sermonThemesByDate[key] || '';
 }
 function formatSermonPassageRef(item) {
   const book = getBibleBookByAbbr(item.bookAbbr);
@@ -2184,25 +2227,38 @@ function renderSermonPassages(key){
   const sec=document.getElementById('sermonPassageSection');
   if(!sec) return;
   const items=getSermonPassagesForKey(key);
+  const theme=getSermonThemeForKey(key).trim();
   const editBtn=`<button class="sermon-edit-btn ${isAdmin?'show':''}" onclick="openSermonPassageEditor('${key}')"><i class="ti ti-edit"></i>设置经文</button>`;
-  if(!items.length){
+  if(!items.length && !theme){
     sec.innerHTML=`
       <div class="sermon-passage-card">
         <div class="section-title-row"><span class="section-ttl">本周证道经文</span>${editBtn}</div>
-        <div class="sermon-preview-empty"><i class="ti ti-book-off"></i>本周证道经文尚未设置</div>
+        <div class="sermon-preview-empty"><i class="ti ti-book-off"></i>本周证道主题与经文尚未设置</div>
       </div>`;
     return;
   }
   const chips=items.map(item=>`<div class="sermon-passage-chip"><i class="ti ti-book-2"></i>${formatSermonPassageRef(item)}</div>`).join('');
+  const themeHtml=theme?`
+      <div class="sermon-theme-box">
+        <div class="sermon-theme-icon"><i class="ti ti-message-circle-2"></i></div>
+        <div>
+          <div class="sermon-theme-label">证道主题</div>
+          <div class="sermon-theme-value">${escapeHtml(theme)}</div>
+        </div>
+      </div>`:'';
+  const previewHtml=items.length
+    ? `<div class="sermon-preview-list" id="sermonPreviewList">
+        <div class="bible-loading">正在加载经文...</div>
+      </div>`
+    : `<div class="sermon-preview-empty"><i class="ti ti-book-off"></i>本周证道经文尚未设置</div>`;
   sec.innerHTML=`
     <div class="sermon-passage-card">
       <div class="section-title-row"><span class="section-ttl">本周证道经文</span>${editBtn}</div>
-      <div class="sermon-passages-list">${chips}</div>
-      <div class="sermon-preview-list" id="sermonPreviewList">
-        <div class="bible-loading">正在加载经文...</div>
-      </div>
+      ${themeHtml}
+      ${items.length ? `<div class="sermon-passages-list">${chips}</div>` : ''}
+      ${previewHtml}
     </div>`;
-  hydrateSermonPassagePreview(key, items);
+  if(items.length) hydrateSermonPassagePreview(key, items);
 }
 async function hydrateSermonPassagePreview(key, items){
   const container=document.getElementById('sermonPreviewList');
@@ -2218,12 +2274,17 @@ async function hydrateSermonPassagePreview(key, items){
       const preview=verses.length
         ? verses.map(v=>`<span style="color:var(--primary);font-weight:600;margin-right:4px">${v.verse}</span>${escapeHtml(v.text)}`).join(' ')
         : '未找到经文内容';
-      return `<div class="sermon-preview-item" onclick="jumpToBibleLocation('${item.bookAbbr}',${item.chapter})">
+      return `<div class="sermon-preview-item" id="sermonPreviewItem-${key}-${item.bookAbbr}-${item.chapter}-${item.verseStart}-${item.verseEnd}" onclick="toggleSermonPreviewItem(this)">
         <div class="sermon-preview-head">
           <div class="sermon-preview-ref">${ref}</div>
-          <div class="sermon-preview-tip">点击跳转</div>
+          <div class="sermon-preview-tip">点击展开<i class="ti ti-chevron-down"></i></div>
         </div>
-        <div class="sermon-preview-text">${preview}</div>
+        <div class="sermon-preview-text-wrap">
+          <div class="sermon-preview-text">${preview}</div>
+          <div class="sermon-preview-actions">
+            <button class="sermon-preview-link" onclick="event.stopPropagation();jumpToBibleLocation('${item.bookAbbr}',${item.chapter})"><i class="ti ti-arrow-right"></i>跳转圣经</button>
+          </div>
+        </div>
       </div>`;
     }).join('');
   }catch(err){
@@ -2233,12 +2294,18 @@ async function hydrateSermonPassagePreview(key, items){
     }
   }
 }
+function toggleSermonPreviewItem(el){
+  if(!el) return;
+  el.classList.toggle('open');
+}
 function openSermonPassageEditor(key){
   if(!isAdmin) return;
   sermonPassageEditKey=key;
   sermonPassageDraft=JSON.parse(JSON.stringify(getSermonPassagesForKey(key)));
+  sermonThemeDraft=getSermonThemeForKey(key);
   const d=new Date(key+'T00:00:00');
   document.getElementById('sermonPassageSub').textContent=`${d.getMonth()+1}月${d.getDate()}日（周日）`;
+  document.getElementById('sermonThemeInput').value=sermonThemeDraft;
   renderSermonPassageDraftList();
   setSermonDraftTestament(currentTestament||'ot');
   document.getElementById('sermonPassageOverlay').classList.add('open');
@@ -2335,12 +2402,16 @@ function addSermonPassageDraft(){
 }
 function saveSermonPassages(){
   if(!sermonPassageEditKey) return;
+  sermonThemeDraft=document.getElementById('sermonThemeInput')?.value.trim()||'';
   if(sermonPassageDraft.length) sermonPassagesByDate[sermonPassageEditKey]=JSON.parse(JSON.stringify(sermonPassageDraft));
   else delete sermonPassagesByDate[sermonPassageEditKey];
+  if(sermonThemeDraft) sermonThemesByDate[sermonPassageEditKey]=sermonThemeDraft;
+  else delete sermonThemesByDate[sermonPassageEditKey];
   persistSermonPassages();
+  persistSermonThemes();
   closeSermonPassageEditor();
   render();
-  showToast('✅ 证道经文已保存');
+  showToast('✅ 证道主题与经文已保存');
 }
 function jumpToBibleLocation(bookAbbr, chapter){
   if (settings.sectionVisible && settings.sectionVisible.bible === false) {
@@ -3382,6 +3453,7 @@ function confirmClearAllCache() {
     localStorage.removeItem('churchAppSettings');
     localStorage.removeItem(LS_BOOKMARKS);
     localStorage.removeItem(LS_SERMON_PASSAGES);
+    localStorage.removeItem(LS_SERMON_THEMES);
     localStorage.removeItem(LS_LAST_READ_OT);
     localStorage.removeItem(LS_LAST_READ_NT);
   } catch(e) {}
@@ -3392,6 +3464,7 @@ function confirmClearAllCache() {
 // ── Boot ─────────────────────────────────────────────
 loadBibleBookmarks();
 loadSermonPassages();
+loadSermonThemes();
 loadSettings();
 applySettingsToDOM();
 goToday();
