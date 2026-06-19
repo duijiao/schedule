@@ -1169,8 +1169,8 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
     <div class="login-title">管理员登录</div>
     <div class="login-sub">仅管理员可新增或修改排班</div>
     <div class="form-field">
-      <label class="form-label">账号</label>
-      <input class="form-input" id="loginUser" type="text" placeholder="管理员账号" autocomplete="off">
+      <label class="form-label">账号 / 邮箱</label>
+      <input class="form-input" id="loginUser" type="text" placeholder="管理员账号或邮箱" autocomplete="off">
     </div>
     <div class="form-field">
       <label class="form-label">密码</label>
@@ -1515,12 +1515,13 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 </div><!-- /app -->
 <canvas id="exportCanvas"></canvas>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ── Data ──────────────────────────────────────────────
 const ZH_MONTHS = ['一','二','三','四','五','六','七','八','九','十','十一','十二'];
 
 // ── Rotation config (editable) ────────────────────────
-const rotationConfig = {
+let rotationConfig = {
   leader: {
     base: '2026-06-07',
     list: ['贞惠','张荣','上恩','根英','诗泉'],
@@ -1532,7 +1533,7 @@ const rotationConfig = {
 };
 
 // Per-Sunday sermon: { 'YYYY-MM-DD': '证道人' }
-const sermonByDate = {
+let sermonByDate = {
   '2026-06-07': '邹王君',
   '2026-06-14': '邹王君',
   '2026-06-21': '邹王君',
@@ -1560,7 +1561,7 @@ function getNoticeForKey(key) {
 }
 
 // songData: { key: [{title, src}] }
-const songData = {
+let songData = {
   '2026-06-07': [],
   '2026-06-14': [],
   '2026-06-21': [],
@@ -1617,7 +1618,7 @@ const roleColors = {
   '教歌':{ bg:'#85B7EB',text:'#0C447C',badgeBg:'#0C447C',badgeText:'#fff',icon:'ti-book' },
 };
 
-const scheduleData = {
+let scheduleData = {
   '2026-06-07':[
     {role:'主领',name:'根英',persons:['根英']},
     {role:'伴唱',name:'曼茹/建蝉/张荣/小小',persons:['曼茹','建蝉','张荣','小小']},
@@ -3461,13 +3462,352 @@ function confirmClearAllCache() {
   setTimeout(() => location.reload(), 1500);
 }
 
+// ── Supabase integration ──────────────────────────────
+// 使用说明：
+// 1. 把下面两个值换成你自己的 Supabase 项目配置
+// 2. 在 Supabase 建表：church_app_state
+// 3. 建公开存储桶：song-images
+// 4. 如需管理员登录，请在 Supabase Auth 中创建管理员账号
+const SUPABASE_CONFIG = {
+  url: 'https://citorcvisrfqkflwortx.supabase.co/rest/v1/',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpdG9yY3Zpc3JmcWtmbHdvcnR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4OTk4NjQsImV4cCI6MjA5NzQ3NTg2NH0.I1G-oO1T3wfWJ5GcmYejT6Y0x2wAJ0xXRQsIcPVPjos',
+  table: 'church_app_state',
+  rowId: 1,
+  songBucket: 'song-images',
+};
+
+let supabaseClient = null;
+
+function isSupabaseEnabled() {
+  return !!(SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey && window.supabase);
+}
+
+function initSupabaseClient() {
+  if (!isSupabaseEnabled()) return false;
+  if (!supabaseClient) {
+    supabaseClient = window.supabase.createClient(
+      SUPABASE_CONFIG.url,
+      SUPABASE_CONFIG.anonKey
+    );
+  }
+  return true;
+}
+
+function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function normalizeRotationConfig(raw) {
+  const next = raw && typeof raw === 'object' ? deepClone(raw) : {};
+  return {
+    leader: {
+      base: next?.leader?.base || '',
+      list: Array.isArray(next?.leader?.list) ? next.leader.list : [],
+    },
+    prayer: {
+      base: next?.prayer?.base || '',
+      list: Array.isArray(next?.prayer?.list) ? next.prayer.list : [],
+    },
+  };
+}
+
+function normalizeScheduleData(raw) {
+  const next = {};
+  const source = raw && typeof raw === 'object' ? raw : {};
+  Object.entries(source).forEach(([key, rows]) => {
+    if (!Array.isArray(rows)) return;
+    next[key] = rows.map(row => {
+      const persons = Array.isArray(row?.persons)
+        ? row.persons.filter(Boolean)
+        : (typeof row?.name === 'string' ? row.name.split('/').map(s => s.trim()).filter(Boolean) : []);
+      return {
+        role: row?.role || '',
+        name: persons.join('/'),
+        persons,
+      };
+    }).filter(row => row.role);
+    next[key].sort((a, b) => ROLES.indexOf(a.role) - ROLES.indexOf(b.role));
+  });
+  return next;
+}
+
+function normalizeSongData(raw) {
+  const next = {};
+  const source = raw && typeof raw === 'object' ? raw : {};
+  Object.entries(source).forEach(([key, rows]) => {
+    next[key] = Array.isArray(rows)
+      ? rows.map(item => ({
+          title: item?.title || '',
+          src: item?.src || item?.image_url || '',
+        })).filter(item => item.title || item.src)
+      : [];
+  });
+  return next;
+}
+
+function normalizeSimpleMap(raw) {
+  return raw && typeof raw === 'object' ? deepClone(raw) : {};
+}
+
+function getSharedAppStateSnapshot() {
+  return {
+    rotation_config: normalizeRotationConfig(rotationConfig),
+    sermon_by_date: normalizeSimpleMap(sermonByDate),
+    song_data: normalizeSongData(songData),
+    schedule_data: normalizeScheduleData(scheduleData),
+    sermon_passages_by_date: normalizeSimpleMap(sermonPassagesByDate),
+    sermon_themes_by_date: normalizeSimpleMap(sermonThemesByDate),
+  };
+}
+
+function applyRemoteAppState(row) {
+  rotationConfig = normalizeRotationConfig(row?.rotation_config || rotationConfig);
+  sermonByDate = normalizeSimpleMap(row?.sermon_by_date || sermonByDate);
+  songData = normalizeSongData(row?.song_data || songData);
+  scheduleData = normalizeScheduleData(row?.schedule_data || scheduleData);
+  sermonPassagesByDate = normalizeSimpleMap(row?.sermon_passages_by_date || sermonPassagesByDate);
+  sermonThemesByDate = normalizeSimpleMap(row?.sermon_themes_by_date || sermonThemesByDate);
+}
+
+async function upsertRemoteAppState(partial) {
+  if (!initSupabaseClient()) return false;
+  const payload = Object.assign({
+    id: SUPABASE_CONFIG.rowId,
+    updated_at: new Date().toISOString(),
+  }, partial);
+  const { error } = await supabaseClient
+    .from(SUPABASE_CONFIG.table)
+    .upsert(payload, { onConflict: 'id' });
+  if (error) throw error;
+  return true;
+}
+
+async function loadRemoteAppState() {
+  if (!initSupabaseClient()) return false;
+  const { data, error } = await supabaseClient
+    .from(SUPABASE_CONFIG.table)
+    .select('*')
+    .eq('id', SUPABASE_CONFIG.rowId)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data) {
+    await upsertRemoteAppState(getSharedAppStateSnapshot());
+    return true;
+  }
+
+  applyRemoteAppState(data);
+  return true;
+}
+
+async function syncRemoteField(fieldName, value) {
+  if (!initSupabaseClient()) return false;
+  const payload = {};
+  payload[fieldName] = deepClone(value);
+  await upsertRemoteAppState(payload);
+  return true;
+}
+
+async function syncAuthState() {
+  if (!initSupabaseClient()) {
+    isAdmin = false;
+    updateAdminUI();
+    return;
+  }
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  isAdmin = !!data?.session;
+  updateAdminUI();
+}
+
+async function dataUrlToBlob(dataUrl) {
+  const res = await fetch(dataUrl);
+  return await res.blob();
+}
+
+async function uploadSongDataUrl(serviceDate, dataUrl, index) {
+  if (!initSupabaseClient()) return dataUrl;
+  const blob = await dataUrlToBlob(dataUrl);
+  const mime = blob.type || 'image/png';
+  const rawExt = mime.split('/')[1] || 'png';
+  const ext = rawExt === 'jpeg' ? 'jpg' : rawExt;
+  const filePath = `${serviceDate}/${Date.now()}_${index}.${ext}`;
+  const { error } = await supabaseClient.storage
+    .from(SUPABASE_CONFIG.songBucket)
+    .upload(filePath, blob, {
+      contentType: mime,
+      upsert: true,
+    });
+  if (error) throw error;
+  const { data } = supabaseClient.storage
+    .from(SUPABASE_CONFIG.songBucket)
+    .getPublicUrl(filePath);
+  return data.publicUrl;
+}
+
+async function normalizeSongsForRemote(serviceDate, songs) {
+  const next = [];
+  for (let i = 0; i < songs.length; i++) {
+    const item = songs[i];
+    let src = item?.src || '';
+    if (src.startsWith('data:')) {
+      src = await uploadSongDataUrl(serviceDate, src, i);
+    }
+    next.push({
+      title: item?.title || '',
+      src,
+    });
+  }
+  return next;
+}
+
+const _localDoLogin = doLogin;
+doLogin = async function() {
+  if (!initSupabaseClient()) return _localDoLogin();
+  const email = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    document.getElementById('loginError').classList.add('show');
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginPass').focus();
+    return;
+  }
+  isAdmin = true;
+  document.getElementById('loginOverlay').classList.remove('open');
+  updateAdminUI();
+  render();
+};
+
+const _localLogout = logout;
+logout = async function() {
+  if (!initSupabaseClient()) return _localLogout();
+  await supabaseClient.auth.signOut();
+  isAdmin = false;
+  updateAdminUI();
+  render();
+};
+
+const _localSaveEdit = saveEdit;
+saveEdit = async function() {
+  const key = editKey;
+  _localSaveEdit();
+  if (!initSupabaseClient()) return;
+  try {
+    await syncRemoteField('schedule_data', scheduleData);
+    showToast('☁️ 排班已同步到云端');
+  } catch (e) {
+    console.error('同步排班失败', e);
+    showToast('排班已保存到本地，但云端同步失败');
+  }
+};
+
+const _localSaveSermonDate = saveSermonDate;
+saveSermonDate = async function(key, name) {
+  _localSaveSermonDate(key, name);
+  if (!initSupabaseClient()) return;
+  try {
+    await syncRemoteField('sermon_by_date', sermonByDate);
+    showToast('☁️ 证道人已同步到云端');
+  } catch (e) {
+    console.error('同步证道人失败', e);
+    showToast('证道人已保存到本地，但云端同步失败');
+  }
+};
+
+const _localSaveSermonPassages = saveSermonPassages;
+saveSermonPassages = async function() {
+  _localSaveSermonPassages();
+  if (!initSupabaseClient()) return;
+  try {
+    await upsertRemoteAppState({
+      sermon_passages_by_date: deepClone(sermonPassagesByDate),
+      sermon_themes_by_date: deepClone(sermonThemesByDate),
+    });
+    showToast('☁️ 证道内容已同步到云端');
+  } catch (e) {
+    console.error('同步证道内容失败', e);
+    showToast('证道内容已保存到本地，但云端同步失败');
+  }
+};
+
+const _localAddRosterPerson = addRosterPerson;
+addRosterPerson = async function(type) {
+  _localAddRosterPerson(type);
+  if (!initSupabaseClient()) return;
+  try {
+    await syncRemoteField('rotation_config', rotationConfig);
+  } catch (e) {
+    console.error('同步名单失败', e);
+    showToast('名单已改动，但云端同步失败');
+  }
+};
+
+const _localRemoveRosterPerson = removeRosterPerson;
+removeRosterPerson = async function(type, idx) {
+  _localRemoveRosterPerson(type, idx);
+  if (!initSupabaseClient()) return;
+  try {
+    await syncRemoteField('rotation_config', rotationConfig);
+  } catch (e) {
+    console.error('同步名单失败', e);
+    showToast('名单已改动，但云端同步失败');
+  }
+};
+
+const _localSaveRosterBase = saveRosterBase;
+saveRosterBase = async function(type, val) {
+  _localSaveRosterBase(type, val);
+  if (!initSupabaseClient()) return;
+  try {
+    await syncRemoteField('rotation_config', rotationConfig);
+    showToast('☁️ 轮值起始日期已同步到云端');
+  } catch (e) {
+    console.error('同步起始日期失败', e);
+    showToast('起始日期已保存到本地，但云端同步失败');
+  }
+};
+
+const _localSaveUploadedSongs = saveUploadedSongs;
+saveUploadedSongs = async function() {
+  if (!initSupabaseClient()) return _localSaveUploadedSongs();
+  try {
+    const serviceDate = uploadEditKey;
+    songData[serviceDate] = await normalizeSongsForRemote(serviceDate, uploadDraft);
+    document.getElementById('uploadSongOverlay').classList.remove('open');
+    await syncRemoteField('song_data', songData);
+    render();
+    showToast('☁️ 诗歌已同步到云端');
+  } catch (e) {
+    console.error('同步诗歌失败', e);
+    showToast('诗歌云端同步失败，请检查存储桶配置');
+  }
+};
+
 // ── Boot ─────────────────────────────────────────────
-loadBibleBookmarks();
-loadSermonPassages();
-loadSermonThemes();
-loadSettings();
-applySettingsToDOM();
-goToday();
+async function bootstrapApp() {
+  loadBibleBookmarks();
+  loadSermonPassages();
+  loadSermonThemes();
+  loadSettings();
+  applySettingsToDOM();
+
+  if (initSupabaseClient()) {
+    try {
+      await loadRemoteAppState();
+      await syncAuthState();
+    } catch (e) {
+      console.error('Supabase 初始化失败，已回退到本地模式', e);
+    }
+  } else {
+    updateAdminUI();
+  }
+
+  goToday();
+}
+
+bootstrapApp();
 </script>
 </body>
 </html>
