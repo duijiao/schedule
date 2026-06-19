@@ -647,13 +647,23 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
 .bible-progress-value { font-size: 12.5px; font-weight: 600; color: #1a1a1a; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bible-progress-card.empty .bible-progress-value { color: #bbb; font-weight: 400; }
 
-/* ── Selector row: book + chapter prominent, version compact ── */
+/* ── Selector row: testament toggle + book + chapter ──── */
 .bible-selectors { margin-bottom: 12px; }
 .bible-version-row { margin-bottom: 8px; }
 .bible-version-row .bible-select {
   width: 100%; padding: 7px 10px; font-size: 12px; color: #888;
   border: 1px solid rgba(0,0,0,0.08); border-radius: 9px; background: #fafaf8;
 }
+.testament-toggle {
+  display: flex; gap: 6px; margin-bottom: 8px;
+  background: #f0f0ee; border-radius: 11px; padding: 3px;
+}
+.testament-btn {
+  flex: 1; border: none; background: none; border-radius: 9px;
+  padding: 8px 0; font-size: 13px; font-weight: 600; color: #999;
+  cursor: pointer; font-family: inherit; transition: all 0.18s;
+}
+.testament-btn.active { background: #fff; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .bible-book-chapter-row { display: grid; grid-template-columns: 1fr 84px; gap: 8px; }
 .bible-select {
   width: 100%; min-width: 0; padding: 11px 12px; border: 1.5px solid rgba(0,0,0,0.1);
@@ -694,30 +704,35 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
 .bible-tool-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 .bible-tool-btn.bookmarks-entry-btn { width: auto; padding: 0 12px; gap: 4px; font-size: 12px; }
 
-/* Font size popover */
+/* Font size control — fixed overlay so it's never clipped by card edges */
 .font-popover-wrap { position: relative; flex-shrink: 0; }
+.font-popover-backdrop {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.32); z-index: 599;
+}
+.font-popover-backdrop.open { display: block; }
 .font-popover {
-  display: none; position: absolute; bottom: calc(100% + 8px); right: 0;
-  background: #fff; border-radius: 14px; padding: 14px 16px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.15); width: 200px; z-index: 50;
+  display: none; position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
+  background: #fff; border-radius: 18px 18px 0 0; padding: 18px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -6px 24px rgba(0,0,0,0.18); width: 100%; max-width: 420px; z-index: 600;
 }
 .font-popover.open { display: block; }
-.font-popover-label { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 8px; }
-.font-popover-label span:last-child { font-weight: 600; color: var(--primary); }
+.font-popover-label { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #888; margin-bottom: 12px; }
+.font-popover-label span:last-child { font-weight: 700; color: var(--primary); font-size: 15px; }
 .font-slider {
-  width: 100%; height: 4px; border-radius: 2px; background: #eee;
+  width: 100%; height: 5px; border-radius: 3px; background: #eee;
   -webkit-appearance: none; appearance: none; outline: none; cursor: pointer;
 }
 .font-slider::-webkit-slider-thumb {
-  -webkit-appearance: none; appearance: none; width: 18px; height: 18px;
+  -webkit-appearance: none; appearance: none; width: 22px; height: 22px;
   border-radius: 50%; background: var(--primary); cursor: pointer; border: 3px solid #fff;
   box-shadow: 0 1px 4px rgba(0,0,0,0.25);
 }
 .font-slider::-moz-range-thumb {
-  width: 18px; height: 18px; border-radius: 50%; background: var(--primary); cursor: pointer;
+  width: 22px; height: 22px; border-radius: 50%; background: var(--primary); cursor: pointer;
   border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25);
 }
-.font-preview-row { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: #ccc; }
+.font-preview-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px; color: #ccc; padding: 0 2px; }
+.font-popover-handle { width: 36px; height: 4px; background: #e0e0e0; border-radius: 2px; margin: 0 auto 14px; }
 
 /* ── Fullscreen reading mode ──────────────────────────── */
 .bible-fullscreen-overlay {
@@ -1289,6 +1304,15 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
   </div>
 </div>
 
+<!-- Bible font-size bottom sheet (fixed overlay, never clipped) -->
+<div class="font-popover-backdrop" id="fontPopoverBackdrop" onclick="closeFontPopover()"></div>
+<div class="font-popover" id="fontPopover">
+  <div class="font-popover-handle"></div>
+  <div class="font-popover-label"><span>经文字体大小</span><span id="fontSizeVal">15px</span></div>
+  <input type="range" class="font-slider" id="fontSlider" min="12" max="26" value="15" oninput="onFontSliderChange(this.value)">
+  <div class="font-preview-row"><span style="font-size:12px">A</span><span style="font-size:26px">A</span></div>
+</div>
+
 <!-- ── Scroll area ─────────────────────────────────────── -->
 <div class="scroll-area">
   <div class="search-wrap">
@@ -1530,6 +1554,12 @@ const BIBLE_BOOKS = [
   {name:'犹大书', abbr:'jud', chapters:1},
   {name:'启示录', abbr:'rev', chapters:22},
 ];
+const NT_START_INDEX = BIBLE_BOOKS.findIndex(b => b.abbr === 'mat'); // 马太福音起为新约
+function isNewTestamentBook(bookAbbr) {
+  const idx = BIBLE_BOOKS.findIndex(b => b.abbr === bookAbbr);
+  return idx >= NT_START_INDEX;
+}
+let currentTestament = 'ot'; // 'ot' | 'nt' — drives the book dropdown filter
 // ── Bible versions (local text files, format: BOOK chap:verse text) ──
 const BIBLE_VERSIONS = [
   { id:'cunp',   name:'和合本（CUNP）',     file:'./cmn-cu89s_vpl.txt' },
@@ -1571,7 +1601,7 @@ function initBibleSelectors(){
   }
   const bookSel=document.getElementById('bibleBookSelect');
   if(!bookSel) return;
-  bookSel.innerHTML=BIBLE_BOOKS.map(b=>`<option value="${b.abbr}">${b.name}</option>`).join('');
+  populateBookOptions();
   bookSel.value='gen';
   updateBibleChapterOptions(1);
   // restore saved font size
@@ -1579,6 +1609,23 @@ function initBibleSelectors(){
   if(fs){ fs.value=bibleFontSize; document.getElementById('fontSizeVal').textContent=bibleFontSize+'px'; }
   // restore last-read position
   restoreLastRead();
+}
+function populateBookOptions(){
+  const bookSel=document.getElementById('bibleBookSelect');
+  if(!bookSel) return;
+  const books = currentTestament==='nt' ? BIBLE_BOOKS.slice(NT_START_INDEX) : BIBLE_BOOKS.slice(0, NT_START_INDEX);
+  bookSel.innerHTML = books.map(b=>`<option value="${b.abbr}">${b.name}</option>`).join('');
+}
+function setTestamentFilter(testament, skipLoad){
+  currentTestament = testament;
+  document.getElementById('testamentBtnOT').classList.toggle('active', testament==='ot');
+  document.getElementById('testamentBtnNT').classList.toggle('active', testament==='nt');
+  populateBookOptions();
+  const bookSel=document.getElementById('bibleBookSelect');
+  const defaultAbbr = testament==='nt' ? 'mat' : 'gen';
+  bookSel.value = defaultAbbr;
+  updateBibleChapterOptions(1);
+  if(!skipLoad) loadBibleChapter();
 }
 function onBibleVersionChange(){
   currentBibleVersion=document.getElementById('bibleVersionSelect').value;
@@ -1637,6 +1684,13 @@ function stepBibleChapter(delta, fromFullscreen){
   }
 
   const newBook = bookIdx===BIBLE_BOOKS.findIndex(b=>b.abbr===book.abbr) ? book : BIBLE_BOOKS[bookIdx];
+  const newTestament = isNewTestamentBook(newBook.abbr) ? 'nt' : 'ot';
+  if(newTestament !== currentTestament){
+    currentTestament = newTestament;
+    document.getElementById('testamentBtnOT').classList.toggle('active', newTestament==='ot');
+    document.getElementById('testamentBtnNT').classList.toggle('active', newTestament==='nt');
+    populateBookOptions();
+  }
   document.getElementById('bibleBookSelect').value = newBook.abbr;
   updateBibleChapterOptions(chapter);
   loadBibleChapter().then(()=>{ if(fromFullscreen) document.getElementById('bfsBody').scrollTop = 0; });
@@ -1699,14 +1753,19 @@ function renderBibleVerses(bookName, chapter, verses){
 
 // ── Font size control ─────────────────────────────────
 function toggleFontPopover(e){
-  e.stopPropagation();
+  if(e) e.stopPropagation();
   const pop=document.getElementById('fontPopover');
-  pop.classList.toggle('open');
+  const backdrop=document.getElementById('fontPopoverBackdrop');
+  const isOpen=pop.classList.contains('open');
+  if(isOpen){ closeFontPopover(); }
+  else{ pop.classList.add('open'); backdrop.classList.add('open'); }
 }
-document.addEventListener('click', ()=>{
+function closeFontPopover(){
   const pop=document.getElementById('fontPopover');
+  const backdrop=document.getElementById('fontPopoverBackdrop');
   if(pop) pop.classList.remove('open');
-});
+  if(backdrop) backdrop.classList.remove('open');
+}
 function onFontSliderChange(val){
   bibleFontSize=Number(val);
   document.getElementById('fontSizeVal').textContent=bibleFontSize+'px';
@@ -2066,6 +2125,10 @@ function render(){
             <div class="bible-version-row">
               <select class="bible-select" id="bibleVersionSelect" onchange="onBibleVersionChange()"></select>
             </div>
+            <div class="testament-toggle">
+              <button class="testament-btn active" id="testamentBtnOT" onclick="setTestamentFilter('ot')">旧约</button>
+              <button class="testament-btn" id="testamentBtnNT" onclick="setTestamentFilter('nt')">新约</button>
+            </div>
             <div class="bible-book-chapter-row">
               <select class="bible-select" id="bibleBookSelect" onchange="updateBibleChapterOptions()"></select>
               <select class="bible-select bible-chapter-select" id="bibleChapterSelect"></select>
@@ -2083,14 +2146,7 @@ function render(){
             </div>
             <div class="bible-tool-group">
               <div class="tool-icons-left">
-                <div class="font-popover-wrap">
-                  <button class="bible-tool-btn" id="bibleFontBtn" onclick="toggleFontPopover(event)" title="字体大小"><i class="ti ti-text-size"></i></button>
-                  <div class="font-popover" id="fontPopover" onclick="event.stopPropagation()">
-                    <div class="font-popover-label"><span>字体大小</span><span id="fontSizeVal">15px</span></div>
-                    <input type="range" class="font-slider" id="fontSlider" min="12" max="26" value="15" oninput="onFontSliderChange(this.value)">
-                    <div class="font-preview-row"><span>A</span><span style="font-size:18px">A</span></div>
-                  </div>
-                </div>
+                <button class="bible-tool-btn" id="bibleFontBtn" onclick="toggleFontPopover(event)" title="字体大小"><i class="ti ti-text-size"></i></button>
                 <button class="bible-tool-btn" onclick="openBibleFullscreen()" title="全屏阅读"><i class="ti ti-maximize"></i></button>
               </div>
               <button class="bible-tool-btn bookmarks-entry-btn" onclick="openBookmarks()" title="经文收藏"><i class="ti ti-star"></i>收藏</button>
@@ -2884,6 +2940,8 @@ function jumpToBookmark(bookAbbr, chapter) {
   const card = document.getElementById('bibleCard');
   if (card) card.classList.remove('collapsed');
   // Set selectors
+  const targetTestament = isNewTestamentBook(bookAbbr) ? 'nt' : 'ot';
+  if(targetTestament !== currentTestament) setTestamentFilter(targetTestament, true);
   const bookSel = document.getElementById('bibleBookSelect');
   if (bookSel) { bookSel.value = bookAbbr; updateBibleChapterOptions(chapter); }
   loadBibleChapter();
@@ -2897,12 +2955,6 @@ function jumpToBookmark(bookAbbr, chapter) {
 // ── Last-read chapter persistence (separate OT / NT) ──
 const LS_LAST_READ_OT = 'churchBibleLastReadOT';
 const LS_LAST_READ_NT = 'churchBibleLastReadNT';
-const NT_START_INDEX = BIBLE_BOOKS.findIndex(b => b.abbr === 'mat'); // 马太福音起为新约
-
-function isNewTestamentBook(bookAbbr) {
-  const idx = BIBLE_BOOKS.findIndex(b => b.abbr === bookAbbr);
-  return idx >= NT_START_INDEX;
-}
 
 function saveLastRead(bookAbbr, chapter) {
   const testamentKey = isNewTestamentBook(bookAbbr) ? LS_LAST_READ_NT : LS_LAST_READ_OT;
@@ -2928,6 +2980,8 @@ function restoreLastRead() {
   if (ot && nt) target = (nt.ts || 0) > (ot.ts || 0) ? nt : ot;
   else target = nt || ot;
   if (!target) { renderBibleProgress(); return; }
+  const targetTestament = isNewTestamentBook(target.bookAbbr) ? 'nt' : 'ot';
+  if(targetTestament !== currentTestament) setTestamentFilter(targetTestament, true);
   const bookSel = document.getElementById('bibleBookSelect');
   if (bookSel && target.bookAbbr) {
     bookSel.value = target.bookAbbr;
@@ -2971,6 +3025,10 @@ function renderProgressCard(testament, label, data, bg, fg, icon) {
 function jumpToLastRead(testament) {
   const data = getLastRead(testament);
   if (!data) return;
+  bibleCollapsed = false;
+  const card = document.getElementById('bibleCard');
+  if (card) card.classList.remove('collapsed');
+  if(testament !== currentTestament) setTestamentFilter(testament, true);
   const bookSel = document.getElementById('bibleBookSelect');
   if (bookSel) {
     bookSel.value = data.bookAbbr;
