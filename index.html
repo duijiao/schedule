@@ -2234,6 +2234,14 @@ function getSafeExternalUrl(url) {
     return '';
   }
 }
+function normalizeExternalUrlInput(url) {
+  const val = String(url || '').trim();
+  if(!val) return '';
+  if(/^https?:\/\//i.test(val)) return val;
+  if(/^\/\//.test(val)) return `https:${val}`;
+  if(/^[a-z0-9.-]+\.[a-z]{2,}(\/.*)?$/i.test(val)) return `https://${val}`;
+  return val;
+}
 function saveSermonNotesLocal(key, value, showIndicator=true) {
   const raw = String(value || '');
   if(raw.trim()) sermonNotesByDate[key] = raw;
@@ -3252,7 +3260,7 @@ function addSermonPassageDraft(){
 function saveSermonPassages(){
   if(!sermonPassageEditKey) return;
   sermonThemeDraft=document.getElementById('sermonThemeInput')?.value.trim()||'';
-  sermonAudioDraft=document.getElementById('sermonAudioInput')?.value.trim()||'';
+  sermonAudioDraft=normalizeExternalUrlInput(document.getElementById('sermonAudioInput')?.value.trim()||'');
   if(sermonPassageDraft.length) sermonPassagesByDate[sermonPassageEditKey]=JSON.parse(JSON.stringify(sermonPassageDraft));
   else delete sermonPassagesByDate[sermonPassageEditKey];
   if(sermonThemeDraft) sermonThemesByDate[sermonPassageEditKey]=sermonThemeDraft;
@@ -4744,6 +4752,22 @@ function normalizeSongData(raw) {
 function normalizeSimpleMap(raw) {
   return raw && typeof raw === 'object' ? deepClone(raw) : {};
 }
+function getSermonRemotePayload() {
+  return {
+    sermon_passages_by_date: deepClone(sermonPassagesByDate),
+    sermon_themes_by_date: deepClone(sermonThemesByDate),
+    sermon_audio_by_date: deepClone(sermonAudioByDate),
+  };
+}
+function getSupabaseErrorMessage(error) {
+  if (!error) return '';
+  if (typeof error === 'string') return error;
+  return String(error.message || error.details || error.hint || error.code || '');
+}
+function isMissingRemoteColumnError(error, columnName) {
+  const msg = getSupabaseErrorMessage(error).toLowerCase();
+  return !!(msg && columnName && msg.includes(String(columnName).toLowerCase()));
+}
 
 function getSharedAppStateSnapshot() {
   return {
@@ -4921,15 +4945,15 @@ saveSermonPassages = async function() {
   _localSaveSermonPassages();
   if (!initSupabaseClient()) return;
   try {
-    await upsertRemoteAppState({
-      sermon_passages_by_date: deepClone(sermonPassagesByDate),
-      sermon_themes_by_date: deepClone(sermonThemesByDate),
-      sermon_audio_by_date: deepClone(sermonAudioByDate),
-    });
+    await upsertRemoteAppState(getSermonRemotePayload());
     showToast('☁️ 经文主题与音频已同步到云端');
   } catch (e) {
     console.error('同步证道内容失败', e);
-    showToast('经文主题与音频已保存到本地，但云端同步失败');
+    if (isMissingRemoteColumnError(e, 'sermon_audio_by_date')) {
+      showToast('后端缺少 sermon_audio_by_date 字段，请执行修复 SQL');
+    } else {
+      showToast('经文主题与音频已保存到本地，但云端同步失败');
+    }
   }
 };
 
