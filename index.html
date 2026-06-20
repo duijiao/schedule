@@ -23,7 +23,147 @@ body {
   display: flex; justify-content: center; padding: 0 0 3rem;
   font-size: var(--base-font-size);
 }
+body.app-loading { overflow: hidden; }
 .app { width: 100%; max-width: 420px; }
+
+/* ── App loader ─────────────────────────────────────── */
+.app-loader {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #f7f7f4 0%, #f0f0ec 100%);
+  transition: opacity 0.45s ease, visibility 0.45s ease;
+}
+.app-loader.hidden {
+  opacity: 0; visibility: hidden; pointer-events: none;
+}
+.app-loader-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+.app-loader-book {
+  position: relative; width: 126px; height: 92px;
+  perspective: 900px;
+}
+.app-loader-shadow {
+  position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%);
+  width: 104px; height: 18px; border-radius: 50%;
+  background: rgba(0,0,0,0.1); filter: blur(6px);
+  animation: loaderShadow 1.8s ease-in-out infinite;
+}
+.app-loader-book-shell {
+  position: absolute; inset: 0;
+}
+.app-loader-book-spine {
+  position: absolute; left: 50%; top: 12px; bottom: 14px; width: 14px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, #8a5a2b 0%, #6e431d 45%, #8b5f35 100%);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 8px 18px rgba(0,0,0,0.12);
+}
+.app-loader-book-spine::before {
+  content: '';
+  position: absolute; inset: 8px 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+}
+.app-loader-cover-left,
+.app-loader-cover-right,
+.app-loader-page-left,
+.app-loader-page-right,
+.app-loader-flip-page {
+  position: absolute; top: 10px; height: 68px;
+}
+.app-loader-cover-left,
+.app-loader-cover-right {
+  width: 48px;
+  background: linear-gradient(180deg, #245b4a 0%, var(--primary) 48%, #167e5e 100%);
+  box-shadow: 0 12px 24px rgba(29,158,117,0.18);
+}
+.app-loader-cover-left {
+  left: 15px;
+  border-radius: 12px 4px 4px 12px;
+}
+.app-loader-cover-right {
+  right: 15px;
+  border-radius: 4px 12px 12px 4px;
+}
+.app-loader-cover-left::before,
+.app-loader-cover-right::before {
+  content: '';
+  position: absolute; top: 8px; bottom: 8px; width: 2px;
+  background: rgba(255,255,255,0.16);
+}
+.app-loader-cover-left::before { right: 6px; }
+.app-loader-cover-right::before { left: 6px; }
+.app-loader-cross {
+  position: absolute; left: 23px; top: 24px;
+  width: 18px; height: 26px;
+}
+.app-loader-cross::before,
+.app-loader-cross::after {
+  content: ''; position: absolute; background: rgba(255,255,255,0.92); border-radius: 999px;
+}
+.app-loader-cross::before { left: 7px; top: 0; width: 4px; height: 26px; }
+.app-loader-cross::after { left: 0; top: 8px; width: 18px; height: 4px; }
+.app-loader-page-left,
+.app-loader-page-right,
+.app-loader-flip-page {
+  background: linear-gradient(180deg, #fffefb 0%, #f5f0e5 100%);
+  border: 1px solid rgba(117,84,44,0.12);
+}
+.app-loader-page-left {
+  left: 20px; width: 42px;
+  border-radius: 10px 3px 3px 12px;
+  transform: perspective(900px) rotateY(18deg);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.55);
+}
+.app-loader-page-right {
+  right: 20px; width: 42px;
+  border-radius: 3px 10px 12px 3px;
+  transform: perspective(900px) rotateY(-18deg);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.55);
+}
+.app-loader-page-left::before,
+.app-loader-page-right::before,
+.app-loader-flip-page::before {
+  content: '';
+  position: absolute; left: 7px; right: 7px; top: 12px; bottom: 12px;
+  background:
+    linear-gradient(rgba(170,150,120,0.14), rgba(170,150,120,0.14)) 0 0 / 100% 1px no-repeat,
+    linear-gradient(rgba(170,150,120,0.14), rgba(170,150,120,0.14)) 0 33% / 100% 1px no-repeat,
+    linear-gradient(rgba(170,150,120,0.14), rgba(170,150,120,0.14)) 0 66% / 100% 1px no-repeat,
+    linear-gradient(rgba(170,150,120,0.14), rgba(170,150,120,0.14)) 0 100% / 100% 1px no-repeat;
+  opacity: 0.85;
+}
+.app-loader-flip-page {
+  left: 50%; width: 43px;
+  border-radius: 3px 12px 12px 3px;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  animation: loaderBookFlip 1.8s ease-in-out infinite;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+}
+.app-loader-flip-page.page-1 { animation-delay: 0s; }
+.app-loader-flip-page.page-2 { animation-delay: 0.24s; }
+.app-loader-flip-page.page-3 { animation-delay: 0.48s; }
+.app-loader-ribbon {
+  position: absolute; right: 23px; top: 10px; width: 8px; height: 78px;
+  background: linear-gradient(180deg, #d84c4c 0%, #b53030 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%);
+  opacity: 0.9;
+}
+.app-loader-text {
+  font-size: 14px; color: #666; letter-spacing: 0.6px;
+}
+@keyframes loaderBookFlip {
+  0%, 12% { transform: rotateY(0deg); opacity: 0; }
+  18% { opacity: 1; }
+  52% { transform: rotateY(-172deg); opacity: 1; }
+  53%, 100% { transform: rotateY(-180deg); opacity: 0; }
+}
+@keyframes loaderShadow {
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.7; }
+  50% { transform: translateX(-50%) scale(0.92); opacity: 0.45; }
+}
 
 /* ── Accessibility mode ──────────────────────────────── */
 body.a11y-mode {
@@ -58,6 +198,21 @@ body.a11y-mode .avatar { width: 28px !important; height: 28px !important; font-s
 body.a11y-mode .notice-card { padding: 18px 20px !important; border-radius: 20px !important; }
 body.a11y-mode .notice-icon-wrap { width: 44px !important; height: 44px !important; }
 body.a11y-mode .notice-icon-wrap i { font-size: 22px !important; }
+body.a11y-mode .sermon-passage-card { padding: 18px !important; border-radius: 20px !important; }
+body.a11y-mode .sermon-section-icon { width: 36px !important; height: 36px !important; }
+body.a11y-mode .sermon-section-icon i { font-size: 18px !important; }
+body.a11y-mode .sermon-collapse-btn,
+body.a11y-mode .sermon-edit-btn,
+body.a11y-mode .sermon-extra-toggle { font-size: 14px !important; padding: 7px 12px !important; }
+body.a11y-mode .sermon-theme-label,
+body.a11y-mode .sermon-block-label { font-size: 13px !important; }
+body.a11y-mode .sermon-theme-value { font-size: 16px !important; }
+body.a11y-mode .sermon-preview-ref { font-size: 15px !important; }
+body.a11y-mode .sermon-preview-text { font-size: 15px !important; }
+body.a11y-mode .sermon-note-editor,
+body.a11y-mode .sermon-note-content,
+body.a11y-mode .sermon-audio-link,
+body.a11y-mode .sermon-extra-empty { font-size: 15px !important; }
 
 /* ── Name reminder banner ────────────────────────────── */
 .name-reminder-banner {
@@ -158,6 +313,29 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
 .collapse-tab:hover { color: var(--primary); }
 .collapse-tab i { font-size: 16px; transition: transform 0.3s; }
 .header-card.collapsed .collapse-tab i { transform: rotate(180deg); }
+
+/* ── Floating "back to this week" button ─────────────── */
+.fab-wrap {
+  position: fixed; inset: 0; z-index: 150;
+  display: flex; justify-content: center;
+  pointer-events: none;
+}
+.fab-inner { width: 100%; max-width: 420px; position: relative; }
+body.a11y-mode .fab-inner { max-width: 480px; }
+.back-to-today-fab {
+  display: none; align-items: center; gap: 6px;
+  position: absolute; right: 18px; bottom: 26px;
+  background: var(--primary); color: #fff; border: none;
+  border-radius: 999px; padding: 11px 18px 11px 14px;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  box-shadow: 0 6px 18px rgba(29,158,117,0.38);
+  pointer-events: auto; animation: slideUp 0.25s ease;
+}
+.back-to-today-fab.show { display: flex; }
+.back-to-today-fab:hover { background: var(--primary-dark); }
+.back-to-today-fab i { font-size: 16px; }
+body.a11y-mode .back-to-today-fab { font-size: 16px; padding: 13px 20px 13px 16px; bottom: 30px; }
+body.a11y-mode .back-to-today-fab i { font-size: 18px; }
 
 /* ── Modal overlay ────────────────────────────────── */
 .modal-overlay {
@@ -280,9 +458,24 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
 .nd-icon i { font-size: 17px; }
 .nd-label { font-size: 11px; color: #aaa; margin-bottom: 2px; }
 .nd-value { font-size: 14px; font-weight: 500; color: #1a1a1a; }
+.sermon-theme-detail .notice-detail-title { margin-bottom: 14px; }
+.sermon-theme-detail-date { font-size: 12px; color: #aaa; margin-bottom: 16px; }
+.sermon-theme-detail-block {
+  background: #f8f8f6; border-radius: 16px; padding: 14px; margin-bottom: 10px;
+}
+.sermon-theme-detail-block:last-child { margin-bottom: 0; }
+.sermon-theme-detail-label { font-size: 11px; color: #aaa; margin-bottom: 6px; }
+.sermon-theme-detail-value { font-size: 14px; color: #1a1a1a; line-height: 1.7; }
+.sermon-theme-detail-value strong { font-weight: 600; }
+.sermon-theme-detail-passage-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.sermon-theme-detail-passage-item {
+  display: inline-flex; align-items: center; gap: 4px; padding: 7px 10px;
+  background: #fff; border-radius: 999px; color: var(--primary); font-size: 12px; font-weight: 600;
+  border: 1px solid rgba(24,95,165,0.12);
+}
 
 /* ── Song cards ───────────────────────────────────── */
-.section-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.section-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; row-gap: 8px; }
 .section-ttl { font-size: 15px; font-weight: 600; color: #1a1a1a; }
 .upload-song-btn {
   display: none; align-items: center; gap: 4px; background: var(--primary-light);
@@ -323,29 +516,80 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
   background: #fff; border-radius: 18px; padding: 16px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 1rem;
 }
+.sermon-section-head-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sermon-section-icon {
+  width: 30px; height: 30px; border-radius: 9px; background: #EEF2FF;
+  display: flex; align-items: center; justify-content: center; color: #3B5BDB; flex-shrink: 0;
+}
+.sermon-section-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sermon-collapse-btn,
+.sermon-edit-btn {
+  display: inline-flex; align-items: center; gap: 4px; border: none;
+  border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+  white-space: nowrap; flex-shrink: 0;
+}
+.sermon-collapse-btn {
+  background: #f5f5f2; color: #888;
+}
+.sermon-collapse-btn:hover { background: var(--primary-light); color: var(--primary); }
+.sermon-collapse-btn i { font-size: 14px; transition: transform 0.2s; }
+.sermon-collapse-btn.collapsed i { transform: rotate(180deg); }
+.sermon-edit-btn {
+  display: none; background: #EEF2FF; color: #3B5BDB;
+}
+.sermon-edit-btn.show { display: inline-flex; }
+.sermon-card-body.collapsed { display: none; }
+.sermon-meta-row {
+  display: grid; grid-template-columns: minmax(110px,0.9fr) minmax(0,1.4fr);
+  gap: 10px; margin-bottom: 12px;
+}
+.sermon-meta-row.single { grid-template-columns: minmax(0,1fr); }
+.sermon-meta-row .sermon-theme-box { min-width: 0; margin-bottom: 0; height: 100%; }
 .sermon-theme-box {
   display: flex; align-items: flex-start; gap: 10px;
   background: #f8f8f6; border-radius: 14px; padding: 12px 13px; margin-bottom: 12px;
+  min-width: 0;
 }
+.sermon-theme-box.is-clickable { cursor: pointer; transition: background 0.15s, box-shadow 0.15s, transform 0.15s; }
+.sermon-theme-box.is-clickable:hover {
+  background: #eef4fb; box-shadow: inset 0 0 0 1px rgba(24,95,165,0.08);
+}
+.sermon-theme-box.is-clickable:focus-visible {
+  outline: 2px solid rgba(24,95,165,0.45); outline-offset: 2px;
+}
+.sermon-theme-content { flex: 1; min-width: 0; overflow: hidden; }
 .sermon-theme-icon {
   width: 34px; height: 34px; border-radius: 10px; background: #FAECE7;
   color: #993C1D; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
+.sermon-theme-icon.preacher-icon { background: #E3EEF9; color: #185FA5; }
 .sermon-theme-label { font-size: 11px; color: #aaa; margin-bottom: 3px; }
-.sermon-theme-value { font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.5; }
-.sermon-edit-btn {
-  display: none; align-items: center; gap: 4px; background: #EEF2FF;
-  color: #3B5BDB; border: none; border-radius: 8px; padding: 5px 10px;
-  font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit;
+.sermon-theme-value {
+  font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.5;
 }
-.sermon-edit-btn.show { display: flex; }
-.sermon-passages-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-.sermon-passage-chip {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 7px 11px; border-radius: 999px; background: #EEF2FF;
-  color: #3B5BDB; font-size: 12px; font-weight: 600;
+.sermon-marquee {
+  position: relative; overflow: hidden; white-space: nowrap; display: block;
 }
-.sermon-passage-chip i { font-size: 13px; }
+.sermon-marquee-track {
+  display: inline-flex; align-items: center; min-width: max-content;
+  will-change: transform;
+}
+.sermon-marquee-text { display: inline-block; }
+.sermon-marquee.is-overflowing .sermon-marquee-track {
+  animation: sermonThemeMarquee 10s linear infinite;
+}
+.sermon-marquee-gap { display: inline-block; width: 28px; flex: 0 0 28px; }
+.sermon-theme-detail-trigger {
+  display: inline-flex; align-items: center; gap: 4px; margin-top: 5px;
+  color: var(--primary); font-size: 11px; font-weight: 500;
+}
+.sermon-theme-detail-trigger i { font-size: 13px; }
+@keyframes sermonThemeMarquee {
+  0%, 12% { transform: translateX(0); }
+  88%, 100% { transform: translateX(calc(-1 * var(--marquee-distance, 0px))); }
+}
+.sermon-block-label { font-size: 11px; color: #aaa; margin-bottom: 7px; }
 .sermon-preview-list { display: flex; flex-direction: column; gap: 10px; }
 .sermon-preview-item {
   background: #f8f8f6; border-radius: 14px; padding: 12px 13px;
@@ -368,6 +612,52 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
   font-size: 12px; cursor: pointer; font-family: inherit;
 }
 .sermon-preview-link:hover { border-color: var(--primary); }
+.sermon-extra-divider {
+  border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 12px; margin-top: 10px;
+}
+.sermon-extra-toggle {
+  display: inline-flex; align-items: center; gap: 4px; background: #f5f5f2; color: #888;
+  border: none; border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+  white-space: nowrap; flex-shrink: 0;
+}
+.sermon-extra-toggle:hover { background: var(--primary-light); color: var(--primary); }
+.sermon-extra-toggle i { font-size: 14px; transition: transform 0.2s; }
+.sermon-extra-toggle.collapsed i { transform: rotate(180deg); }
+.sermon-extra-stack {
+  display: flex; flex-direction: column; gap: 10px; margin-top: 12px;
+}
+.sermon-extra-stack.collapsed { display: none; }
+.sermon-extra-card {
+  background: #f8f8f6; border-radius: 14px; padding: 12px 13px;
+}
+.sermon-extra-label { font-size: 11px; color: #aaa; margin-bottom: 7px; }
+.sermon-audio-link {
+  display: inline-flex; align-items: center; gap: 6px; color: var(--primary);
+  text-decoration: none; font-size: 13px; font-weight: 600; word-break: break-all;
+}
+.sermon-audio-link:hover { text-decoration: underline; }
+.sermon-extra-empty { font-size: 13px; color: #aaa; line-height: 1.6; }
+.sermon-note-content {
+  font-size: 13px; color: #555; line-height: 1.75; white-space: pre-wrap;
+  word-break: break-word;
+}
+.sermon-note-editor {
+  width: 100%; min-height: 110px; resize: vertical;
+  border: 1.5px solid rgba(0,0,0,0.1); border-radius: 12px;
+  padding: 10px 12px; font-size: 13px; color: #555; line-height: 1.75;
+  font-family: inherit; background: #fff; outline: none; transition: border-color 0.15s, background 0.15s;
+}
+.sermon-note-editor:focus { border-color: var(--primary); background: #fffdfa; }
+.sermon-note-editor::placeholder { color: #bbb; }
+.sermon-note-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px;
+}
+.sermon-note-hint { font-size: 11px; color: #aaa; }
+.sermon-note-saved {
+  font-size: 11px; color: var(--primary); opacity: 0; transition: opacity 0.25s;
+}
+.sermon-note-saved.show { opacity: 1; }
 .sermon-preview-empty {
   background: #fff; border-radius: 14px; padding: 24px 16px;
   text-align: center; color: #bbb; font-size: 13px;
@@ -415,6 +705,7 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
 }
 .sermon-add-btn:hover { background: var(--primary-dark); }
 @media (max-width: 360px) {
+  .sermon-meta-row { grid-template-columns: minmax(96px,0.88fr) minmax(0,1.28fr); }
   .sermon-select-grid { grid-template-columns: 1fr 78px; }
 }
 
@@ -673,16 +964,19 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
 }
 .bible-search-head {
   display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
-  justify-content: space-between; cursor: pointer; user-select: none;
+  justify-content: space-between; user-select: none;
 }
 .bible-search-head-left { display: flex; align-items: center; gap: 8px; }
 .bible-search-head:hover .bible-search-title { color: var(--primary); }
 .bible-collapse-btn {
-  background: none; border: none; cursor: pointer; color: #bbb;
-  font-size: 16px; padding: 2px; line-height: 1; transition: transform 0.3s, color 0.15s;
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #f5f5f2; border: none; cursor: pointer; color: #888;
+  border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 500;
+  line-height: 1; transition: all 0.15s; font-family: inherit;
 }
-.bible-collapse-btn:hover { color: var(--primary); }
-.bible-search-card.collapsed .bible-collapse-btn { transform: rotate(180deg); }
+.bible-collapse-btn:hover { background: var(--primary-light); color: var(--primary); }
+.bible-collapse-btn i { font-size: 14px; transition: transform 0.2s; }
+.bible-search-card.collapsed .bible-collapse-btn i { transform: rotate(180deg); }
 .bible-search-card.collapsed .bible-body { display: none; }
 .bible-search-card.collapsed .bible-search-head { margin-bottom: 0; }
 .bible-search-icon {
@@ -1104,7 +1398,27 @@ body.a11y-mode .toggle-thumb { width: 24px; height: 24px; top: 3px; }
 body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: translateX(22px); }
 </style>
 </head>
-<body>
+<body class="app-loading">
+<div class="app-loader" id="appLoader" aria-live="polite" aria-label="页面加载中">
+  <div class="app-loader-inner">
+    <div class="app-loader-book" aria-hidden="true">
+      <div class="app-loader-shadow"></div>
+      <div class="app-loader-book-shell">
+        <div class="app-loader-cover-left"></div>
+        <div class="app-loader-cover-right"></div>
+        <div class="app-loader-book-spine"></div>
+        <div class="app-loader-page-left"></div>
+        <div class="app-loader-page-right"></div>
+        <div class="app-loader-flip-page page-1"></div>
+        <div class="app-loader-flip-page page-2"></div>
+        <div class="app-loader-flip-page page-3"></div>
+        <div class="app-loader-cross"></div>
+        <div class="app-loader-ribbon"></div>
+      </div>
+    </div>
+    <div class="app-loader-text">正在翻阅圣经内容...</div>
+  </div>
+</div>
 <div class="app">
 
 <!-- ── Header ────────────────────────────────────────── -->
@@ -1132,7 +1446,7 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
           <button class="logout-btn" style="font-size:11px;padding:3px 8px" onclick="logout()">退出</button>
         </div>
       </div>
-      <button class="today-btn" onclick="goToday()">Today</button>
+      <button class="today-btn" id="todayBtn" onclick="goToday()">本周排班</button>
       <button class="settings-entry-btn" onclick="openSettings()" title="用户设置"><i class="ti ti-settings"></i></button>
     </div>
   </div>
@@ -1230,6 +1544,15 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
   </div>
 </div>
 
+<div class="modal-overlay" id="sermonThemeDetailOverlay" onclick="closeSermonThemeDetail(event)">
+  <div class="notice-detail sermon-theme-detail" onclick="event.stopPropagation()">
+    <div class="picker-handle"></div>
+    <div class="notice-detail-title" id="sermonThemeDetailTitle"></div>
+    <div class="sermon-theme-detail-date" id="sermonThemeDetailDate"></div>
+    <div id="sermonThemeDetailBody"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="exportChoiceOverlay" onclick="this.classList.remove('open')">
   <div class="export-choice" onclick="event.stopPropagation()">
     <div class="picker-handle"></div>
@@ -1249,6 +1572,18 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
         <div class="export-option-desc">导出当前月份所有周日的排班</div>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="monthOverviewOverlay" onclick="closeMonthOverview(event)">
+  <div class="bookmarks-panel" onclick="event.stopPropagation()">
+    <div class="picker-handle"></div>
+    <div class="bookmarks-title" id="monthOverviewTitle">📅 本月排班总览</div>
+    <div class="bookmarks-sub" id="monthOverviewSub"></div>
+    <div class="bookmarks-list" id="monthOverviewList"></div>
+    <button class="export-btn" style="width:100%;justify-content:center;margin-top:16px" onclick="document.getElementById('monthOverviewOverlay').classList.remove('open');document.getElementById('exportChoiceOverlay').classList.add('open')">
+      <i class="ti ti-download"></i>导出本月排班
+    </button>
   </div>
 </div>
 <div class="modal-overlay" id="bookmarksOverlay" onclick="closeBookmarks(event)">
@@ -1387,6 +1722,8 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
     <div class="upload-modal-title">设置本周证道经文</div>
     <div class="upload-modal-sub" id="sermonPassageSub"></div>
     <input class="sermon-theme-input" id="sermonThemeInput" placeholder="输入本周证道主题（可选）">
+    <div class="sermon-add-title">讲道音频链接</div>
+    <input class="sermon-theme-input" id="sermonAudioInput" placeholder="粘贴讲道音频链接（可选）">
     <div class="sermon-editor-list" id="sermonPassageList"></div>
     <div class="sermon-add-box">
       <div class="sermon-add-title">添加经文段落</div>
@@ -1485,6 +1822,9 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
             <i class="ti ti-layout-cards"></i>
           </button>
         </div>
+        <button class="view-toggle-btn" onclick="openMonthOverview()" title="查看本月所有排班">
+          <i class="ti ti-calendar-month"></i>
+        </button>
         <button class="schedule-toggle-btn" id="scheduleToggleBtn" onclick="toggleScheduleSection()">
           <i class="ti ti-chevron-up"></i><span id="scheduleToggleText">收起</span>
         </button>
@@ -1513,6 +1853,13 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 </div>
 
 </div><!-- /app -->
+<div class="fab-wrap">
+  <div class="fab-inner">
+    <button class="back-to-today-fab" id="backToTodayFab" onclick="goToday()">
+      <i class="ti ti-calendar-event"></i>回到本周
+    </button>
+  </div>
+</div>
 <canvas id="exportCanvas"></canvas>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1569,9 +1916,16 @@ let songData = {
 };
 const LS_SERMON_PASSAGES = 'churchSermonPassages';
 const LS_SERMON_THEMES = 'churchSermonThemes';
+const LS_SERMON_AUDIO = 'churchSermonAudio';
+const LS_SERMON_NOTES = 'churchSermonNotes';
+const LS_SERMON_COLLAPSED = 'churchSermonCollapsed';
 let sermonPassagesByDate = {}; // { 'YYYY-MM-DD': [{ bookAbbr, chapter, verseStart, verseEnd }] }
 let sermonThemesByDate = {};   // { 'YYYY-MM-DD': '主题' }
-let sermonPassageEditKey = null, sermonPassageDraft = [], sermonThemeDraft = '', sermonDraftTestament = 'ot';
+let sermonAudioByDate = {};    // { 'YYYY-MM-DD': '音频链接' }
+let sermonNotesByDate = {};    // { 'YYYY-MM-DD': '笔记' }
+let sermonCollapsedByDate = {}; // { 'YYYY-MM-DD': boolean }
+let sermonExtrasCollapsedByDate = {}; // { 'YYYY-MM-DD': boolean }
+let sermonPassageEditKey = null, sermonPassageDraft = [], sermonThemeDraft = '', sermonAudioDraft = '', sermonDraftTestament = 'ot';
 
 function getBibleBookByAbbr(abbr) {
   return BIBLE_BOOKS.find(b => b.abbr === abbr);
@@ -1588,17 +1942,107 @@ function loadSermonThemes() {
     sermonThemesByDate = raw ? JSON.parse(raw) : {};
   } catch(e) { sermonThemesByDate = {}; }
 }
+function loadSermonAudio() {
+  try {
+    const raw = localStorage.getItem(LS_SERMON_AUDIO);
+    sermonAudioByDate = raw ? JSON.parse(raw) : {};
+  } catch(e) { sermonAudioByDate = {}; }
+}
+function loadSermonNotes() {
+  try {
+    const raw = localStorage.getItem(LS_SERMON_NOTES);
+    sermonNotesByDate = raw ? JSON.parse(raw) : {};
+  } catch(e) { sermonNotesByDate = {}; }
+}
+function loadSermonCollapsed() {
+  try {
+    const raw = localStorage.getItem(LS_SERMON_COLLAPSED);
+    sermonCollapsedByDate = raw ? JSON.parse(raw) : {};
+  } catch(e) { sermonCollapsedByDate = {}; }
+}
 function persistSermonPassages() {
   try { localStorage.setItem(LS_SERMON_PASSAGES, JSON.stringify(sermonPassagesByDate)); } catch(e) {}
 }
 function persistSermonThemes() {
   try { localStorage.setItem(LS_SERMON_THEMES, JSON.stringify(sermonThemesByDate)); } catch(e) {}
 }
+function persistSermonAudio() {
+  try { localStorage.setItem(LS_SERMON_AUDIO, JSON.stringify(sermonAudioByDate)); } catch(e) {}
+}
+function persistSermonNotes() {
+  try { localStorage.setItem(LS_SERMON_NOTES, JSON.stringify(sermonNotesByDate)); } catch(e) {}
+}
+function persistSermonCollapsed() {
+  try { localStorage.setItem(LS_SERMON_COLLAPSED, JSON.stringify(sermonCollapsedByDate)); } catch(e) {}
+}
 function getSermonPassagesForKey(key) {
   return Array.isArray(sermonPassagesByDate[key]) ? sermonPassagesByDate[key] : [];
 }
 function getSermonThemeForKey(key) {
   return sermonThemesByDate[key] || '';
+}
+function getSermonAudioForKey(key) {
+  return sermonAudioByDate[key] || '';
+}
+function getSermonNotesForKey(key) {
+  return sermonNotesByDate[key] || '';
+}
+function isSermonSectionCollapsed(key) {
+  return !!sermonCollapsedByDate[key];
+}
+function toggleSermonSectionCollapse(key) {
+  sermonCollapsedByDate[key] = !isSermonSectionCollapsed(key);
+  persistSermonCollapsed();
+  renderSermonPassages(key);
+}
+function isSermonExtraCollapsed(key) {
+  return sermonExtrasCollapsedByDate[key] !== false;
+}
+function toggleSermonExtraCollapse(key) {
+  sermonExtrasCollapsedByDate[key] = !isSermonExtraCollapsed(key);
+  renderSermonPassages(key);
+}
+function getSafeExternalUrl(url) {
+  const val = String(url || '').trim();
+  if(!val) return '';
+  try {
+    const parsed = new URL(val);
+    return /^https?:$/.test(parsed.protocol) ? parsed.href : '';
+  } catch(e) {
+    return '';
+  }
+}
+function saveSermonNotesLocal(key, value, showIndicator=true) {
+  const raw = String(value || '');
+  if(raw.trim()) sermonNotesByDate[key] = raw;
+  else delete sermonNotesByDate[key];
+  persistSermonNotes();
+  const el = document.getElementById('sermonNotesSaved');
+  if(el){
+    el.textContent = '已保存到本地缓存';
+    if(showIndicator){
+      el.classList.add('show');
+      clearTimeout(el._hideTimer);
+      el._hideTimer = setTimeout(() => el.classList.remove('show'), 1400);
+    }
+  }
+}
+function queueSermonNotesSave(key){
+  const input = document.getElementById('sermonNotesEditor');
+  const indicator = document.getElementById('sermonNotesSaved');
+  if(indicator){
+    indicator.textContent = '正在保存...';
+    indicator.classList.add('show');
+  }
+  clearTimeout(sermonNotesSaveTimer);
+  sermonNotesSaveTimer = setTimeout(() => {
+    saveSermonNotesLocal(key, input?.value || '', true);
+  }, 320);
+}
+function flushSermonNotesSave(key){
+  clearTimeout(sermonNotesSaveTimer);
+  const input = document.getElementById('sermonNotesEditor');
+  saveSermonNotesLocal(key, input?.value || '', true);
 }
 function formatSermonPassageRef(item) {
   const book = getBibleBookByAbbr(item.bookAbbr);
@@ -1741,26 +2185,50 @@ const BIBLE_VERSIONS = [
 let currentBibleVersion = BIBLE_VERSIONS[0].id;
 const bibleLinesCache = {};   // versionId -> lines[]
 const bibleIndexCache = {};   // versionId -> { 'BOOK_chap': [{verse,text}] }
+const bibleLoadErrors = {};   // versionId -> error message
 let bibleFontSize = 15;
 
+function getBibleVersionMeta(versionId){
+  return BIBLE_VERSIONS.find(v=>v.id===versionId);
+}
+function isBibleSourceUnavailable(versionId){
+  return !!bibleLoadErrors[versionId];
+}
+function getBibleSourceUnavailableHtml(versionId, compact=false){
+  const ver=getBibleVersionMeta(versionId);
+  const extra=compact
+    ? '当前目录未放入圣经文本文件，暂时无法显示经文预览'
+    : `未找到经文文件 <code style="font-size:11px">${ver?ver.file:''}</code><br>请将该文本文件与本页面放在同一目录下。`;
+  return `<div class="bible-empty">
+    <i class="ti ti-book-off" style="font-size:26px;display:block;margin-bottom:8px;color:#ddd"></i>
+    ${extra}
+  </div>`;
+}
 async function loadBibleFile(versionId){
   if(bibleIndexCache[versionId]) return;
-  const ver = BIBLE_VERSIONS.find(v=>v.id===versionId);
+  if(bibleLoadErrors[versionId]) throw new Error(bibleLoadErrors[versionId]);
+  const ver = getBibleVersionMeta(versionId);
   if(!ver) throw new Error('未知版本');
-  const res = await fetch(ver.file);
-  if(!res.ok) throw new Error(`无法加载 ${ver.file}`);
-  const text = await res.text();
-  const lines = text.split(/\r?\n/);
-  const index = {};
-  lines.forEach(line=>{
-    const match = line.match(/^([A-Z0-9]+)\s+(\d+):(\d+)\s+(.*)$/);
-    if(!match) return;
-    const key = `${match[1]}_${match[2]}`;
-    if(!index[key]) index[key]=[];
-    index[key].push({ verse:Number(match[3]), text:match[4] });
-  });
-  bibleLinesCache[versionId]=lines;
-  bibleIndexCache[versionId]=index;
+  try{
+    const res = await fetch(ver.file);
+    if(!res.ok) throw new Error(`无法加载 ${ver.file}`);
+    const text = await res.text();
+    const lines = text.split(/\r?\n/);
+    const index = {};
+    lines.forEach(line=>{
+      const match = line.match(/^([A-Z0-9]+)\s+(\d+):(\d+)\s+(.*)$/);
+      if(!match) return;
+      const key = `${match[1]}_${match[2]}`;
+      if(!index[key]) index[key]=[];
+      index[key].push({ verse:Number(match[3]), text:match[4] });
+    });
+    bibleLinesCache[versionId]=lines;
+    bibleIndexCache[versionId]=index;
+    delete bibleLoadErrors[versionId];
+  }catch(err){
+    bibleLoadErrors[versionId] = err?.message || `无法加载 ${ver.file}`;
+    throw err;
+  }
 }
 
 function escapeHtml(str){ return String(str).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
@@ -1899,13 +2367,8 @@ async function loadBibleChapter(){
     // ── Save last-read position
     saveLastRead(book.abbr, chapter);
   }catch(err){
-    console.error(err);
-    const ver=BIBLE_VERSIONS.find(v=>v.id===currentBibleVersion);
-    const msg=`<div class="bible-empty">
-      <i class="ti ti-file-off" style="font-size:26px;display:block;margin-bottom:8px;color:#ddd"></i>
-      未找到经文文件 <code style="font-size:11px">${ver?ver.file:''}</code><br>
-      请将该文本文件与本页面放在同一目录下。
-    </div>`;
+    if(!isBibleSourceUnavailable(currentBibleVersion)) console.error(err);
+    const msg=getBibleSourceUnavailableHtml(currentBibleVersion,false);
     list.innerHTML=msg;
     syncFullscreenBody(msg);
   }
@@ -2004,10 +2467,30 @@ function setViewMode(mode){
 
 // ── Bible collapse ────────────────────────────────────
 let bibleCollapsed = true;
+let sermonNotesSaveTimer = null;
+const APP_LOADER_MIN_MS = 850;
+const appLoaderStartedAt = Date.now();
 function toggleBible(){
   bibleCollapsed = !bibleCollapsed;
+  updateBibleCollapseUI();
+}
+function hideAppLoader(){
+  const loader = document.getElementById('appLoader');
+  if(!loader || loader.classList.contains('hidden')) return;
+  const elapsed = Date.now() - appLoaderStartedAt;
+  const wait = Math.max(0, APP_LOADER_MIN_MS - elapsed);
+  setTimeout(() => {
+    loader.classList.add('hidden');
+    document.body.classList.remove('app-loading');
+  }, wait);
+}
+function updateBibleCollapseUI(){
   const card = document.getElementById('bibleCard');
+  const btn = document.getElementById('bibleCollapseBtn');
+  const txt = document.getElementById('bibleCollapseText');
   if(card) card.classList.toggle('collapsed', bibleCollapsed);
+  if(btn) btn.classList.toggle('collapsed', bibleCollapsed);
+  if(txt) txt.textContent = bibleCollapsed ? '展开' : '收起';
 }
 
 // ── Collapse ──────────────────────────────────────────
@@ -2224,42 +2707,161 @@ function saveUploadedSongs(){
 }
 
 // ── Weekly sermon passages ───────────────────────────
+function initSermonThemeMarquees(root=document){
+  root.querySelectorAll('.sermon-marquee').forEach(el=>{
+    const text=el.dataset.text||'';
+    if(!text) return;
+    el.setAttribute('title', text);
+    el.classList.remove('is-overflowing');
+    el.style.removeProperty('--marquee-distance');
+    el.innerHTML='';
+    const plain=document.createElement('span');
+    plain.className='sermon-marquee-text';
+    plain.textContent=text;
+    el.appendChild(plain);
+    if(plain.scrollWidth<=el.clientWidth+4) return;
+    const first=document.createElement('span');
+    first.className='sermon-marquee-text';
+    first.textContent=text;
+    const gap=document.createElement('span');
+    gap.className='sermon-marquee-gap';
+    const second=document.createElement('span');
+    second.className='sermon-marquee-text';
+    second.textContent=text;
+    const track=document.createElement('div');
+    track.className='sermon-marquee-track';
+    track.appendChild(first);
+    track.appendChild(gap);
+    track.appendChild(second);
+    el.innerHTML='';
+    el.appendChild(track);
+    const distance=first.scrollWidth+gap.getBoundingClientRect().width;
+    el.style.setProperty('--marquee-distance', `${distance}px`);
+    el.classList.add('is-overflowing');
+  });
+}
+function closeSermonThemeDetail(e){
+  if(!e || e.target===document.getElementById('sermonThemeDetailOverlay')){
+    document.getElementById('sermonThemeDetailOverlay').classList.remove('open');
+  }
+}
+function handleSermonThemeKeydown(event, key){
+  if(event.key==='Enter' || event.key===' '){
+    event.preventDefault();
+    openSermonThemeDetail(key);
+  }
+}
+function openSermonThemeDetail(key){
+  const theme=getSermonThemeForKey(key).trim();
+  if(!theme) return;
+  const preacher=getSermonForKey(key).trim() || '待补充';
+  const items=getSermonPassagesForKey(key);
+  const audioUrl=getSafeExternalUrl(getSermonAudioForKey(key).trim());
+  const d=new Date(key+'T00:00:00');
+  const dateLabel=`${d.getMonth()+1}月${d.getDate()}日（周日）`;
+  const passageHtml=items.length
+    ? `<div class="sermon-theme-detail-block">
+        <div class="sermon-theme-detail-label">证道经文</div>
+        <div class="sermon-theme-detail-passage-list">
+          ${items.map(item=>`<span class="sermon-theme-detail-passage-item"><i class="ti ti-book-2"></i>${escapeHtml(formatSermonPassageRef(item))}</span>`).join('')}
+        </div>
+      </div>`
+    : '';
+  const audioHtml=audioUrl
+    ? `<div class="sermon-theme-detail-block">
+        <div class="sermon-theme-detail-label">讲道音频</div>
+        <div class="sermon-theme-detail-value"><a class="sermon-audio-link" href="${escapeHtml(audioUrl)}" target="_blank" rel="noopener noreferrer"><i class="ti ti-headphones"></i>打开讲道音频链接</a></div>
+      </div>`
+    : '';
+  document.getElementById('sermonThemeDetailTitle').textContent='证道详情';
+  document.getElementById('sermonThemeDetailDate').textContent=dateLabel;
+  document.getElementById('sermonThemeDetailBody').innerHTML=`
+    <div class="sermon-theme-detail-block">
+      <div class="sermon-theme-detail-label">证道人</div>
+      <div class="sermon-theme-detail-value">${escapeHtml(preacher)}</div>
+    </div>
+    <div class="sermon-theme-detail-block">
+      <div class="sermon-theme-detail-label">证道主题</div>
+      <div class="sermon-theme-detail-value"><strong>${escapeHtml(theme)}</strong></div>
+    </div>
+    ${passageHtml}
+    ${audioHtml}
+  `;
+  document.getElementById('sermonThemeDetailOverlay').classList.add('open');
+}
 function renderSermonPassages(key){
   const sec=document.getElementById('sermonPassageSection');
   if(!sec) return;
   const items=getSermonPassagesForKey(key);
   const theme=getSermonThemeForKey(key).trim();
+  const preacher=getSermonForKey(key);
+  const audioUrl=getSermonAudioForKey(key).trim();
+  const notes=getSermonNotesForKey(key).trim();
+  const safeAudioUrl=getSafeExternalUrl(audioUrl);
+  const collapsed=isSermonSectionCollapsed(key);
+  const extraCollapsed=isSermonExtraCollapsed(key);
   const editBtn=`<button class="sermon-edit-btn ${isAdmin?'show':''}" onclick="openSermonPassageEditor('${key}')"><i class="ti ti-edit"></i>设置经文</button>`;
-  if(!items.length && !theme){
-    sec.innerHTML=`
-      <div class="sermon-passage-card">
-        <div class="section-title-row"><span class="section-ttl">本周证道经文</span>${editBtn}</div>
-        <div class="sermon-preview-empty"><i class="ti ti-book-off"></i>本周证道主题与经文尚未设置</div>
+  const collapseBtn=`<button class="sermon-collapse-btn ${collapsed?'collapsed':''}" onclick="toggleSermonSectionCollapse('${key}')"><i class="ti ti-chevron-up"></i><span>${collapsed?'展开':'收起'}</span></button>`;
+  const extraToggleBtn=`<button class="sermon-extra-toggle ${extraCollapsed?'collapsed':''}" onclick="toggleSermonExtraCollapse('${key}')"><i class="ti ti-chevron-up"></i><span>${extraCollapsed?'展开音频和笔记':'收起音频和笔记'}</span></button>`;
+  const preacherHtml=`
+      <div class="sermon-theme-box">
+        <div class="sermon-theme-icon preacher-icon"><i class="ti ti-microphone-2"></i></div>
+        <div class="sermon-theme-content">
+          <div class="sermon-theme-label">证道人</div>
+          <div class="sermon-theme-value">${escapeHtml(preacher)}</div>
+        </div>
       </div>`;
-    return;
-  }
-  const chips=items.map(item=>`<div class="sermon-passage-chip"><i class="ti ti-book-2"></i>${formatSermonPassageRef(item)}</div>`).join('');
   const themeHtml=theme?`
       <div class="sermon-theme-box">
         <div class="sermon-theme-icon"><i class="ti ti-message-circle-2"></i></div>
-        <div>
+        <div class="sermon-theme-content">
           <div class="sermon-theme-label">证道主题</div>
-          <div class="sermon-theme-value">${escapeHtml(theme)}</div>
+          <div class="sermon-theme-value sermon-marquee" data-text="${escapeHtml(theme)}">${escapeHtml(theme)}</div>
         </div>
-      </div>`:'';
+      </div>`.replace('<div class="sermon-theme-box">', `<div class="sermon-theme-box is-clickable" role="button" tabindex="0" onclick="openSermonThemeDetail('${key}')" onkeydown="handleSermonThemeKeydown(event,'${key}')">`):'';
+  const metaHtml=`<div class="sermon-meta-row${theme ? '' : ' single'}">${preacherHtml}${themeHtml}</div>`;
   const previewHtml=items.length
-    ? `<div class="sermon-preview-list" id="sermonPreviewList">
+    ? `<div class="sermon-block-label">证道经文</div>
+       <div class="sermon-preview-list" id="sermonPreviewList">
         <div class="bible-loading">正在加载经文...</div>
       </div>`
     : `<div class="sermon-preview-empty"><i class="ti ti-book-off"></i>本周证道经文尚未设置</div>`;
+  const audioHtml=safeAudioUrl
+    ? `<a class="sermon-audio-link" href="${escapeHtml(safeAudioUrl)}" target="_blank" rel="noopener noreferrer"><i class="ti ti-headphones"></i>讲道音频链接</a>`
+    : `<div class="sermon-extra-empty">${audioUrl ? '音频链接格式无效，请重新设置' : '暂未添加讲道音频链接'}</div>`;
+  const noteHtml=`
+    <textarea class="sermon-note-editor" id="sermonNotesEditor" placeholder="写下本周讲道笔记，内容只会保存在当前浏览器缓存中" oninput="queueSermonNotesSave('${key}')" onblur="flushSermonNotesSave('${key}')">${escapeHtml(notes)}</textarea>
+    <div class="sermon-note-footer">
+      <span class="sermon-note-hint">无需登录，自动保存到当前设备浏览器缓存</span>
+      <span class="sermon-note-saved${notes.trim() ? ' show' : ''}" id="sermonNotesSaved">${notes.trim() ? '已保存到本地缓存' : ''}</span>
+    </div>`;
   sec.innerHTML=`
     <div class="sermon-passage-card">
-      <div class="section-title-row"><span class="section-ttl">本周证道经文</span>${editBtn}</div>
-      ${themeHtml}
-      ${items.length ? `<div class="sermon-passages-list">${chips}</div>` : ''}
-      ${previewHtml}
+      <div class="section-title-row">
+        <div class="sermon-section-head-left">
+          <div class="sermon-section-icon"><i class="ti ti-book-2"></i></div>
+          <span class="section-ttl">本周证道</span>
+        </div>
+        <div class="sermon-section-actions">${collapseBtn}${editBtn}</div>
+      </div>
+      <div class="sermon-card-body ${collapsed?'collapsed':''}">
+        ${metaHtml}
+        ${previewHtml}
+        <div class="sermon-extra-divider">${extraToggleBtn}</div>
+        <div class="sermon-extra-stack ${extraCollapsed?'collapsed':''}">
+          <div class="sermon-extra-card">
+            <div class="sermon-extra-label">讲道音频链接</div>
+            ${audioHtml}
+          </div>
+          <div class="sermon-extra-card">
+            <div class="sermon-extra-label">讲道笔记</div>
+            ${noteHtml}
+          </div>
+        </div>
+      </div>
     </div>`;
-  if(items.length) hydrateSermonPassagePreview(key, items);
+  requestAnimationFrame(()=>initSermonThemeMarquees(sec));
+  if(items.length && !collapsed) hydrateSermonPassagePreview(key, items);
 }
 async function hydrateSermonPassagePreview(key, items){
   const container=document.getElementById('sermonPreviewList');
@@ -2289,9 +2891,13 @@ async function hydrateSermonPassagePreview(key, items){
       </div>`;
     }).join('');
   }catch(err){
-    console.error(err);
     if(document.getElementById('sermonPreviewList')){
-      container.innerHTML='<div class="sermon-preview-empty"><i class="ti ti-alert-circle"></i>经文预览加载失败</div>';
+      if(isBibleSourceUnavailable(currentBibleVersion)){
+        container.innerHTML='<div class="sermon-preview-empty"><i class="ti ti-book-off"></i>当前目录未放入圣经文本文件，暂时无法显示经文预览</div>';
+      }else{
+        console.error(err);
+        container.innerHTML='<div class="sermon-preview-empty"><i class="ti ti-alert-circle"></i>经文预览加载失败</div>';
+      }
     }
   }
 }
@@ -2304,9 +2910,11 @@ function openSermonPassageEditor(key){
   sermonPassageEditKey=key;
   sermonPassageDraft=JSON.parse(JSON.stringify(getSermonPassagesForKey(key)));
   sermonThemeDraft=getSermonThemeForKey(key);
+  sermonAudioDraft=getSermonAudioForKey(key);
   const d=new Date(key+'T00:00:00');
   document.getElementById('sermonPassageSub').textContent=`${d.getMonth()+1}月${d.getDate()}日（周日）`;
   document.getElementById('sermonThemeInput').value=sermonThemeDraft;
+  document.getElementById('sermonAudioInput').value=sermonAudioDraft;
   renderSermonPassageDraftList();
   setSermonDraftTestament(currentTestament||'ot');
   document.getElementById('sermonPassageOverlay').classList.add('open');
@@ -2404,15 +3012,19 @@ function addSermonPassageDraft(){
 function saveSermonPassages(){
   if(!sermonPassageEditKey) return;
   sermonThemeDraft=document.getElementById('sermonThemeInput')?.value.trim()||'';
+  sermonAudioDraft=document.getElementById('sermonAudioInput')?.value.trim()||'';
   if(sermonPassageDraft.length) sermonPassagesByDate[sermonPassageEditKey]=JSON.parse(JSON.stringify(sermonPassageDraft));
   else delete sermonPassagesByDate[sermonPassageEditKey];
   if(sermonThemeDraft) sermonThemesByDate[sermonPassageEditKey]=sermonThemeDraft;
   else delete sermonThemesByDate[sermonPassageEditKey];
+  if(sermonAudioDraft) sermonAudioByDate[sermonPassageEditKey]=sermonAudioDraft;
+  else delete sermonAudioByDate[sermonPassageEditKey];
   persistSermonPassages();
   persistSermonThemes();
+  persistSermonAudio();
   closeSermonPassageEditor();
   render();
-  showToast('✅ 证道主题与经文已保存');
+  showToast('✅ 证道内容已保存');
 }
 function jumpToBibleLocation(bookAbbr, chapter){
   if (settings.sectionVisible && settings.sectionVisible.bible === false) {
@@ -2494,18 +3106,19 @@ function render(){
   const key=toKey(d);
   renderNotice(key);
   renderSermonPassages(key);
+  updateBackToTodayFab();
 
   // Inject bible card into #bibleSection once
   const bibleSec=document.getElementById('bibleSection');
   if(bibleSec && !bibleSec.hasChildNodes()){
     bibleSec.innerHTML=`
       <div class="bible-search-card collapsed" id="bibleCard">
-        <div class="bible-search-head" onclick="toggleBible()">
+        <div class="bible-search-head">
           <div class="bible-search-head-left">
             <div class="bible-search-icon"><i class="ti ti-book-2"></i></div>
             <div class="bible-search-title">圣经</div>
           </div>
-          <button class="bible-collapse-btn" id="bibleCollapseBtn" aria-label="收起/展开"><i class="ti ti-chevron-up"></i></button>
+          <button class="bible-collapse-btn" id="bibleCollapseBtn" aria-label="收起/展开" onclick="toggleBible()"><i class="ti ti-chevron-up"></i><span id="bibleCollapseText">展开</span></button>
         </div>
         <div class="bible-body">
           <div class="bible-progress-row" id="bibleProgressRow"></div>
@@ -2547,6 +3160,7 @@ function render(){
         </div>
       </div>`;
     initBibleSelectors();
+    updateBibleCollapseUI();
   }
 
   renderSongs(key);
@@ -2774,12 +3388,86 @@ function rr(ctx,x,y,w,h,r,fill){
 }
 
 // ── Init ──────────────────────────────────────────────
-function goToday(){
+function getCurrentWeekSunday(){
   const now=new Date(), s=getSundaysOfMonth(now.getFullYear(),now.getMonth());
   let t=s.find(x=>x.toDateString()===now.toDateString());
   if(!t){ const f=s.filter(x=>x>=now); t=f.length?f[0]:s[s.length-1]; }
-  selectedSunday=t; updateAdminUI(); render();
+  return t;
 }
+function getRelativeWeekLabel(d){
+  const cur=getCurrentWeekSunday();
+  if(!d || !cur) return '本周排班';
+  const diffDays=Math.round((d.setHours(0,0,0,0)-new Date(cur).setHours(0,0,0,0))/(24*60*60*1000));
+  const diffWeeks=Math.round(diffDays/7);
+  if(diffWeeks===0) return '本周排班';
+  if(diffWeeks===1) return '下周排班';
+  if(diffWeeks===-1) return '上周排班';
+  if(diffWeeks===2) return '下下周排班';
+  if(diffWeeks===-2) return '上上周排班';
+  return `${d.getMonth()+1}月${d.getDate()}日排班`;
+}
+function goToday(){
+  selectedSunday=getCurrentWeekSunday(); updateAdminUI(); render();
+}
+function updateBackToTodayFab(){
+  const fab=document.getElementById('backToTodayFab');
+  const btn=document.getElementById('todayBtn');
+  if(!selectedSunday) return;
+  const cur=getCurrentWeekSunday();
+  const isCurrentWeek = cur && selectedSunday.toDateString()===cur.toDateString();
+  if(fab) fab.classList.toggle('show', !isCurrentWeek);
+  if(btn) btn.textContent = getRelativeWeekLabel(new Date(selectedSunday));
+}
+// ── Month overview (view all Sundays' shifts at once) ──
+function openMonthOverview(){
+  const d=selectedSunday||new Date();
+  renderMonthOverview(d.getFullYear(), d.getMonth());
+  document.getElementById('monthOverviewOverlay').classList.add('open');
+}
+function closeMonthOverview(e){
+  if(!e || e.target===document.getElementById('monthOverviewOverlay'))
+    document.getElementById('monthOverviewOverlay').classList.remove('open');
+}
+function jumpToMonthOverviewWeek(y,m,dt){
+  selectedSunday=new Date(y,m,dt);
+  document.getElementById('monthOverviewOverlay').classList.remove('open');
+  updateAdminUI();
+  render();
+}
+function renderMonthOverview(year, month){
+  const sundays=getSundaysOfMonth(year, month);
+  const list=document.getElementById('monthOverviewList');
+  const title=document.getElementById('monthOverviewTitle');
+  const sub=document.getElementById('monthOverviewSub');
+  title.textContent=`📅 ${year}年${ZH_MONTHS[month]}月排班总览`;
+  sub.textContent=`本月共 ${sundays.length} 个主日 · 点击日期可跳转查看`;
+  if(!sundays.length){
+    list.innerHTML=`<div class="result-empty"><i class="ti ti-calendar-off"></i>该月没有主日</div>`;
+    return;
+  }
+  list.innerHTML=sundays.map(s=>{
+    const key=toKey(s);
+    const shifts=scheduleData[key]||[];
+    const preacher=getSermonForKey(key);
+    const dateLabel=`${month+1}月${s.getDate()}日（周日）`;
+    const isCur=selectedSunday && s.toDateString()===selectedSunday.toDateString();
+    const itemsHtml=shifts.length
+      ? shifts.map(sh=>{
+          const c=roleColors[sh.role]||{badgeBg:'#888',badgeText:'#fff',icon:'ti-user'};
+          return `<div class="result-item"><div class="result-role-badge" style="background:${c.badgeBg}"><i class="ti ${c.icon}" style="color:${c.badgeText}"></i><span style="color:${c.badgeText}">${sh.role}</span></div><div class="result-info"><div class="result-name">${sh.name}</div><div class="result-team">${sh.persons.join(' / ')}</div></div></div>`;
+        }).join('')
+      : `<div class="result-empty" style="padding:1rem 0"><i class="ti ti-calendar-off"></i>暂未排班</div>`;
+    return `<div class="result-date-group">
+      <div class="result-date-label" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;${isCur?'color:var(--primary)':''}"
+        onclick="jumpToMonthOverviewWeek(${s.getFullYear()},${s.getMonth()},${s.getDate()})">
+        <span>${dateLabel}${isCur?' · 当前':''}</span>
+        <span style="color:var(--primary);font-weight:600;text-align:right">证道：${escapeHtml(preacher)}</span>
+      </div>
+      ${itemsHtml}
+    </div>`;
+  }).join('');
+}
+
 // ── Roster management ────────────────────────────────
 function openRoster(){
   renderRosterChips('leader');
@@ -2867,10 +3555,11 @@ function saveSermonDate(key, name){
     inp.style.borderColor = 'var(--primary)';
     setTimeout(() => inp.style.borderColor = 'rgba(0,0,0,0.1)', 1000);
   }
+  if(selectedSunday && toKey(selectedSunday)===key) renderSermonPassages(key);
 }
 
 loadBibleFile(currentBibleVersion)
-  .catch(console.error);
+  .catch(()=>{});
 
 // ── Settings ──────────────────────────────────────────
 // Preset color swatches
@@ -2888,7 +3577,7 @@ const COLOR_PRESETS = [
 // Sections config: id of DOM element, label, icon, iconBg, iconColor
 const SECTIONS_CONFIG = [
   { key: 'notice',   label: '通知',   icon: 'ti-bell',      iconBg: '#FFF7DB', iconColor: '#7a5500', domId: 'noticeSection' },
-  { key: 'sermonPassage', label: '证道经文', icon: 'ti-book', iconBg: '#EEF2FF', iconColor: '#3B5BDB', domId: 'sermonPassageSection' },
+  { key: 'sermonPassage', label: '本周证道', icon: 'ti-book', iconBg: '#EEF2FF', iconColor: '#3B5BDB', domId: 'sermonPassageSection' },
   { key: 'bible',    label: '圣经',   icon: 'ti-book-2',    iconBg: '#FAECE7', iconColor: '#993C1D', domId: 'bibleSection'  },
   { key: 'song',     label: '诗歌',   icon: 'ti-music',     iconBg: '#EEF2FF', iconColor: '#3B5BDB', domId: 'songSection'   },
   { key: 'schedule', label: '排班',   icon: 'ti-calendar',  iconBg: '#E6FCF5', iconColor: '#1D9E75', domId: 'mainScheduleInner' },
@@ -3455,6 +4144,9 @@ function confirmClearAllCache() {
     localStorage.removeItem(LS_BOOKMARKS);
     localStorage.removeItem(LS_SERMON_PASSAGES);
     localStorage.removeItem(LS_SERMON_THEMES);
+    localStorage.removeItem(LS_SERMON_AUDIO);
+    localStorage.removeItem(LS_SERMON_NOTES);
+    localStorage.removeItem(LS_SERMON_COLLAPSED);
     localStorage.removeItem(LS_LAST_READ_OT);
     localStorage.removeItem(LS_LAST_READ_NT);
   } catch(e) {}
@@ -3557,6 +4249,7 @@ function getSharedAppStateSnapshot() {
     schedule_data: normalizeScheduleData(scheduleData),
     sermon_passages_by_date: normalizeSimpleMap(sermonPassagesByDate),
     sermon_themes_by_date: normalizeSimpleMap(sermonThemesByDate),
+    sermon_audio_by_date: normalizeSimpleMap(sermonAudioByDate),
   };
 }
 
@@ -3567,6 +4260,7 @@ function applyRemoteAppState(row) {
   scheduleData = normalizeScheduleData(row?.schedule_data || scheduleData);
   sermonPassagesByDate = normalizeSimpleMap(row?.sermon_passages_by_date || sermonPassagesByDate);
   sermonThemesByDate = normalizeSimpleMap(row?.sermon_themes_by_date || sermonThemesByDate);
+  sermonAudioByDate = normalizeSimpleMap(row?.sermon_audio_by_date || sermonAudioByDate);
 }
 
 async function upsertRemoteAppState(partial) {
@@ -3724,11 +4418,12 @@ saveSermonPassages = async function() {
     await upsertRemoteAppState({
       sermon_passages_by_date: deepClone(sermonPassagesByDate),
       sermon_themes_by_date: deepClone(sermonThemesByDate),
+      sermon_audio_by_date: deepClone(sermonAudioByDate),
     });
-    showToast('☁️ 证道内容已同步到云端');
+    showToast('☁️ 经文主题与音频已同步到云端');
   } catch (e) {
     console.error('同步证道内容失败', e);
-    showToast('证道内容已保存到本地，但云端同步失败');
+    showToast('经文主题与音频已保存到本地，但云端同步失败');
   }
 };
 
@@ -3790,6 +4485,9 @@ async function bootstrapApp() {
   loadBibleBookmarks();
   loadSermonPassages();
   loadSermonThemes();
+  loadSermonAudio();
+  loadSermonNotes();
+  loadSermonCollapsed();
   loadSettings();
   applySettingsToDOM();
 
@@ -3807,7 +4505,7 @@ async function bootstrapApp() {
   goToday();
 }
 
-bootstrapApp();
+bootstrapApp().finally(hideAppLoader);
 </script>
 </body>
 </html>
