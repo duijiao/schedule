@@ -710,6 +710,203 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
   border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
 .sermon-add-btn:hover { background: var(--primary-dark); }
+
+/* ── Desktop layout ─────────────────────────────────── */
+.desktop-rail { display: none; }
+.desktop-side-card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: 0 14px 28px rgba(0,0,0,0.05);
+  margin-bottom: 16px;
+}
+.desktop-brand-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+}
+.desktop-brand-mark {
+  width: 42px; height: 42px; border-radius: 14px;
+  background: #F5C842; color: #7a5500;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
+}
+.desktop-brand-mark i { font-size: 20px; }
+.desktop-brand-title { font-size: 17px; font-weight: 700; color: #1a1a1a; }
+.desktop-brand-sub { font-size: 12px; color: #9a9a92; margin-top: 2px; }
+.desktop-card-kicker {
+  font-size: 11px; font-weight: 700; color: var(--primary);
+  letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px;
+}
+.desktop-card-title { font-size: 24px; font-weight: 700; color: #1a1a1a; line-height: 1.15; }
+.desktop-card-sub { font-size: 13px; color: #8a8a84; margin-top: 6px; line-height: 1.6; }
+.desktop-week-items { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.desktop-week-item {
+  display: flex; align-items: center; gap: 10px; background: #f8f8f5;
+  border-radius: 16px; padding: 12px 13px;
+}
+.desktop-week-item-icon {
+  width: 34px; height: 34px; border-radius: 10px; display: flex;
+  align-items: center; justify-content: center; flex-shrink: 0;
+}
+.desktop-week-item-label { font-size: 11px; color: #999; margin-bottom: 3px; }
+.desktop-week-item-value { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+.desktop-side-link {
+  margin-top: 14px; width: 100%; border: none; border-radius: 14px;
+  background: var(--primary-light); color: var(--primary);
+  font-size: 13px; font-weight: 600; padding: 11px 14px; cursor: pointer;
+  font-family: inherit;
+}
+.desktop-side-link:hover { background: var(--primary-mid); }
+.desktop-calendar-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px;
+}
+.desktop-calendar-title { font-size: 14px; font-weight: 700; color: #1a1a1a; }
+.desktop-calendar-sub { font-size: 12px; color: #aaa; }
+.desktop-mini-grid {
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px 6px;
+}
+.desktop-mini-weekday {
+  font-size: 11px; color: #b2b2aa; text-align: center; font-weight: 600;
+}
+.desktop-mini-day {
+  border: none; background: transparent; min-height: 34px; border-radius: 12px;
+  font-family: inherit; font-size: 13px; color: #666; cursor: default;
+}
+.desktop-mini-day.is-sunday { color: var(--primary); font-weight: 700; cursor: pointer; }
+.desktop-mini-day.is-sunday:hover { background: var(--primary-light); }
+.desktop-mini-day.active { background: var(--primary); color: #fff; box-shadow: 0 8px 18px rgba(29,158,117,0.18); }
+.desktop-mini-day.placeholder { visibility: hidden; }
+.desktop-profile-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f7f7f3 100%);
+}
+.desktop-profile-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px;
+}
+.desktop-profile-name { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+.desktop-profile-sub { font-size: 12px; color: #9c9c96; margin-top: 4px; }
+.desktop-profile-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 700; flex-shrink: 0;
+  box-shadow: 0 10px 18px rgba(29,158,117,0.22);
+}
+.desktop-status-badge {
+  display: inline-flex; align-items: center; gap: 6px; border-radius: 999px;
+  padding: 6px 10px; background: var(--primary-light); color: var(--primary);
+  font-size: 12px; font-weight: 600;
+}
+.desktop-clock-wrap {
+  margin-top: 14px; background: #fff; border-radius: 18px; padding: 18px 16px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
+}
+.desktop-clock { font-size: 40px; font-weight: 700; line-height: 1; color: #1a1a1a; letter-spacing: -0.04em; }
+.desktop-clock-sub { font-size: 12px; color: #8f8f88; margin-top: 8px; }
+.desktop-quick-actions {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px;
+}
+.desktop-quick-btn {
+  border: none; border-radius: 16px; padding: 12px 10px; background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05); color: #444; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+}
+.desktop-quick-btn:hover { background: #fafaf8; color: var(--primary); }
+.desktop-quick-btn i { font-size: 16px; display: block; margin-bottom: 6px; }
+
+@media (min-width: 1180px) {
+  body {
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px 22px 40px;
+    background: linear-gradient(180deg, #f7f7f4 0%, #efefea 100%);
+  }
+  .app { max-width: 1380px; }
+  .header-card {
+    border-radius: 28px;
+    padding: 28px 30px 0;
+    margin-bottom: 22px;
+    box-shadow: 0 16px 34px rgba(0,0,0,0.05);
+  }
+  .header-top { align-items: center; }
+  .church-title { font-size: 18px; margin-bottom: 10px; }
+  .day-num { font-size: 58px; }
+  .header-date-hint { margin-top: 8px; }
+  .header-right { flex-direction: row; align-items: center; gap: 10px; }
+  .week-nav-wrap { gap: 8px; }
+  .week-nav {
+    justify-content: flex-start;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .week-nav::-webkit-scrollbar { display: none; }
+  .sunday-pill { padding: 8px 12px; min-width: 58px; }
+  .scroll-area {
+    padding: 0;
+    display: grid;
+    grid-template-columns: 290px minmax(0, 1fr) 300px;
+    gap: 22px;
+    align-items: start;
+  }
+  .search-wrap,
+  .search-result-panel { grid-column: 2; }
+  .search-wrap {
+    margin-bottom: 0;
+    position: sticky;
+    top: 24px;
+    z-index: 40;
+  }
+  .search-input {
+    height: 52px;
+    border-radius: 16px;
+    padding-left: 46px;
+    font-size: 15px;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.04);
+    border-color: rgba(0,0,0,0.06);
+  }
+  .search-icon { left: 16px; font-size: 18px; }
+  #mainSchedule {
+    grid-column: 1 / -1;
+    display: grid !important;
+    grid-template-columns: 290px minmax(0, 1fr) 300px;
+    gap: 22px;
+    align-items: start;
+  }
+  .desktop-rail { display: block; }
+  #desktopLeftRail,
+  #desktopRightRail {
+    position: sticky;
+    top: 94px;
+    align-self: start;
+  }
+  #desktopLeftRail { grid-column: 1; }
+  #mainScheduleInner { grid-column: 2; min-width: 0; }
+  #desktopRightRail,
+  #nameReminderBanner,
+  #sermonPassageSection,
+  #songSection,
+  #bibleSection { grid-column: 3; }
+  #noticeSection { grid-column: 1; }
+  .main-card,
+  .notice-card,
+  .sermon-passage-card,
+  .bible-search-card {
+    border-radius: 24px;
+    box-shadow: 0 14px 28px rgba(0,0,0,0.05);
+  }
+  .main-card { padding: 20px 18px 12px; }
+  .schedule-head { margin-bottom: 14px; }
+  .schedule-section-label { font-size: 18px; }
+  .card-date-label { font-size: 16px; }
+  .role-label { min-width: 58px; }
+  .shift-card { border-radius: 18px; padding: 14px 16px; }
+  .shift-name { font-size: 15px; }
+  .person-name { font-size: 13px; }
+  .song-card { width: 150px; }
+  .fab-inner { max-width: 1380px; }
+  .back-to-today-fab { right: 28px; bottom: 34px; }
+}
+
 @media (max-width: 360px) {
   .sermon-meta-row { grid-template-columns: minmax(96px,0.88fr) minmax(0,1.28fr); }
   .sermon-select-grid { grid-template-columns: 1fr 78px; }
@@ -1808,6 +2005,13 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
   </div>
 
   <div id="mainSchedule">
+    <div class="desktop-rail desktop-left-rail" id="desktopLeftRail">
+      <div id="desktopWeeklyCard"></div>
+      <div id="desktopMonthCard"></div>
+    </div>
+    <div class="desktop-rail desktop-right-rail" id="desktopRightRail">
+      <div id="desktopProfileCard"></div>
+    </div>
     <div id="noticeSection"></div>
     <div id="sermonPassageSection"></div>
   <div id="nameReminderBanner" class="name-reminder-banner">
@@ -1885,6 +2089,15 @@ let rotationConfig = {
   prayer: {
     base: '2026-06-07',
     list: ['吴建斌','林大平','周黛亮','梁水根'],
+  },
+  peopleByRole: {
+    '主领': [],
+    '伴唱': [],
+    '键盘': [],
+    '吉他': [],
+    '贝斯': [],
+    '鼓': [],
+    '教歌': [],
   },
 };
 
@@ -3192,6 +3405,7 @@ function render(){
 
   renderSongs(key);
   renderShifts(key);
+  renderDesktopPanels(key);
   const ab=document.getElementById('addShiftBtn'); if(ab) ab.style.display=isAdmin?'flex':'none';
   updateAdminUI();
 }
@@ -3226,7 +3440,7 @@ function renderSearchResults(q){
 }
 
 // ── Admin edit ────────────────────────────────────────
-const allPeople={
+const DEFAULT_ALL_PEOPLE={
   '主领':['根英','佳欣','丽娜','张荣','嘉乐','美美','雨婷','林上恩','慧慧'],
   '伴唱':['曼茹','建蝉','张荣','小小','加恩','嘉乐','婷婷','Irene','安娜','雨婷','富雄','根英'],
   '键盘':['慧慧','雨婷','孙望','叶合均','美美','玲晓'],
@@ -3235,9 +3449,85 @@ const allPeople={
   '鼓':['周阳','Isaac','Irene'],
   '教歌':['张荣','美美','慧慧','根英'],
 };
-Object.keys(allPeople).forEach(k=>{ allPeople[k]=[...new Set(allPeople[k])]; });
+Object.keys(DEFAULT_ALL_PEOPLE).forEach(k=>{ DEFAULT_ALL_PEOPLE[k]=[...new Set(DEFAULT_ALL_PEOPLE[k])]; });
 const ROLES=['主领','伴唱','键盘','吉他','贝斯','鼓','教歌'];
 let editMode=null,editKey=null,editRole=null,editSelections={},customPeople={};
+
+function uniqPeople(list){
+  const seen = new Set(), next = [];
+  (Array.isArray(list) ? list : []).forEach(item => {
+    const name = String(item || '').trim();
+    if(!name || seen.has(name)) return;
+    seen.add(name);
+    next.push(name);
+  });
+  return next;
+}
+function createEmptyPeopleByRole(){
+  const next = {};
+  ROLES.forEach(role => { next[role] = []; });
+  return next;
+}
+function normalizePeopleByRole(raw){
+  const next = createEmptyPeopleByRole();
+  if(raw && typeof raw === 'object'){
+    Object.entries(raw).forEach(([role, people]) => {
+      if(!ROLES.includes(role) || !Array.isArray(people)) return;
+      next[role] = uniqPeople(people);
+    });
+  }
+  return next;
+}
+function ensureRotationPeopleLibrary(){
+  rotationConfig.peopleByRole = normalizePeopleByRole(rotationConfig.peopleByRole);
+  return rotationConfig.peopleByRole;
+}
+function getPersistedRolePeople(role){
+  return ensureRotationPeopleLibrary()[role] || [];
+}
+function collectScheduledRolePeople(role){
+  const names = [];
+  Object.values(scheduleData || {}).forEach(rows => {
+    (Array.isArray(rows) ? rows : []).forEach(row => {
+      if(row?.role === role && Array.isArray(row.persons)) names.push(...row.persons);
+    });
+  });
+  return uniqPeople(names);
+}
+function getRolePeople(role, extras=[]){
+  return uniqPeople([
+    ...(DEFAULT_ALL_PEOPLE[role] || []),
+    ...getPersistedRolePeople(role),
+    ...collectScheduledRolePeople(role),
+    ...(Array.isArray(extras) ? extras : []),
+  ]);
+}
+function addRolePeopleToLibrary(role, names){
+  const incoming = Array.isArray(names) ? names : [names];
+  const lib = ensureRotationPeopleLibrary();
+  const before = lib[role] || [];
+  const after = uniqPeople([...before, ...incoming]);
+  const changed = before.length !== after.length || before.some((name, idx) => name !== after[idx]);
+  lib[role] = after;
+  return changed;
+}
+function removeRolePersonFromLibrary(role, name){
+  const lib = ensureRotationPeopleLibrary();
+  const before = lib[role] || [];
+  const after = before.filter(item => item !== name);
+  const changed = before.length !== after.length;
+  lib[role] = after;
+  return changed;
+}
+function decodeInlineValue(val){
+  try { return decodeURIComponent(val); } catch(e) { return val; }
+}
+function togglePersonByCode(roleCode,nameCode){
+  togglePerson(decodeInlineValue(roleCode), decodeInlineValue(nameCode));
+}
+function removePersonByCode(roleCode,nameCode){
+  removePerson(decodeInlineValue(roleCode), decodeInlineValue(nameCode));
+}
 
 function openAddDrawer(){ if(!isAdmin)return; editMode='add'; editKey=toKey(selectedSunday); editRole=null; editSelections={}; customPeople={};
   const ex=scheduleData[editKey]||[];
@@ -3257,14 +3547,14 @@ function renderEditDrawer(){
   roles.forEach(role=>{
     const col=roleColors[role]||{badgeBg:'#888',badgeText:'#fff',icon:'ti-user'};
     const sel=editSelections[role]||new Set();
-    const base=allPeople[role]||[];
     const custom=customPeople[role]||[];
-    const all=[...base,...custom.filter(p=>!base.includes(p))];
+    const all=getRolePeople(role, custom);
     const sec=document.createElement('div'); sec.className='role-section';
     const chips=all.map(p=>{
-      const isCustom=!base.includes(p);
-      return `<button class="person-chip ${sel.has(p)?'selected':''} ${isCustom?'custom-chip':''}" onclick="togglePerson('${role}','${p}')">
-        <i class="ti ti-check chip-check"></i>${p}<span class="chip-remove" onclick="event.stopPropagation();removePerson('${role}','${p}')">×</span></button>`;
+      const isCustom=!(DEFAULT_ALL_PEOPLE[role]||[]).includes(p);
+      const roleCode=encodeURIComponent(role), nameCode=encodeURIComponent(p);
+      return `<button class="person-chip ${sel.has(p)?'selected':''} ${isCustom?'custom-chip':''}" onclick="togglePersonByCode('${roleCode}','${nameCode}')">
+        <i class="ti ti-check chip-check"></i>${escapeHtml(p)}<span class="chip-remove" onclick="event.stopPropagation();removePersonByCode('${roleCode}','${nameCode}')">×</span></button>`;
     }).join('');
     sec.innerHTML=`
       <div class="role-section-head"><div class="role-section-badge" style="background:${col.badgeBg}"><i class="ti ${col.icon}" style="color:${col.badgeText}"></i><span style="color:${col.badgeText}">${role}</span></div></div>
@@ -3287,13 +3577,15 @@ function addCustomPerson(role){
   const inp=document.getElementById(`inp-${role}`);
   const name=inp.value.trim(); if(!name) return;
   if(!customPeople[role]) customPeople[role]=[];
-  if(!customPeople[role].includes(name)&&!(allPeople[role]||[]).includes(name)) customPeople[role].push(name);
+  addRolePeopleToLibrary(role, name);
+  if(!customPeople[role].includes(name)) customPeople[role].push(name);
   if(!editSelections[role]) editSelections[role]=new Set();
   editSelections[role].add(name); inp.value=''; renderEditDrawer();
 }
 function removePerson(role,name){
   const idx=(customPeople[role]||[]).indexOf(name);
   if(idx>-1) customPeople[role].splice(idx,1);
+  if(!(DEFAULT_ALL_PEOPLE[role]||[]).includes(name)) removeRolePersonFromLibrary(role, name);
   if(editSelections[role]) editSelections[role].delete(name);
   renderEditDrawer();
 }
@@ -3303,6 +3595,7 @@ function saveEdit(){
   const roles=editMode==='edit'?[editRole]:ROLES;
   roles.forEach(role=>{
     const persons=[...(editSelections[role]||[])];
+    addRolePeopleToLibrary(role, persons);
     if(!persons.length){ scheduleData[key]=scheduleData[key].filter(s=>s.role!==role); return; }
     const ex=scheduleData[key].find(s=>s.role===role);
     if(ex){ex.persons=persons;ex.name=persons.join('/');}
@@ -3813,6 +4106,189 @@ function applySectionOrderAndVisibility() {
   container.style.flexDirection = 'column';
 }
 
+
+// ── Desktop layout helpers ───────────────────────────
+const DESKTOP_BREAKPOINT = 1180;
+function isDesktopLayout() {
+  return window.innerWidth >= DESKTOP_BREAKPOINT;
+}
+function pickDesktopSunday(year, month, day) {
+  selectedSunday = new Date(year, month, day);
+  render();
+}
+function renderDesktopPanels(key) {
+  renderDesktopWeekCard(key);
+  renderDesktopMonthCard(selectedSunday || new Date());
+  renderDesktopProfileCard();
+  updateDesktopClock();
+}
+function renderDesktopWeekCard(key) {
+  const el = document.getElementById('desktopWeeklyCard');
+  if (!el || !selectedSunday) return;
+  const info = getNoticeForKey(key);
+  const date = selectedSunday;
+  const items = [
+    { label: '主领', value: info.leader, bg: '#FAECE7', color: '#993C1D', icon: 'ti-microphone' },
+    { label: '证道', value: info.sermon, bg: '#EAF2FF', color: '#185FA5', icon: 'ti-book' },
+    { label: '祷告', value: info.prayer, bg: '#ECF9E8', color: '#3B6D11', icon: 'ti-pray' },
+  ];
+  el.innerHTML = `
+    <div class="desktop-side-card desktop-week-card">
+      <div class="desktop-brand-row">
+        <div class="desktop-brand-mark"><i class="ti ti-cross"></i></div>
+        <div>
+          <div class="desktop-brand-title">敬拜排班表</div>
+          <div class="desktop-brand-sub">保留移动端风格的桌面版</div>
+        </div>
+      </div>
+      <div class="desktop-card-kicker">Weekly Service</div>
+      <div class="desktop-card-title">${date.getMonth()+1}月${date.getDate()}日</div>
+      <div class="desktop-card-sub">当前查看周日排班，桌面端按三栏信息面板重新组织。</div>
+      <div class="desktop-week-items">
+        ${items.map(item => `
+          <div class="desktop-week-item">
+            <div class="desktop-week-item-icon" style="background:${item.bg};color:${item.color}">
+              <i class="ti ${item.icon}"></i>
+            </div>
+            <div>
+              <div class="desktop-week-item-label">${item.label}</div>
+              <div class="desktop-week-item-value">${escapeHtml(item.value || '待定')}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <button class="desktop-side-link" onclick="openMonthOverview()">查看本月全部排班</button>
+    </div>`;
+}
+function renderDesktopMonthCard(date) {
+  const el = document.getElementById('desktopMonthCard');
+  if (!el || !date) return;
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const lastDate = new Date(year, month + 1, 0).getDate();
+  const sundaySet = new Set(getSundaysOfMonth(year, month).map(d => d.getDate()));
+  const weekdayLabels = ['日', '一', '二', '三', '四', '五', '六'];
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push('<span class="desktop-mini-day placeholder">·</span>');
+  for (let day = 1; day <= lastDate; day++) {
+    const isSunday = sundaySet.has(day);
+    const isActive = day === date.getDate();
+    const cls = ['desktop-mini-day'];
+    if (isSunday) cls.push('is-sunday');
+    if (isActive) cls.push('active');
+    const attrs = isSunday ? `onclick="pickDesktopSunday(${year}, ${month}, ${day})" title="切换到 ${month+1}月${day}日"` : '';
+    cells.push(`<button class="${cls.join(' ')}" ${attrs}>${day}</button>`);
+  }
+  el.innerHTML = `
+    <div class="desktop-side-card">
+      <div class="desktop-calendar-head">
+        <div>
+          <div class="desktop-calendar-title">${year} 年 ${month + 1} 月</div>
+          <div class="desktop-calendar-sub">带圆点的日期为主日</div>
+        </div>
+        <button class="view-toggle-btn" onclick="openMonthPicker()" title="选择月份"><i class="ti ti-calendar-month"></i></button>
+      </div>
+      <div class="desktop-mini-grid">
+        ${weekdayLabels.map(label => `<span class="desktop-mini-weekday">${label}</span>`).join('')}
+        ${cells.join('')}
+      </div>
+    </div>`;
+}
+function renderDesktopProfileCard() {
+  const el = document.getElementById('desktopProfileCard');
+  if (!el || !selectedSunday) return;
+  const label = isAdmin ? '管理员模式' : '访客模式';
+  const sub = isAdmin ? '可以新增和修改排班' : '当前仅浏览排班内容';
+  const avatar = isAdmin ? '管' : '访';
+  const weekLabel = getRelativeWeekLabel(selectedSunday);
+  el.innerHTML = `
+    <div class="desktop-side-card desktop-profile-card">
+      <div class="desktop-profile-top">
+        <div>
+          <div class="desktop-profile-name">桌面工作台</div>
+          <div class="desktop-profile-sub">${selectedSunday.getMonth()+1}月${selectedSunday.getDate()}日 · ${escapeHtml(weekLabel)}</div>
+        </div>
+        <div class="desktop-profile-avatar">${avatar}</div>
+      </div>
+      <div class="desktop-status-badge"><i class="ti ti-shield-check"></i>${label}</div>
+      <div class="desktop-card-sub">${sub}</div>
+      <div class="desktop-clock-wrap">
+        <div class="desktop-clock" id="desktopClock">--:--</div>
+        <div class="desktop-clock-sub" id="desktopClockSub">巴西时间</div>
+      </div>
+      <div class="desktop-quick-actions">
+        <button class="desktop-quick-btn" onclick="openSettings()"><i class="ti ti-settings"></i>设置</button>
+        <button class="desktop-quick-btn" onclick="goToday()"><i class="ti ti-calendar-event"></i>本周</button>
+        <button class="desktop-quick-btn" onclick="openMonthOverview()"><i class="ti ti-layout-grid"></i>月总览</button>
+        <button class="desktop-quick-btn" onclick="openBookmarks()"><i class="ti ti-star"></i>收藏</button>
+      </div>
+    </div>`;
+}
+function updateDesktopClock() {
+  const clock = document.getElementById('desktopClock');
+  const sub = document.getElementById('desktopClockSub');
+  if (!clock || !sub) return;
+  const now = new Date();
+  const week = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  clock.textContent = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  sub.textContent = `${week[now.getDay()]} · 巴西当地时间`;
+}
+function syncResponsiveLayout() {
+  document.body.classList.toggle('desktop-mode', isDesktopLayout());
+}
+window.addEventListener('resize', () => {
+  syncResponsiveLayout();
+  applySectionOrderAndVisibility();
+});
+setInterval(updateDesktopClock, 1000);
+
+function applySectionOrderAndVisibility() {
+  const container = document.getElementById('mainSchedule');
+  if (!container) return;
+  const noticeEl = document.getElementById('noticeSection');
+  const sermonEl = document.getElementById('sermonPassageSection');
+  const bibleEl = document.getElementById('bibleSection');
+  const songEl = document.getElementById('songSection');
+  const scheduleEl = document.getElementById('mainScheduleInner');
+  const leftRail = document.getElementById('desktopLeftRail');
+  const rightRail = document.getElementById('desktopRightRail');
+  const bannerEl = document.getElementById('nameReminderBanner');
+  const ordered = {
+    notice: noticeEl,
+    sermonPassage: sermonEl,
+    bible: bibleEl,
+    song: songEl,
+    schedule: scheduleEl,
+  };
+
+  if (isDesktopLayout()) {
+    container.style.display = 'grid';
+    container.style.flexDirection = '';
+    if (leftRail) leftRail.style.display = 'block';
+    if (rightRail) rightRail.style.display = 'block';
+    Object.entries(ordered).forEach(([key, el]) => {
+      if (!el) return;
+      el.style.order = '';
+      el.style.display = settings.sectionVisible[key] ? '' : 'none';
+    });
+    if (bannerEl) bannerEl.style.order = '';
+    return;
+  }
+
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  if (leftRail) leftRail.style.display = 'none';
+  if (rightRail) rightRail.style.display = 'none';
+  settings.sectionOrder.forEach((key, idx) => {
+    const el = ordered[key];
+    if (!el) return;
+    el.style.display = settings.sectionVisible[key] ? '' : 'none';
+    el.style.order = idx;
+  });
+  if (bannerEl) bannerEl.style.order = '';
+}
+
 // ── Watch names ───────────────────────────────────────
 function renderNameTags() {
   const wrap = document.getElementById('nameTagsList');
@@ -3924,7 +4400,7 @@ function sendPushNotification(matches, key) {
   inner.id = 'mainScheduleInner';
   // Move all children not already named sections into inner
   const children = Array.from(main.children);
-  const sectionIds = new Set(['noticeSection','sermonPassageSection','bibleSection','songSection','nameReminderBanner']);
+  const sectionIds = new Set(['desktopLeftRail','desktopRightRail','noticeSection','sermonPassageSection','bibleSection','songSection','nameReminderBanner']);
   children.forEach(child => {
     if (!sectionIds.has(child.id)) {
       inner.appendChild(child);
@@ -4227,6 +4703,7 @@ function normalizeRotationConfig(raw) {
       base: next?.prayer?.base || '',
       list: Array.isArray(next?.prayer?.list) ? next.prayer.list : [],
     },
+    peopleByRole: normalizePeopleByRole(next?.peopleByRole || next?.people_by_role),
   };
 }
 
@@ -4412,12 +4889,14 @@ logout = async function() {
 
 const _localSaveEdit = saveEdit;
 saveEdit = async function() {
-  const key = editKey;
   _localSaveEdit();
   if (!initSupabaseClient()) return;
   try {
-    await syncRemoteField('schedule_data', scheduleData);
-    showToast('☁️ 排班已同步到云端');
+    await upsertRemoteAppState({
+      schedule_data: deepClone(scheduleData),
+      rotation_config: normalizeRotationConfig(rotationConfig),
+    });
+    showToast('☁️ 排班与人员库已同步到云端');
   } catch (e) {
     console.error('同步排班失败', e);
     showToast('排班已保存到本地，但云端同步失败');
@@ -4463,6 +4942,33 @@ addRosterPerson = async function(type) {
   } catch (e) {
     console.error('同步名单失败', e);
     showToast('名单已改动，但云端同步失败');
+  }
+};
+
+const _localAddCustomPerson = addCustomPerson;
+addCustomPerson = async function(role) {
+  const input = document.getElementById(`inp-${role}`);
+  const name = input ? input.value.trim() : '';
+  _localAddCustomPerson(role);
+  if (!name || !initSupabaseClient()) return;
+  try {
+    await syncRemoteField('rotation_config', rotationConfig);
+    showToast('☁️ 人员已加入云端名单');
+  } catch (e) {
+    console.error('同步排班人员库失败', e);
+    showToast('人员已加入当前排班，但云端名单同步失败');
+  }
+};
+
+const _localRemovePerson = removePerson;
+removePerson = async function(role, name) {
+  _localRemovePerson(role, name);
+  if (!initSupabaseClient()) return;
+  try {
+    await syncRemoteField('rotation_config', rotationConfig);
+  } catch (e) {
+    console.error('移除排班人员库失败', e);
+    showToast('人员显示已更新，但云端名单同步失败');
   }
 };
 
@@ -4518,6 +5024,7 @@ async function bootstrapApp() {
   loadSermonCollapsed();
   loadSettings();
   applySettingsToDOM();
+  syncResponsiveLayout();
 
   if (initSupabaseClient()) {
     try {
