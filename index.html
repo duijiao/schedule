@@ -152,7 +152,13 @@ body.app-loading { overflow: hidden; }
   opacity: 0.9;
 }
 .app-loader-text {
-  font-size: 14px; color: #666; letter-spacing: 0.6px;
+  max-width: 280px; text-align: center;
+}
+.app-loader-verse {
+  font-size: 15px; color: #4b4b47; line-height: 1.8; letter-spacing: 0.2px;
+}
+.app-loader-ref {
+  margin-top: 8px; font-size: 12px; color: #8d8d88; letter-spacing: 0.6px;
 }
 @keyframes loaderBookFlip {
   0%, 12% { transform: rotateY(0deg); opacity: 0; }
@@ -1416,7 +1422,10 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
         <div class="app-loader-ribbon"></div>
       </div>
     </div>
-    <div class="app-loader-text">正在翻阅圣经内容...</div>
+    <div class="app-loader-text">
+      <div class="app-loader-verse" id="appLoaderVerse">正在翻阅圣经内容...</div>
+      <div class="app-loader-ref" id="appLoaderVerseRef"></div>
+    </div>
   </div>
 </div>
 <div class="app">
@@ -2470,6 +2479,24 @@ let bibleCollapsed = true;
 let sermonNotesSaveTimer = null;
 const APP_LOADER_MIN_MS = 850;
 const appLoaderStartedAt = Date.now();
+const LOADER_VERSES = [
+  { text: '你的话是我脚前的灯，是我路上的光。', ref: '诗篇 119:105' },
+  { text: '你要专心仰赖耶和华，不可倚靠自己的聪明。', ref: '箴言 3:5' },
+  { text: '凡劳苦担重担的人，可以到我这里来，我就使你们得安息。', ref: '马太福音 11:28' },
+  { text: '应当一无挂虑，只要凡事借着祷告、祈求和感谢，将你们所要的告诉神。', ref: '腓立比书 4:6' },
+  { text: '但那等候耶和华的，必重新得力。', ref: '以赛亚书 40:31' },
+  { text: '我们爱，因为神先爱我们。', ref: '约翰一书 4:19' },
+  { text: '你们要休息，要知道我是神。', ref: '诗篇 46:10' },
+  { text: '你当刚强壮胆，不要惧怕，也不要惊惶。', ref: '约书亚记 1:9' }
+];
+function applyRandomLoaderVerse(){
+  const verseEl = document.getElementById('appLoaderVerse');
+  const refEl = document.getElementById('appLoaderVerseRef');
+  if(!verseEl || !refEl) return;
+  const item = LOADER_VERSES[Math.floor(Math.random() * LOADER_VERSES.length)];
+  verseEl.textContent = item.text;
+  refEl.textContent = item.ref;
+}
 function toggleBible(){
   bibleCollapsed = !bibleCollapsed;
   updateBibleCollapseUI();
@@ -4482,6 +4509,7 @@ saveUploadedSongs = async function() {
 
 // ── Boot ─────────────────────────────────────────────
 async function bootstrapApp() {
+  applyRandomLoaderVerse();
   loadBibleBookmarks();
   loadSermonPassages();
   loadSermonThemes();
