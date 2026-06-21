@@ -235,6 +235,8 @@ body.a11y-mode .lightbox-close,
 body.a11y-mode .lightbox-download { width: 42px !important; height: 42px !important; font-size: 20px !important; }
 body.a11y-mode .lightbox-download { right: 70px !important; }
 body.a11y-mode .song-lib-import-hint { font-size: 13px !important; }
+body.a11y-mode .song-lib-add-btn { font-size: 14px !important; padding: 12px !important; }
+body.a11y-mode .song-lib-add-dup-hint { font-size: 13px !important; }
 body.a11y-mode .leave-modal-title { font-size: 19px !important; }
 body.a11y-mode .leave-shift-pick-names,
 body.a11y-mode .leave-name-chip,
@@ -390,6 +392,19 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
   width: 36px; height: 4px; background: #e0e0e0;
   border-radius: 2px; margin: 0 auto 16px;
 }
+
+/* Top-right close (×) button for drawers/modals that lack one */
+.modal-close-btn {
+  position: absolute; top: 14px; right: 14px;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #f0f0ee; border: none; color: #888;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; cursor: pointer; z-index: 5;
+  transition: background 0.15s, color 0.15s;
+}
+.modal-close-btn:hover { background: #e2e2de; color: #444; }
+.modal-close-btn:active { transform: scale(0.92); }
+.modal-has-close-btn { position: relative; }
 
 /* Month picker */
 .month-picker {
@@ -890,6 +905,9 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
     position: sticky;
     top: 24px;
     z-index: 40;
+    background: linear-gradient(180deg, #f7f7f4 0%, #f7f7f4 70%, rgba(247,247,244,0) 100%);
+    padding: 4px 4px 14px;
+    margin: -4px -4px -14px;
   }
   .search-input {
     height: 52px;
@@ -915,14 +933,26 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
     align-self: start;
   }
   #desktopLeftRail { grid-column: 1; grid-row: 1; }
-  #mainScheduleInner { grid-column: 2; grid-row: 1; min-width: 0; }
   #desktopRightRail { grid-column: 3; grid-row: 1; }
-  #desktopRightRail,
+  /* Notice card content is already shown in the left sidebar weekly card — avoid duplicate/overlap */
+  #noticeSection { display: none !important; }
+  /* Content-heavy sections live in the center column, stacked above the schedule card */
   #nameReminderBanner,
   #sermonPassageSection,
   #songSection,
-  #bibleSection { grid-column: 3; }
-  #noticeSection { grid-column: 1; }
+  #bibleSection,
+  #mainScheduleInner {
+    grid-column: 2;
+    min-width: 0;
+  }
+  #nameReminderBanner   { grid-row: 1; }
+  #sermonPassageSection { grid-row: 2; }
+  #bibleSection         { grid-row: 3; }
+  #songSection          { grid-row: 4; }
+  #mainScheduleInner    { grid-row: 5; }
+  #sermonPassageSection .sermon-passage-card,
+  #bibleSection .bible-search-card,
+  #nameReminderBanner.name-reminder-banner { margin-bottom: 0; }
   .main-card,
   .notice-card,
   .sermon-passage-card,
@@ -1032,7 +1062,7 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
   background: #fff; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 6px;
 }
 .local-upload-btn:hover { border-color: var(--primary); color: var(--primary); }
-#localFileInput { display: none; }
+#localFileInput, input[type="file"] { display: none; }
 .confirm-add-song-btn {
   width: 100%; padding: 10px; background: var(--primary); color: #fff;
   border: none; border-radius: 10px; font-size: 13px; font-weight: 600;
@@ -1051,10 +1081,10 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
 .song-lib-modal {
   width: 100%; max-width: 480px; background: #fff;
   border-radius: 24px 24px 0 0; padding: 20px 20px 28px; animation: slideUp 0.25s ease;
-  max-height: 88vh; overflow-y: auto; display: flex; flex-direction: column;
+  max-height: 88vh; overflow: hidden; display: flex; flex-direction: column;
 }
-.song-lib-title { font-size: 16px; font-weight: 600; color: #1a1a1a; text-align: center; margin-bottom: 4px; }
-.song-lib-sub { font-size: 12px; color: #aaa; text-align: center; margin-bottom: 16px; }
+.song-lib-title { font-size: 16px; font-weight: 600; color: #1a1a1a; text-align: center; margin-bottom: 4px; flex-shrink: 0; }
+.song-lib-sub { font-size: 12px; color: #aaa; text-align: center; margin-bottom: 16px; flex-shrink: 0; }
 .song-lib-search-wrap { position: relative; margin-bottom: 14px; flex-shrink: 0; }
 .song-lib-search-input {
   width: 100%; padding: 10px 36px; border: 1.5px solid rgba(0,0,0,0.1);
@@ -1069,6 +1099,32 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
   color: #999; cursor: pointer; display: none; align-items: center; justify-content: center; font-size: 12px;
 }
 .song-lib-search-clear.visible { display: flex; }
+.song-lib-add-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 10px; margin-bottom: 12px; flex-shrink: 0;
+  background: var(--primary-light); color: var(--primary); border: none;
+  border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.song-lib-add-btn:hover { background: var(--primary-mid); }
+.song-lib-add-btn i { font-size: 15px; }
+.song-lib-add-dup-hint {
+  display: none; align-items: flex-start; gap: 6px;
+  background: #fcebeb; color: #a32d2d; border-radius: 10px;
+  padding: 8px 10px; font-size: 12px; line-height: 1.5; margin: -2px 0 8px;
+}
+.song-lib-add-dup-hint.show { display: flex; }
+.song-lib-add-dup-hint i { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.song-lib-add-preview {
+  display: none; align-items: center; gap: 10px;
+  background: #f8f8f6; border-radius: 10px; padding: 8px 10px; margin-top: 8px;
+}
+.song-lib-add-preview.show { display: flex; }
+.song-lib-add-preview img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.song-lib-add-preview span { font-size: 12px; color: #888; flex: 1; }
+.song-lib-add-preview button {
+  background: none; border: none; color: #ccc; cursor: pointer; font-size: 16px; flex-shrink: 0; padding: 2px;
+}
+.song-lib-add-preview button:hover { color: #e74c3c; }
 .song-lib-count { font-size: 11px; color: #bbb; margin-bottom: 10px; flex-shrink: 0; }
 .song-lib-import-hint {
   display: none; align-items: center; gap: 8px;
@@ -1084,7 +1140,8 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
 .song-lib-import-hint i:last-child { font-size: 14px; flex-shrink: 0; opacity: 0.7; }
 .song-lib-grid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-  overflow-y: auto; padding-bottom: 4px;
+  overflow-y: auto; padding: 2px 2px 10px;
+  flex: 1; min-height: 0;
 }
 .song-lib-card {
   border-radius: 12px; overflow: hidden; background: #f8f8f6; cursor: pointer;
@@ -1269,7 +1326,7 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
   cursor: pointer; font-family: inherit; white-space: nowrap;
 }
 .add-person-btn:hover { background: var(--primary-mid); }
-.drawer-actions { display: flex; gap: 10px; margin-top: 18px; }
+.drawer-actions { display: flex; gap: 10px; margin-top: 18px; flex-shrink: 0; }
 .btn-cancel { flex: 1; padding: 12px; border: 1.5px solid rgba(0,0,0,0.12); border-radius: 12px; background: none; font-size: 14px; font-weight: 500; color: #666; cursor: pointer; font-family: inherit; }
 .btn-save { flex: 2; padding: 12px; border: none; border-radius: 12px; background: var(--primary); font-size: 14px; font-weight: 600; color: #fff; cursor: pointer; font-family: inherit; }
 .btn-save:hover { background: var(--primary-dark); }
@@ -1997,7 +2054,8 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 </div>
 
 <div class="modal-overlay" id="rosterOverlay" onclick="closeRoster(event)">
-  <div class="edit-drawer" onclick="event.stopPropagation()" style="max-height:90vh">
+  <div class="edit-drawer modal-has-close-btn" onclick="event.stopPropagation()" style="max-height:90vh">
+    <button class="modal-close-btn" onclick="closeRoster()" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="drawer-title">名单管理</div>
     <div class="drawer-sub">修改后立即生效，轮流排班自动计算</div>
@@ -2020,6 +2078,9 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
         <button class="add-person-btn" onclick="renderSermonMonthUI()">载入</button>
       </div>
       <div id="sermonMonthList" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+    <div class="drawer-actions">
+      <button class="btn-save" style="flex:1" onclick="closeRoster()">关闭</button>
     </div>
   </div>
 </div>
@@ -2286,7 +2347,8 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 
 <!-- ── Song library: browse & search ─────────────────────── -->
 <div class="modal-overlay" id="songLibraryOverlay" onclick="closeSongLibrary(event)">
-  <div class="song-lib-modal" onclick="event.stopPropagation()">
+  <div class="song-lib-modal modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="closeSongLibrary()" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="song-lib-title">歌单库</div>
     <div class="song-lib-sub">收录历史使用过的诗歌，点击可查看使用记录</div>
@@ -2300,14 +2362,19 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
       <input class="song-lib-search-input" id="songLibSearchInput" type="text" placeholder="搜索歌名…" oninput="onSongLibrarySearch()" autocomplete="off">
       <button class="song-lib-search-clear" id="songLibSearchClear" onclick="clearSongLibrarySearch()"><i class="ti ti-x"></i></button>
     </div>
+    <button class="song-lib-add-btn" onclick="openSongLibAdd()"><i class="ti ti-plus"></i>上传新歌到歌单库</button>
     <div class="song-lib-count" id="songLibCount"></div>
     <div class="song-lib-grid" id="songLibGrid"></div>
+    <div class="drawer-actions">
+      <button class="btn-save" style="flex:1" onclick="closeSongLibrary()">关闭</button>
+    </div>
   </div>
 </div>
 
 <!-- ── Song library: detail + usage history ──────────────── -->
 <div class="modal-overlay" id="songLibDetailOverlay" onclick="closeSongLibDetail(event)">
-  <div class="song-lib-detail-modal" onclick="event.stopPropagation()">
+  <div class="song-lib-detail-modal modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="closeSongLibDetail()" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="song-lib-detail-thumb" id="songLibDetailThumb"></div>
     <div class="song-lib-detail-title" id="songLibDetailTitle"></div>
@@ -2315,6 +2382,35 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
     <div class="song-lib-usage-title">使用记录</div>
     <div class="song-lib-usage-list" id="songLibUsageList"></div>
     <div class="drawer-actions" id="songLibDetailActions"></div>
+  </div>
+</div>
+
+<!-- ── Song library: add new song (open to everyone) ─────── -->
+<div class="modal-overlay" id="songLibAddOverlay" onclick="closeSongLibAdd(event)">
+  <div class="upload-modal modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="closeSongLibAdd()" aria-label="关闭"><i class="ti ti-x"></i></button>
+    <div class="picker-handle"></div>
+    <div class="upload-modal-title">上传新歌到歌单库</div>
+    <div class="upload-modal-sub">任何人都可以上传，提交后立即生效</div>
+    <div class="add-song-area">
+      <div class="add-song-area-title">诗歌信息</div>
+      <input class="add-song-name-input" id="songLibAddName" placeholder="诗歌名称（必填）" oninput="onSongLibAddNameInput()">
+      <div class="song-lib-add-dup-hint" id="songLibAddDupHint">
+        <i class="ti ti-alert-circle"></i><span>歌单库中已经有同名诗歌了，换个名字或前往歌单库查看</span>
+      </div>
+      <input class="add-song-url-input" id="songLibAddUrl" placeholder="图片直链 URL（可选）">
+      <div class="add-song-or">— 或 —</div>
+      <button class="local-upload-btn" onclick="document.getElementById('songLibAddFileInput').click()">
+        <i class="ti ti-upload"></i>从本地上传图片
+      </button>
+      <input type="file" id="songLibAddFileInput" accept="image/*" onchange="handleSongLibAddFile(event)">
+      <div class="song-lib-add-preview" id="songLibAddPreview"></div>
+    </div>
+    <div class="leave-form-error" id="songLibAddError">请输入诗歌名称</div>
+    <div class="drawer-actions">
+      <button class="btn-cancel" onclick="closeSongLibAdd()">取消</button>
+      <button class="btn-save" id="songLibAddSubmitBtn" onclick="submitSongLibAdd()">上传</button>
+    </div>
   </div>
 </div>
 
@@ -2578,6 +2674,12 @@ function ensureSongInLibrary(title, src) {
   };
   songLibrary.unshift(entry);
   return entry;
+}
+// 查重专用：trim + 大小写不敏感比对，避免"奇异恩典 "和"奇异恩典"、"Amazing Grace"和"amazing grace"被误判为不同歌曲
+function findDuplicateSongInLibrary(title) {
+  const t = (title || '').trim().toLowerCase();
+  if (!t) return null;
+  return songLibrary.find(s => s.title.trim().toLowerCase() === t) || null;
 }
 function removeSongFromLibrary(id) {
   songLibrary = songLibrary.filter(s => s.id !== id);
@@ -3558,6 +3660,93 @@ async function importHistoricalSongs(){
   showToast(`✅ 已导入 ${pending.length} 首历史诗歌到歌单库`);
   await syncSongLibraryToRemote('☁️ 歌单库已同步到云端');
 }
+
+// ── Song library: add new song (open to everyone) ─────
+let songLibAddPendingSrc = '';
+function openSongLibAdd(){
+  document.getElementById('songLibAddName').value = '';
+  document.getElementById('songLibAddUrl').value = '';
+  document.getElementById('songLibAddFileInput').value = '';
+  songLibAddPendingSrc = '';
+  document.getElementById('songLibAddPreview').classList.remove('show');
+  document.getElementById('songLibAddDupHint').classList.remove('show');
+  document.getElementById('songLibAddError').classList.remove('show');
+  document.getElementById('songLibAddSubmitBtn').disabled = false;
+  document.getElementById('songLibAddOverlay').classList.add('open');
+}
+function closeSongLibAdd(e){
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('songLibAddOverlay').classList.remove('open');
+}
+function onSongLibAddNameInput(){
+  const name = document.getElementById('songLibAddName').value;
+  const dup = findDuplicateSongInLibrary(name);
+  document.getElementById('songLibAddDupHint').classList.toggle('show', !!dup);
+  document.getElementById('songLibAddError').classList.remove('show');
+}
+function handleSongLibAddFile(e){
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    songLibAddPendingSrc = ev.target.result;
+    const preview = document.getElementById('songLibAddPreview');
+    preview.innerHTML = `<img src="${songLibAddPendingSrc}"><span>${escapeHtml(file.name)}</span><button onclick="clearSongLibAddPreview()"><i class="ti ti-x"></i></button>`;
+    preview.classList.add('show');
+  };
+  reader.readAsDataURL(file);
+}
+function clearSongLibAddPreview(){
+  songLibAddPendingSrc = '';
+  document.getElementById('songLibAddFileInput').value = '';
+  document.getElementById('songLibAddPreview').classList.remove('show');
+  document.getElementById('songLibAddPreview').innerHTML = '';
+}
+async function submitSongLibAdd(){
+  const name = document.getElementById('songLibAddName').value.trim();
+  const errEl = document.getElementById('songLibAddError');
+  if (!name) {
+    errEl.textContent = '请输入诗歌名称';
+    errEl.classList.add('show');
+    return;
+  }
+  const dup = findDuplicateSongInLibrary(name);
+  if (dup) {
+    errEl.textContent = `歌单库中已经有《${dup.title}》了，无法重复上传`;
+    errEl.classList.add('show');
+    document.getElementById('songLibAddDupHint').classList.add('show');
+    return;
+  }
+  errEl.classList.remove('show');
+  const urlInput = document.getElementById('songLibAddUrl').value.trim();
+  const src = songLibAddPendingSrc || urlInput || '';
+  const submitBtn = document.getElementById('songLibAddSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = '上传中…';
+  try {
+    let finalSrc = src;
+    // 本地图片优先上传到 Storage 换取真实链接，避免歌单库长期存着巨大的 base64
+    if (finalSrc.startsWith('data:') && typeof uploadSongDataUrl === 'function' && initSupabaseClient()) {
+      try {
+        finalSrc = await uploadSongDataUrl('song-library', finalSrc, Date.now());
+      } catch (e) {
+        console.error('图片上传到 Storage 失败，保留本地图片', e);
+        // 失败时不阻断流程，退回本地 base64，至少在本机可用
+      }
+    }
+    const entry = ensureSongInLibrary(name, finalSrc);
+    persistSongLibrary();
+    closeSongLibAdd();
+    renderSongLibraryGrid();
+    updateSongLibImportHint();
+    showToast(`✅ 《${entry.title}》已上传到歌单库`);
+    await syncSongLibraryToRemote();
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '上传';
+  }
+}
+
 function closeSongLibrary(e){
   if (e && e.target !== e.currentTarget) return;
   document.getElementById('songLibraryOverlay').classList.remove('open');
