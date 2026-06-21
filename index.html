@@ -219,6 +219,17 @@ body.a11y-mode .sermon-note-editor,
 body.a11y-mode .sermon-note-content,
 body.a11y-mode .sermon-audio-link,
 body.a11y-mode .sermon-extra-empty { font-size: 15px !important; }
+body.a11y-mode .leave-entry-btn,
+body.a11y-mode .login-entry-btn,
+body.a11y-mode .logout-btn,
+body.a11y-mode .settings-entry-btn { width: 38px !important; height: 38px !important; font-size: 18px !important; }
+body.a11y-mode .admin-badge { font-size: 13px !important; padding: 6px 13px !important; }
+body.a11y-mode .leave-modal-title { font-size: 19px !important; }
+body.a11y-mode .leave-shift-pick-names,
+body.a11y-mode .leave-name-chip,
+body.a11y-mode .leave-reason-textarea { font-size: 15px !important; }
+body.a11y-mode .leave-list-who { font-size: 16px !important; }
+body.a11y-mode .leave-list-reason { font-size: 14px !important; }
 
 /* ── Name reminder banner ────────────────────────────── */
 .name-reminder-banner {
@@ -265,6 +276,9 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
 .day-info-text { font-size: 13px; color: #888; }
 .chevron-icon { font-size: 14px; color: #bbb; }
 .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.header-actions-row {
+  display: flex; align-items: center; gap: 6px;
+}
 .today-btn {
   background: var(--primary-light); color: var(--primary); border: none;
   border-radius: 10px; padding: 7px 16px; font-size: 14px;
@@ -272,26 +286,33 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
 }
 .today-btn:hover { background: var(--primary-mid); }
 .admin-bar {
-  display: none; align-items: flex-end; flex-direction: column;
-  gap: 5px;
+  display: none; align-items: center;
+  gap: 6px;
 }
 .admin-bar.show { display: flex; }
 .admin-badge {
   display: flex; align-items: center; gap: 5px;
   background: var(--primary-light); color: var(--primary);
-  border-radius: 20px; padding: 4px 10px; font-size: 12px; font-weight: 500;
+  border-radius: 20px; padding: 5px 11px; font-size: 12px; font-weight: 500;
+  white-space: nowrap;
 }
 .logout-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 10px;
   background: none; border: 0.5px solid rgba(0,0,0,0.15);
-  border-radius: 8px; padding: 4px 10px; font-size: 12px; color: #aaa;
-  cursor: pointer; font-family: inherit;
+  color: #aaa; cursor: pointer; font-family: inherit; font-size: 15px;
+  transition: all 0.15s; flex-shrink: 0;
 }
+.logout-btn:hover { background: #f5f5f2; color: #666; }
+.logout-btn.roster-btn { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+.logout-btn.roster-btn:hover { background: var(--primary-mid); }
 .login-entry-btn {
-  display: flex; align-items: center; gap: 5px;
-  background: none; border: 0.5px solid rgba(0,0,0,0.15);
-  border-radius: 8px; padding: 5px 12px; font-size: 12px; color: #888;
-  cursor: pointer; font-family: inherit; white-space: nowrap;
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 10px; border: 0.5px solid rgba(0,0,0,0.12);
+  background: #f5f5f2; color: #888; cursor: pointer; font-size: 15px;
+  transition: all 0.15s; flex-shrink: 0;
 }
+.login-entry-btn:hover { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
 .week-nav-wrap { display: flex; align-items: center; gap: 4px; }
 .nav-arrow {
   background: none; border: none; cursor: pointer;
@@ -830,7 +851,10 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
   .church-title { font-size: 18px; margin-bottom: 10px; }
   .day-num { font-size: 58px; }
   .header-date-hint { margin-top: 8px; }
-  .header-right { flex-direction: row; align-items: center; gap: 10px; }
+  .header-right { flex-direction: row-reverse; align-items: center; gap: 14px; }
+  .header-actions-row { gap: 8px; }
+  .login-entry-btn, .leave-entry-btn, .settings-entry-btn, .logout-btn { width: 36px; height: 36px; font-size: 16px; }
+  .today-btn { padding: 9px 20px; font-size: 15px; }
   .week-nav-wrap { gap: 8px; }
   .week-nav {
     justify-content: flex-start;
@@ -1434,6 +1458,108 @@ body.a11y-mode .verse-bookmark-btn { font-size: 19px; padding: 2px 4px; }
 .bookmarks-entry-btn:hover { border-color: #F5C842; color: #c8960a; background: #fffbeb; }
 .bookmarks-entry-btn i { color: #F5C842; }
 
+/* ── Leave request entry & badge ───────────────────────── */
+.leave-entry-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 10px; border: 0.5px solid rgba(0,0,0,0.12);
+  background: #f5f5f2; color: #888; cursor: pointer; font-size: 15px;
+  font-family: inherit; position: relative; flex-shrink: 0; transition: all 0.15s;
+}
+.leave-entry-btn:hover { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+.leave-entry-btn .leave-badge-dot {
+  position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px;
+  border-radius: 999px; background: #e74c3c; color: #fff; font-size: 10px;
+  font-weight: 700; display: none; align-items: center; justify-content: center; padding: 0 3px;
+  border: 1.5px solid #fff;
+}
+.leave-entry-btn .leave-badge-dot.show { display: flex; }
+
+/* ── Leave request modal (self-service) ────────────────── */
+.leave-modal {
+  width: 100%; max-width: 420px; background: #fff;
+  border-radius: 24px 24px 0 0; padding: 20px 20px 28px;
+  animation: slideUp 0.25s ease; max-height: 88vh; overflow-y: auto;
+}
+body.a11y-mode .leave-modal { max-width: 480px; }
+.leave-modal-title { font-size: 17px; font-weight: 600; color: #1a1a1a; text-align: center; margin-bottom: 4px; }
+.leave-modal-sub { font-size: 13px; color: #aaa; text-align: center; margin-bottom: 20px; line-height: 1.6; }
+.leave-form-error { font-size: 12px; color: #e74c3c; margin-top: 6px; display: none; }
+.leave-form-error.show { display: block; }
+.leave-shift-pick-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.leave-shift-pick-item {
+  display: flex; align-items: center; gap: 10px;
+  border: 1.5px solid rgba(0,0,0,0.1); border-radius: 12px; padding: 10px 12px;
+  cursor: pointer; transition: all 0.15s; background: #fff;
+}
+.leave-shift-pick-item:hover { border-color: var(--primary); }
+.leave-shift-pick-item.selected { border-color: var(--primary); background: var(--primary-light); }
+.leave-shift-pick-badge {
+  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.leave-shift-pick-badge i { font-size: 15px; }
+.leave-shift-pick-role { font-size: 12px; font-weight: 600; color: #888; margin-bottom: 2px; }
+.leave-shift-pick-names { font-size: 13px; color: #1a1a1a; font-weight: 500; }
+.leave-shift-pick-empty { text-align: center; color: #bbb; font-size: 13px; padding: 1.5rem 0; }
+.leave-name-chip-grid { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+.leave-name-chip {
+  padding: 6px 13px; border-radius: 20px; border: 1.5px solid rgba(0,0,0,0.1);
+  font-size: 13px; color: #444; cursor: pointer; background: #fff;
+  font-family: inherit; user-select: none; transition: all 0.15s;
+}
+.leave-name-chip:hover { border-color: var(--primary); color: var(--primary); }
+.leave-name-chip.selected { background: var(--primary); border-color: var(--primary); color: #fff; }
+.leave-reason-textarea {
+  width: 100%; padding: 11px 14px; border: 1.5px solid rgba(0,0,0,0.1); border-radius: 12px;
+  font-size: 14px; color: #1a1a1a; outline: none; font-family: inherit;
+  resize: vertical; min-height: 64px; transition: border-color 0.2s;
+}
+.leave-reason-textarea:focus { border-color: var(--primary); }
+.leave-success-box {
+  display: none; text-align: center; padding: 1.5rem 0;
+}
+.leave-success-box.show { display: block; }
+.leave-success-box i { font-size: 44px; color: var(--primary); display: block; margin-bottom: 10px; }
+.leave-success-title { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+.leave-success-sub { font-size: 13px; color: #aaa; }
+
+/* ── Leave requests list modal (admin review) ──────────── */
+.leave-list-item {
+  background: #fff; border-radius: 14px; padding: 13px 14px; margin-bottom: 9px;
+  border: 0.5px solid rgba(0,0,0,0.07);
+}
+.leave-list-item.pending { border-left: 3px solid #e9a13b; }
+.leave-list-item.approved { border-left: 3px solid var(--primary); opacity: 0.75; }
+.leave-list-item.declined { border-left: 3px solid #bbb; opacity: 0.6; }
+.leave-list-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.leave-list-who { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+.leave-list-when { font-size: 11px; color: #bbb; }
+.leave-list-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+.leave-list-role-badge { display: flex; align-items: center; gap: 4px; border-radius: 8px; padding: 3px 9px; font-size: 11px; font-weight: 500; }
+.leave-list-date { font-size: 12px; color: #888; }
+.leave-list-reason { font-size: 13px; color: #555; line-height: 1.6; background: #f7f7f5; border-radius: 9px; padding: 8px 10px; margin-bottom: 8px; }
+.leave-list-status { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.leave-list-status.pending { background: #fdf1de; color: #b9791f; }
+.leave-list-status.approved { background: var(--primary-light); color: var(--primary); }
+.leave-list-status.declined { background: #f0f0f0; color: #999; }
+.leave-list-actions { display: flex; gap: 7px; }
+.leave-list-btn {
+  flex: 1; padding: 7px; border-radius: 9px; font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: inherit; border: 1.5px solid rgba(0,0,0,0.1); background: #fff; color: #666;
+}
+.leave-list-btn.approve { border-color: var(--primary); color: var(--primary); }
+.leave-list-btn.approve:hover { background: var(--primary-light); }
+.leave-list-btn.decline:hover { background: #faeaea; border-color: #e74c3c; color: #e74c3c; }
+.leave-list-btn.goto:hover { background: #f0f0f0; }
+.leave-list-empty { text-align: center; color: #bbb; font-size: 14px; padding: 2.5rem 0; }
+.leave-list-empty i { font-size: 32px; display: block; margin-bottom: 8px; color: #ddd; }
+.leave-list-filter-row { display: flex; gap: 6px; margin-bottom: 14px; }
+.leave-filter-btn {
+  flex: 1; padding: 7px; border-radius: 9px; font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: inherit; border: 1.5px solid rgba(0,0,0,0.1); background: #fff; color: #888;
+}
+.leave-filter-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
 /* ── Settings danger zone ────────────────────────────── */
 .danger-zone-btn {
   width: 100%; padding: 13px 16px; background: #fff5f5; border: 1.5px solid #fecaca;
@@ -1641,20 +1767,24 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
       <div class="header-mini" id="hdrMini"></div>
     </div>
     <div class="header-right">
-      <!-- Logged-out state -->
-      <button class="login-entry-btn" id="loginEntryBtn" onclick="openLogin()">
-        <i class="ti ti-lock" style="font-size:13px"></i>管理员登录
-      </button>
-      <!-- Logged-in state -->
-      <div id="adminBar" class="admin-bar" style="flex-direction:column;align-items:flex-end;gap:5px">
-        <div class="admin-badge"><i class="ti ti-shield-check"></i>管理员</div>
-        <div style="display:flex;gap:5px">
-          <button class="logout-btn" style="background:var(--primary-light);color:var(--primary);border-color:var(--primary);font-size:11px;padding:3px 8px" onclick="openRoster()">名单管理</button>
-          <button class="logout-btn" style="font-size:11px;padding:3px 8px" onclick="logout()">退出</button>
+      <div class="header-actions-row">
+        <!-- Logged-out state -->
+        <button class="login-entry-btn" id="loginEntryBtn" onclick="openLogin()" title="管理员登录" aria-label="管理员登录">
+          <i class="ti ti-lock"></i>
+        </button>
+        <!-- Logged-in state -->
+        <div id="adminBar" class="admin-bar">
+          <div class="admin-badge"><i class="ti ti-shield-check"></i>管理员</div>
+          <button class="logout-btn roster-btn" onclick="openRoster()" title="名单管理" aria-label="名单管理"><i class="ti ti-users"></i></button>
+          <button class="logout-btn" onclick="logout()" title="退出登录" aria-label="退出登录"><i class="ti ti-logout"></i></button>
         </div>
+        <button class="leave-entry-btn" id="leaveEntryBtn" onclick="openLeaveEntry()" title="请假申请" aria-label="请假申请">
+          <i class="ti ti-calendar-off"></i>
+          <span class="leave-badge-dot" id="leaveBadgeDot">0</span>
+        </button>
+        <button class="settings-entry-btn" onclick="openSettings()" title="用户设置" aria-label="用户设置"><i class="ti ti-settings"></i></button>
       </div>
       <button class="today-btn" id="todayBtn" onclick="goToday()">本周排班</button>
-      <button class="settings-entry-btn" onclick="openSettings()" title="用户设置"><i class="ti ti-settings"></i></button>
     </div>
   </div>
   <div class="header-collapsible">
@@ -1740,6 +1870,66 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
       </div>
       <div id="sermonMonthList" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
+  </div>
+</div>
+
+<!-- ── Leave request: self-service submission modal ─────── -->
+<div class="modal-overlay" id="leaveOverlay" onclick="closeLeaveEntry(event)">
+  <div class="leave-modal" onclick="event.stopPropagation()">
+    <div class="picker-handle"></div>
+    <div id="leaveFormBox">
+      <div class="leave-modal-title">请假申请</div>
+      <div class="leave-modal-sub">选择您在该周的岗位与姓名，填写原因后提交，管理员会尽快为您安排替补</div>
+
+      <div class="form-field">
+        <label class="form-label">选择主日</label>
+        <input class="form-input" id="leaveDateInput" type="date" onchange="onLeaveDateChange()">
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">该周排班（点击选择您的岗位）</label>
+        <div class="leave-shift-pick-grid" id="leaveShiftPickGrid"></div>
+      </div>
+
+      <div class="form-field" id="leaveNameField" style="display:none">
+        <label class="form-label">您的姓名</label>
+        <div class="leave-name-chip-grid" id="leaveNameChipGrid"></div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">请假原因（选填）</label>
+        <textarea class="leave-reason-textarea" id="leaveReasonInput" placeholder="例如：临时出差、身体不适等"></textarea>
+      </div>
+
+      <div class="leave-form-error" id="leaveFormError">请选择主日、岗位与姓名后再提交</div>
+      <div class="drawer-actions">
+        <button class="btn-cancel" onclick="closeLeaveEntry()">取消</button>
+        <button class="btn-save" onclick="submitLeaveRequest()">提交申请</button>
+      </div>
+    </div>
+    <div class="leave-success-box" id="leaveSuccessBox">
+      <i class="ti ti-circle-check"></i>
+      <div class="leave-success-title">申请已提交</div>
+      <div class="leave-success-sub">管理员审核后会安排替补，请留意排班更新</div>
+      <div class="drawer-actions">
+        <button class="btn-save" style="flex:1" onclick="closeLeaveEntry()">完成</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Leave request: admin review list modal ────────────── -->
+<div class="modal-overlay" id="leaveListOverlay" onclick="closeLeaveList(event)">
+  <div class="edit-drawer" onclick="event.stopPropagation()" style="max-height:88vh">
+    <div class="picker-handle"></div>
+    <div class="drawer-title">请假申请管理</div>
+    <div class="drawer-sub">审批后可直接前往排班修改替补人员</div>
+    <div class="leave-list-filter-row">
+      <button class="leave-filter-btn active" id="leaveFilterPending" onclick="setLeaveListFilter('pending')">待处理</button>
+      <button class="leave-filter-btn" id="leaveFilterApproved" onclick="setLeaveListFilter('approved')">已批准</button>
+      <button class="leave-filter-btn" id="leaveFilterAll" onclick="setLeaveListFilter('all')">全部</button>
+    </div>
+    <div id="leaveListBody"></div>
   </div>
 </div>
 
@@ -2765,6 +2955,7 @@ function updateAdminUI(){
   const b=document.getElementById('addShiftBtn'); if(b) b.style.display=isAdmin?'flex':'none';
   document.querySelectorAll('.upload-song-btn').forEach(el=>el.classList.toggle('show',isAdmin));
   document.querySelectorAll('.sermon-edit-btn').forEach(el=>el.classList.toggle('show',isAdmin));
+  updateLeaveBadge();
 }
 
 // ── Month picker ──────────────────────────────────────
@@ -4310,6 +4501,251 @@ function applySectionOrderAndVisibility() {
   if (bannerEl) bannerEl.style.order = '';
 }
 
+// ── Leave requests (self-service) ─────────────────────
+const LS_LEAVE_REQUESTS = 'churchLeaveRequests';
+let leaveRequests = []; // { id, key, role, name, reason, status, createdAt }
+let leaveDraftKey = null, leaveDraftRole = null, leaveDraftName = null;
+let leaveListFilter = 'pending';
+
+function loadLeaveRequests() {
+  try {
+    const raw = localStorage.getItem(LS_LEAVE_REQUESTS);
+    leaveRequests = raw ? JSON.parse(raw) : [];
+  } catch (e) { leaveRequests = []; }
+}
+function persistLeaveRequests() {
+  try { localStorage.setItem(LS_LEAVE_REQUESTS, JSON.stringify(leaveRequests)); } catch (e) {}
+}
+function normalizeLeaveRequests(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(item => ({
+    id: item?.id || (Date.now() + '_' + Math.random().toString(36).slice(2, 8)),
+    key: item?.key || '',
+    role: item?.role || '',
+    name: item?.name || '',
+    reason: item?.reason || '',
+    status: ['pending', 'approved', 'declined'].includes(item?.status) ? item.status : 'pending',
+    createdAt: item?.createdAt || new Date().toISOString(),
+  })).filter(item => item.key && item.role && item.name);
+}
+async function syncLeaveRequestsToRemote(successMsg) {
+  if (!initSupabaseClient()) return false;
+  try {
+    await syncRemoteField('leave_requests', leaveRequests);
+    if (successMsg) showToast(successMsg);
+    return true;
+  } catch (e) {
+    console.error('同步请假申请失败', e);
+    if (isMissingRemoteColumnError(e, 'leave_requests')) {
+      showToast('后端缺少 leave_requests 字段，请先执行修复 SQL');
+    } else {
+      showToast('已保存到本地，但云端同步失败');
+    }
+    return false;
+  }
+}
+function pendingLeaveCount() {
+  return leaveRequests.filter(r => r.status === 'pending').length;
+}
+function updateLeaveBadge() {
+  const dot = document.getElementById('leaveBadgeDot');
+  const btn = document.getElementById('leaveEntryBtn');
+  if (!dot) return;
+  const n = pendingLeaveCount();
+  if (isAdmin) {
+    if (btn) { btn.title = n > 0 ? `请假审批（${n} 条待处理）` : '请假审批'; btn.setAttribute('aria-label', btn.title); }
+    dot.textContent = n > 99 ? '99+' : String(n);
+    dot.classList.toggle('show', n > 0);
+  } else {
+    if (btn) { btn.title = '请假申请'; btn.setAttribute('aria-label', '请假申请'); }
+    dot.classList.remove('show');
+  }
+}
+
+// Entry button routes to the right modal depending on role
+function openLeaveEntry() {
+  if (isAdmin) { openLeaveList(); return; }
+  leaveDraftKey = toKey(selectedSunday || getCurrentWeekSunday());
+  leaveDraftRole = null; leaveDraftName = null;
+  document.getElementById('leaveFormBox').style.display = '';
+  document.getElementById('leaveSuccessBox').classList.remove('show');
+  document.getElementById('leaveReasonInput').value = '';
+  document.getElementById('leaveFormError').classList.remove('show');
+  document.getElementById('leaveDateInput').value = leaveDraftKey;
+  renderLeaveShiftPickGrid();
+  document.getElementById('leaveOverlay').classList.add('open');
+}
+function closeLeaveEntry(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('leaveOverlay').classList.remove('open');
+}
+function onLeaveDateChange() {
+  const val = document.getElementById('leaveDateInput').value;
+  if (!val) return;
+  leaveDraftKey = val; leaveDraftRole = null; leaveDraftName = null;
+  document.getElementById('leaveNameField').style.display = 'none';
+  renderLeaveShiftPickGrid();
+}
+function renderLeaveShiftPickGrid() {
+  const grid = document.getElementById('leaveShiftPickGrid');
+  const shifts = scheduleData[leaveDraftKey] || [];
+  if (!shifts.length) {
+    grid.innerHTML = `<div class="leave-shift-pick-empty"><i class="ti ti-calendar-off" style="font-size:24px;display:block;margin-bottom:6px;color:#ddd"></i>该主日暂无排班</div>`;
+    document.getElementById('leaveNameField').style.display = 'none';
+    return;
+  }
+  grid.innerHTML = shifts.map(s => {
+    const col = roleColors[s.role] || { bg: '#f0f0ee', text: '#444', badgeBg: '#888', badgeText: '#fff', icon: 'ti-user' };
+    const sel = leaveDraftRole === s.role ? ' selected' : '';
+    return `<div class="leave-shift-pick-item${sel}" onclick="pickLeaveShift('${s.role}')">
+      <div class="leave-shift-pick-badge" style="background:${col.badgeBg}"><i class="ti ${col.icon}" style="color:${col.badgeText}"></i></div>
+      <div><div class="leave-shift-pick-role">${s.role}</div><div class="leave-shift-pick-names">${escapeHtml(s.persons.join(' / '))}</div></div>
+    </div>`;
+  }).join('');
+  if (leaveDraftRole) renderLeaveNameChips();
+}
+function pickLeaveShift(role) {
+  leaveDraftRole = role; leaveDraftName = null;
+  renderLeaveShiftPickGrid();
+  renderLeaveNameChips();
+}
+function renderLeaveNameChips() {
+  const field = document.getElementById('leaveNameField');
+  const wrap = document.getElementById('leaveNameChipGrid');
+  const shift = (scheduleData[leaveDraftKey] || []).find(s => s.role === leaveDraftRole);
+  if (!shift) { field.style.display = 'none'; return; }
+  field.style.display = '';
+  wrap.innerHTML = shift.persons.map((p, idx) => {
+    const sel = leaveDraftName === p ? ' selected' : '';
+    return `<div class="leave-name-chip${sel}" data-idx="${idx}" onclick="pickLeaveNameByIdx(this)">${escapeHtml(p)}</div>`;
+  }).join('');
+}
+function pickLeaveNameByIdx(el) {
+  const idx = Number(el.getAttribute('data-idx'));
+  const shift = (scheduleData[leaveDraftKey] || []).find(s => s.role === leaveDraftRole);
+  if (!shift || !shift.persons[idx]) return;
+  leaveDraftName = shift.persons[idx];
+  renderLeaveNameChips();
+}
+async function submitLeaveRequest() {
+  const errEl = document.getElementById('leaveFormError');
+  if (!leaveDraftKey || !leaveDraftRole || !leaveDraftName) {
+    errEl.classList.add('show');
+    return;
+  }
+  errEl.classList.remove('show');
+  const reason = document.getElementById('leaveReasonInput').value.trim();
+  const item = {
+    id: Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    key: leaveDraftKey,
+    role: leaveDraftRole,
+    name: leaveDraftName,
+    reason,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  };
+  leaveRequests.unshift(item);
+  persistLeaveRequests();
+  updateLeaveBadge();
+  document.getElementById('leaveFormBox').style.display = 'none';
+  document.getElementById('leaveSuccessBox').classList.add('show');
+  await syncLeaveRequestsToRemote();
+}
+
+// ── Leave requests (admin review) ─────────────────────
+function openLeaveList() {
+  setLeaveListFilter('pending');
+  document.getElementById('leaveListOverlay').classList.add('open');
+}
+function closeLeaveList(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('leaveListOverlay').classList.remove('open');
+}
+function setLeaveListFilter(filter) {
+  leaveListFilter = filter;
+  ['pending', 'approved', 'all'].forEach(f => {
+    const btn = document.getElementById('leaveFilter' + f.charAt(0).toUpperCase() + f.slice(1));
+    if (btn) btn.classList.toggle('active', f === filter);
+  });
+  renderLeaveList();
+}
+function formatLeaveDateLabel(key) {
+  if (!key) return '';
+  const [, m, dd] = key.split('-');
+  return `${parseInt(m)}月${parseInt(dd)}日（周日）`;
+}
+function formatLeaveCreatedAt(iso) {
+  try {
+    const d = new Date(iso);
+    return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} 提交`;
+  } catch (e) { return ''; }
+}
+function renderLeaveList() {
+  const body = document.getElementById('leaveListBody');
+  let items = leaveRequests.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  if (leaveListFilter === 'pending') items = items.filter(r => r.status === 'pending');
+  else if (leaveListFilter === 'approved') items = items.filter(r => r.status === 'approved');
+  if (!items.length) {
+    body.innerHTML = `<div class="leave-list-empty"><i class="ti ti-mood-empty"></i>暂无${leaveListFilter === 'pending' ? '待处理的' : ''}请假申请</div>`;
+    return;
+  }
+  const statusLabel = { pending: '待处理', approved: '已批准', declined: '已拒绝' };
+  body.innerHTML = items.map(r => {
+    const col = roleColors[r.role] || { badgeBg: '#888', badgeText: '#fff', icon: 'ti-user' };
+    const actions = r.status === 'pending'
+      ? `<div class="leave-list-actions">
+           <button class="leave-list-btn approve" onclick="approveLeaveRequest('${r.id}')"><i class="ti ti-check"></i>批准</button>
+           <button class="leave-list-btn decline" onclick="declineLeaveRequest('${r.id}')">拒绝</button>
+           <button class="leave-list-btn goto" onclick="gotoLeaveShift('${r.id}')">前往排班</button>
+         </div>`
+      : `<div class="leave-list-actions">
+           <button class="leave-list-btn goto" onclick="gotoLeaveShift('${r.id}')">查看排班</button>
+         </div>`;
+    return `<div class="leave-list-item ${r.status}">
+      <div class="leave-list-head">
+        <span class="leave-list-who">${escapeHtml(r.name)}</span>
+        <span class="leave-list-status ${r.status}">${statusLabel[r.status]}</span>
+      </div>
+      <div class="leave-list-meta">
+        <span class="leave-list-role-badge" style="background:${col.badgeBg};color:${col.badgeText}"><i class="ti ${col.icon}"></i>${r.role}</span>
+        <span class="leave-list-date">${formatLeaveDateLabel(r.key)}</span>
+      </div>
+      ${r.reason ? `<div class="leave-list-reason">${escapeHtml(r.reason)}</div>` : ''}
+      <div class="leave-list-when">${formatLeaveCreatedAt(r.createdAt)}</div>
+      ${actions}
+    </div>`;
+  }).join('');
+}
+async function approveLeaveRequest(id) {
+  const r = leaveRequests.find(x => x.id === id);
+  if (!r) return;
+  r.status = 'approved';
+  persistLeaveRequests();
+  updateLeaveBadge();
+  renderLeaveList();
+  showToast(`✅ 已批准 ${r.name} 的请假申请`);
+  await syncLeaveRequestsToRemote();
+}
+async function declineLeaveRequest(id) {
+  const r = leaveRequests.find(x => x.id === id);
+  if (!r) return;
+  r.status = 'declined';
+  persistLeaveRequests();
+  updateLeaveBadge();
+  renderLeaveList();
+  await syncLeaveRequestsToRemote();
+}
+function gotoLeaveShift(id) {
+  const r = leaveRequests.find(x => x.id === id);
+  if (!r) return;
+  closeLeaveList();
+  const d = new Date(r.key + 'T00:00:00');
+  if (!isNaN(d)) { selectedSunday = d; render(); }
+  if (isAdmin) {
+    setTimeout(() => openEditDrawer(r.role, r.key), 150);
+  }
+}
+
 // ── Watch names ───────────────────────────────────────
 function renderNameTags() {
   const wrap = document.getElementById('nameTagsList');
@@ -4786,6 +5222,7 @@ function getSharedAppStateSnapshot() {
     sermon_passages_by_date: normalizeSimpleMap(sermonPassagesByDate),
     sermon_themes_by_date: normalizeSimpleMap(sermonThemesByDate),
     sermon_audio_by_date: normalizeSimpleMap(sermonAudioByDate),
+    leave_requests: normalizeLeaveRequests(leaveRequests),
   };
 }
 
@@ -4797,6 +5234,11 @@ function applyRemoteAppState(row) {
   sermonPassagesByDate = normalizeSimpleMap(row?.sermon_passages_by_date || sermonPassagesByDate);
   sermonThemesByDate = normalizeSimpleMap(row?.sermon_themes_by_date || sermonThemesByDate);
   sermonAudioByDate = normalizeSimpleMap(row?.sermon_audio_by_date || sermonAudioByDate);
+  if (row && row.leave_requests !== undefined) {
+    leaveRequests = normalizeLeaveRequests(row.leave_requests);
+    persistLeaveRequests();
+  }
+  updateLeaveBadge();
 }
 
 async function upsertRemoteAppState(partial) {
@@ -5054,6 +5496,7 @@ async function bootstrapApp() {
   loadSermonAudio();
   loadSermonNotes();
   loadSermonCollapsed();
+  loadLeaveRequests();
   loadSettings();
   applySettingsToDOM();
   syncResponsiveLayout();
