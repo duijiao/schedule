@@ -187,6 +187,11 @@ body.a11y-mode .sunday-pill .s-num { font-size: 22px !important; width: 42px; he
 body.a11y-mode .today-btn { font-size: 16px !important; padding: 9px 20px !important; }
 body.a11y-mode .nav-arrow { font-size: 26px !important; }
 body.a11y-mode .search-input { font-size: 16px !important; padding: 14px 44px !important; }
+body.a11y-mode .song-lib-search-input { font-size: 15px !important; padding: 12px 38px !important; }
+body.a11y-mode .song-lib-card-title { font-size: 13px !important; }
+body.a11y-mode .song-lib-detail-title { font-size: 19px !important; }
+body.a11y-mode .upload-lib-pick-name,
+body.a11y-mode .upload-source-tab { font-size: 14px !important; }
 body.a11y-mode .notice-text { font-size: 16px !important; }
 body.a11y-mode .section-ttl,
 body.a11y-mode .schedule-section-label { font-size: 18px !important; }
@@ -226,6 +231,10 @@ body.a11y-mode .login-entry-btn,
 body.a11y-mode .logout-btn,
 body.a11y-mode .settings-entry-btn { width: 38px !important; height: 38px !important; font-size: 18px !important; }
 body.a11y-mode .admin-badge { font-size: 13px !important; padding: 6px 13px !important; }
+body.a11y-mode .lightbox-close,
+body.a11y-mode .lightbox-download { width: 42px !important; height: 42px !important; font-size: 20px !important; }
+body.a11y-mode .lightbox-download { right: 70px !important; }
+body.a11y-mode .song-lib-import-hint { font-size: 13px !important; }
 body.a11y-mode .leave-modal-title { font-size: 19px !important; }
 body.a11y-mode .leave-shift-pick-names,
 body.a11y-mode .leave-name-chip,
@@ -953,6 +962,14 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
   border-radius: 50%; width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px;
 }
+.lightbox-download {
+  position: absolute; top: 16px; right: 62px;
+  background: rgba(255,255,255,0.15); border: none; color: #fff;
+  border-radius: 50%; width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px;
+  transition: background 0.15s;
+}
+.lightbox-download:hover { background: rgba(255,255,255,0.28); }
 .lightbox-title { color: rgba(255,255,255,0.8); font-size: 14px; }
 .lightbox-nav-btn {
   position: absolute; top: 50%; transform: translateY(-50%);
@@ -1022,6 +1039,114 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
   cursor: pointer; font-family: inherit; margin-top: 8px;
 }
 .confirm-add-song-btn:hover { background: var(--primary-dark); }
+
+/* ── Song library (歌单库) ──────────────────────────── */
+.song-lib-entry-btn {
+  display: flex; align-items: center; gap: 5px;
+  background: none; border: 0.5px solid rgba(0,0,0,0.15);
+  border-radius: 8px; padding: 5px 12px; font-size: 12px; color: #888;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.song-lib-entry-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+.song-lib-modal {
+  width: 100%; max-width: 480px; background: #fff;
+  border-radius: 24px 24px 0 0; padding: 20px 20px 28px; animation: slideUp 0.25s ease;
+  max-height: 88vh; overflow-y: auto; display: flex; flex-direction: column;
+}
+.song-lib-title { font-size: 16px; font-weight: 600; color: #1a1a1a; text-align: center; margin-bottom: 4px; }
+.song-lib-sub { font-size: 12px; color: #aaa; text-align: center; margin-bottom: 16px; }
+.song-lib-search-wrap { position: relative; margin-bottom: 14px; flex-shrink: 0; }
+.song-lib-search-input {
+  width: 100%; padding: 10px 36px; border: 1.5px solid rgba(0,0,0,0.1);
+  border-radius: 12px; font-size: 13px; color: #1a1a1a; outline: none;
+  font-family: inherit; transition: border-color 0.2s;
+}
+.song-lib-search-input:focus { border-color: var(--primary); }
+.song-lib-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #bbb; font-size: 15px; pointer-events: none; }
+.song-lib-search-clear {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  width: 22px; height: 22px; border-radius: 50%; border: none; background: #eee;
+  color: #999; cursor: pointer; display: none; align-items: center; justify-content: center; font-size: 12px;
+}
+.song-lib-search-clear.visible { display: flex; }
+.song-lib-count { font-size: 11px; color: #bbb; margin-bottom: 10px; flex-shrink: 0; }
+.song-lib-import-hint {
+  display: none; align-items: center; gap: 8px;
+  background: var(--primary-light); color: var(--primary);
+  border-radius: 12px; padding: 10px 12px; margin-bottom: 12px;
+  font-size: 12px; cursor: pointer; line-height: 1.5; flex-shrink: 0;
+}
+.song-lib-import-hint.show { display: flex; }
+.song-lib-import-hint.importing { opacity: 0.6; pointer-events: none; }
+.song-lib-import-hint i:first-child { font-size: 16px; flex-shrink: 0; }
+.song-lib-import-hint span { flex: 1; }
+.song-lib-import-hint strong { font-weight: 700; }
+.song-lib-import-hint i:last-child { font-size: 14px; flex-shrink: 0; opacity: 0.7; }
+.song-lib-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  overflow-y: auto; padding-bottom: 4px;
+}
+.song-lib-card {
+  border-radius: 12px; overflow: hidden; background: #f8f8f6; cursor: pointer;
+  border: 1.5px solid transparent; transition: border-color 0.15s;
+}
+.song-lib-card:hover { border-color: var(--primary); }
+.song-lib-card-thumb { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #ececea; overflow: hidden; position: relative; }
+.song-lib-card-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.song-lib-card-thumb i { font-size: 26px; color: #d0d0cc; }
+.song-lib-card-thumb.has-img { cursor: zoom-in; }
+.song-lib-zoom-hint {
+  position: absolute; inset: 0; background: rgba(0,0,0,0); transition: background 0.15s;
+  display: flex; align-items: center; justify-content: center; opacity: 0;
+}
+.song-lib-card-thumb.has-img:hover .song-lib-zoom-hint { background: rgba(0,0,0,0.15); opacity: 1; }
+.song-lib-zoom-hint i { font-size: 18px; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+.song-lib-card-title { font-size: 11px; color: #444; padding: 6px 8px 8px; line-height: 1.3; word-break: break-all; }
+.song-lib-empty { text-align: center; color: #bbb; font-size: 13px; padding: 2.5rem 0; grid-column: 1 / -1; }
+.song-lib-empty i { font-size: 32px; display: block; margin-bottom: 8px; color: #ddd; }
+
+/* ── Song library: detail view (usage history) ─────── */
+.song-lib-detail-modal {
+  width: 100%; max-width: 420px; background: #fff;
+  border-radius: 24px 24px 0 0; padding: 20px 20px 28px; animation: slideUp 0.25s ease;
+  max-height: 85vh; overflow-y: auto;
+}
+.song-lib-detail-thumb { width: 100%; aspect-ratio: 1; border-radius: 14px; overflow: hidden; background: #f0f0ee; margin-bottom: 14px; display: flex; align-items: center; justify-content: center; }
+.song-lib-detail-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.song-lib-detail-thumb i { font-size: 40px; color: #ddd; }
+.song-lib-detail-title { font-size: 17px; font-weight: 600; color: #1a1a1a; text-align: center; margin-bottom: 4px; }
+.song-lib-detail-meta { font-size: 12px; color: #aaa; text-align: center; margin-bottom: 18px; }
+.song-lib-usage-title { font-size: 12px; font-weight: 600; color: #888; margin-bottom: 8px; }
+.song-lib-usage-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+.song-lib-usage-item {
+  display: flex; align-items: center; gap: 8px;
+  background: #f8f8f6; border-radius: 10px; padding: 8px 12px; font-size: 13px; color: #444;
+}
+.song-lib-usage-item i { color: var(--primary); font-size: 14px; }
+.song-lib-usage-empty { font-size: 12px; color: #bbb; text-align: center; padding: 1rem 0; }
+
+/* ── Upload drawer: library tab switcher ───────────── */
+.upload-source-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.upload-source-tab {
+  flex: 1; padding: 8px; border-radius: 10px; font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: inherit; border: 1.5px solid rgba(0,0,0,0.1); background: #fff; color: #888;
+}
+.upload-source-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.upload-lib-pick-search { position: relative; margin-bottom: 10px; }
+.upload-lib-pick-list { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; margin-bottom: 4px; }
+.upload-lib-pick-row {
+  display: flex; align-items: center; gap: 8px;
+  background: #f8f8f6; border-radius: 10px; padding: 8px 10px; cursor: pointer;
+  border: 1.5px solid transparent;
+}
+.upload-lib-pick-row:hover { border-color: var(--primary); }
+.upload-lib-pick-row.already-added { opacity: 0.45; cursor: not-allowed; }
+.upload-lib-pick-thumb { width: 32px; height: 32px; border-radius: 7px; overflow: hidden; background: #e8e8e5; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.upload-lib-pick-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.upload-lib-pick-thumb i { font-size: 15px; color: #ccc; }
+.upload-lib-pick-name { flex: 1; font-size: 13px; color: #333; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.upload-lib-pick-add { font-size: 11px; color: var(--primary); font-weight: 600; flex-shrink: 0; }
+.upload-lib-pick-empty { text-align: center; color: #bbb; font-size: 12px; padding: 1.2rem 0; }
 
 /* ── Schedule ─────────────────────────────────────── */
 .schedule-section-label { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 10px; }
@@ -2126,7 +2251,13 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
     <div class="upload-modal-title">上传本周诗歌</div>
     <div class="upload-modal-sub" id="uploadSongSub"></div>
     <div class="upload-song-list" id="uploadSongList"></div>
-    <div class="add-song-area">
+
+    <div class="upload-source-tabs">
+      <button class="upload-source-tab active" id="uploadTabNew" onclick="setUploadSourceTab('new')">新建诗歌</button>
+      <button class="upload-source-tab" id="uploadTabLib" onclick="setUploadSourceTab('lib')">从歌单库选择</button>
+    </div>
+
+    <div class="add-song-area" id="uploadNewPanel">
       <div class="add-song-area-title">添加诗歌</div>
       <input class="add-song-name-input" id="newSongName" placeholder="诗歌名称（必填）">
       <input class="add-song-url-input" id="newSongUrl" placeholder="图片直链 URL（可选）">
@@ -2137,10 +2268,53 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
       <input type="file" id="localFileInput" accept="image/*" onchange="handleLocalFile(event)">
       <button class="confirm-add-song-btn" onclick="addSongEntry()">添加</button>
     </div>
+
+    <div class="add-song-area" id="uploadLibPanel" style="display:none">
+      <div class="add-song-area-title">从歌单库选择（共 <span id="uploadLibTotalCount">0</span> 首）</div>
+      <div class="upload-lib-pick-search">
+        <input class="add-song-name-input" id="uploadLibPickSearch" placeholder="搜索歌单库…" oninput="renderUploadLibPickList()" style="margin-bottom:8px">
+      </div>
+      <div class="upload-lib-pick-list" id="uploadLibPickList"></div>
+    </div>
+
     <div class="drawer-actions">
       <button class="btn-cancel" onclick="closeUploadSong()">取消</button>
       <button class="btn-save" onclick="saveUploadedSongs()">保存</button>
     </div>
+  </div>
+</div>
+
+<!-- ── Song library: browse & search ─────────────────────── -->
+<div class="modal-overlay" id="songLibraryOverlay" onclick="closeSongLibrary(event)">
+  <div class="song-lib-modal" onclick="event.stopPropagation()">
+    <div class="picker-handle"></div>
+    <div class="song-lib-title">歌单库</div>
+    <div class="song-lib-sub">收录历史使用过的诗歌，点击可查看使用记录</div>
+    <div class="song-lib-import-hint" id="songLibImportHint" onclick="importHistoricalSongs()">
+      <i class="ti ti-download"></i>
+      <span id="songLibImportHintText">检测到 <strong id="songLibImportCount">0</strong> 首历史诗歌还未收录，点击一键导入</span>
+      <i class="ti ti-chevron-right"></i>
+    </div>
+    <div class="song-lib-search-wrap">
+      <i class="ti ti-search song-lib-search-icon"></i>
+      <input class="song-lib-search-input" id="songLibSearchInput" type="text" placeholder="搜索歌名…" oninput="onSongLibrarySearch()" autocomplete="off">
+      <button class="song-lib-search-clear" id="songLibSearchClear" onclick="clearSongLibrarySearch()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="song-lib-count" id="songLibCount"></div>
+    <div class="song-lib-grid" id="songLibGrid"></div>
+  </div>
+</div>
+
+<!-- ── Song library: detail + usage history ──────────────── -->
+<div class="modal-overlay" id="songLibDetailOverlay" onclick="closeSongLibDetail(event)">
+  <div class="song-lib-detail-modal" onclick="event.stopPropagation()">
+    <div class="picker-handle"></div>
+    <div class="song-lib-detail-thumb" id="songLibDetailThumb"></div>
+    <div class="song-lib-detail-title" id="songLibDetailTitle"></div>
+    <div class="song-lib-detail-meta" id="songLibDetailMeta"></div>
+    <div class="song-lib-usage-title">使用记录</div>
+    <div class="song-lib-usage-list" id="songLibUsageList"></div>
+    <div class="drawer-actions" id="songLibDetailActions"></div>
   </div>
 </div>
 
@@ -2178,6 +2352,7 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
   <button class="lightbox-close" onclick="event.stopPropagation();closeLightbox()"><i class="ti ti-x"></i></button>
+  <button class="lightbox-download" onclick="event.stopPropagation();downloadLightboxImage()" title="下载图片"><i class="ti ti-download"></i></button>
   <span class="lightbox-counter" id="lightboxCounter"></span>
   <button class="lightbox-nav-btn prev" id="lightboxPrev" onclick="event.stopPropagation();stepLightbox(-1)"><i class="ti ti-chevron-left"></i></button>
   <img id="lightboxImg" src="" alt="" onclick="event.stopPropagation()">
@@ -2358,6 +2533,79 @@ let songData = {
   '2026-06-21': [],
   '2026-06-28': [],
 };
+
+// ── Song library (歌单库) ──────────────────────────────
+const LS_SONG_LIBRARY = 'churchSongLibrary';
+let songLibrary = []; // [{id, title, src, createdAt}]
+function loadSongLibrary() {
+  try {
+    const raw = localStorage.getItem(LS_SONG_LIBRARY);
+    songLibrary = raw ? JSON.parse(raw) : [];
+  } catch (e) { songLibrary = []; }
+}
+function persistSongLibrary() {
+  try { localStorage.setItem(LS_SONG_LIBRARY, JSON.stringify(songLibrary)); } catch (e) {}
+}
+function normalizeSongLibrary(raw) {
+  if (!Array.isArray(raw)) return [];
+  const seenIds = new Set();
+  return raw.map(item => {
+    let id = item?.id || (Date.now() + '_' + Math.random().toString(36).slice(2, 8));
+    while (seenIds.has(id)) id = id + '_' + Math.random().toString(36).slice(2, 4);
+    seenIds.add(id);
+    return {
+      id,
+      title: (item?.title || '').trim(),
+      src: item?.src || '',
+      createdAt: item?.createdAt || new Date().toISOString(),
+    };
+  }).filter(item => item.title);
+}
+// 确保某首歌（按标题去重）存在于歌单库；已存在则补全/更新图片链接（若库内原先为空），返回库内记录
+function ensureSongInLibrary(title, src) {
+  const t = (title || '').trim();
+  if (!t) return null;
+  let entry = songLibrary.find(s => s.title === t);
+  if (entry) {
+    if (src && !entry.src) entry.src = src; // 库内还没有图片时才补充，避免覆盖管理员可能已精心维护的库内版本
+    return entry;
+  }
+  entry = {
+    id: Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    title: t,
+    src: src || '',
+    createdAt: new Date().toISOString(),
+  };
+  songLibrary.unshift(entry);
+  return entry;
+}
+function removeSongFromLibrary(id) {
+  songLibrary = songLibrary.filter(s => s.id !== id);
+}
+// 某首歌（按标题）在哪些主日被使用过，倒序返回 key 列表
+function findSongUsageWeeks(title) {
+  const t = (title || '').trim();
+  if (!t) return [];
+  return Object.keys(songData)
+    .filter(key => (songData[key] || []).some(s => s.title === t))
+    .sort((a, b) => b.localeCompare(a));
+}
+async function syncSongLibraryToRemote(successMsg) {
+  if (!initSupabaseClient()) return false;
+  try {
+    await syncRemoteField('song_library', songLibrary);
+    if (successMsg) showToast(successMsg);
+    return true;
+  } catch (e) {
+    console.error('同步歌单库失败', e);
+    if (isMissingRemoteColumnError(e, 'song_library')) {
+      showToast('后端缺少 song_library 字段，请先执行修复 SQL');
+    } else {
+      showToast('已保存到本地，但云端同步失败');
+    }
+    return false;
+  }
+}
 const LS_SERMON_PASSAGES = 'churchSermonPassages';
 const LS_SERMON_THEMES = 'churchSermonThemes';
 const LS_SERMON_AUDIO = 'churchSermonAudio';
@@ -2987,6 +3235,7 @@ function updateAdminUI(){
   document.querySelectorAll('.upload-song-btn').forEach(el=>el.classList.toggle('show',isAdmin));
   document.querySelectorAll('.sermon-edit-btn').forEach(el=>el.classList.toggle('show',isAdmin));
   updateLeaveBadge();
+  updateSongLibImportHint();
 }
 
 // ── Month picker ──────────────────────────────────────
@@ -3044,9 +3293,10 @@ function renderSongs(key){
   const songs=songData[key]||[];
   const songTitle=getRelativeWeekSectionTitle(selectedSunday,'诗歌');
   const uploadBtn=`<button class="upload-song-btn ${isAdmin?'show':''}" onclick="openUploadSong('${key}')"><i class="ti ti-upload"></i>上传诗歌</button>`;
+  const libBtn=`<button class="song-lib-entry-btn" onclick="openSongLibrary()"><i class="ti ti-library"></i>歌单库</button>`;
   if(!songs.length){
     sec.innerHTML=`
-      <div class="section-title-row"><span class="section-ttl">${songTitle}</span>${uploadBtn}</div>
+      <div class="section-title-row"><span class="section-ttl">${songTitle}</span><div style="display:flex;gap:6px">${libBtn}${uploadBtn}</div></div>
       <div class="song-empty"><i class="ti ti-music-off"></i>${songTitle}暂无上传</div>`;
     return;
   }
@@ -3060,7 +3310,7 @@ function renderSongs(key){
   const pages=Math.ceil(songs.length/3);
   const dots=Array.from({length:pages},(_,i)=>`<div class="song-dot${i===0?' active':''}" id="sdot-${i}"></div>`).join('');
   sec.innerHTML=`
-    <div class="section-title-row"><span class="section-ttl">${songTitle}</span>${uploadBtn}</div>
+    <div class="section-title-row"><span class="section-ttl">${songTitle}</span><div style="display:flex;gap:6px">${libBtn}${uploadBtn}</div></div>
     <div class="song-slider-wrap"><div class="song-slider" id="songSlider" onscroll="updateDots(this,${pages})">${cards}</div></div>
     <div class="song-dots">${dots}</div>`;
 }
@@ -3073,10 +3323,14 @@ function openLightbox(key, index){
   const songs=(songData[key]||[]).filter(s=>s.src);
   // map index from full list to filtered list with src
   const fullList=songData[key]||[];
-  const targetSrc=fullList[index]?.src;
   const filteredIdx=songs.findIndex(s=>s===fullList[index]);
-  lightboxSongs=songs;
-  lightboxIndex=filteredIdx>=0?filteredIdx:0;
+  openLightboxWithList(songs, filteredIdx>=0?filteredIdx:0);
+}
+// 通用底层方法：传入任意 {title, src} 数组与起始索引即可打开大图查看器，
+// 供"本周诗歌"、"歌单库搜索结果"等不同来源复用同一套放大/翻页/下载体验
+function openLightboxWithList(list, index){
+  lightboxSongs=(list||[]).filter(s=>s && s.src);
+  lightboxIndex=Math.max(0, Math.min(index||0, lightboxSongs.length-1));
   showLightboxImage();
   document.getElementById('lightbox').classList.add('open');
   document.addEventListener('keydown', onLightboxKeydown);
@@ -3108,6 +3362,38 @@ function closeLightbox(){
   document.getElementById('lightbox').classList.remove('open');
   document.removeEventListener('keydown', onLightboxKeydown);
 }
+// 下载当前 lightbox 显示的图片
+async function downloadLightboxImage(){
+  const s=lightboxSongs[lightboxIndex];
+  if(!s || !s.src) return;
+  const safeName=(s.title||'诗歌图片').replace(/[\\/:*?"<>|]/g,'_');
+  try{
+    if(s.src.startsWith('data:')){
+      // 本地 base64 图片：直接触发下载
+      const a=document.createElement('a');
+      a.href=s.src;
+      a.download=safeName;
+      document.body.appendChild(a); a.click(); a.remove();
+      return;
+    }
+    // 远程图片：fetch 成 blob 后下载，避免点击直接跳转到图片新标签页
+    const resp=await fetch(s.src, {mode:'cors'});
+    if(!resp.ok) throw new Error('fetch failed');
+    const blob=await resp.blob();
+    const ext=(blob.type && blob.type.split('/')[1]) ? '.'+blob.type.split('/')[1].replace('jpeg','jpg') : '';
+    const blobUrl=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=blobUrl;
+    a.download=safeName.match(/\.[a-zA-Z0-9]+$/)?safeName:(safeName+ext);
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(blobUrl), 4000);
+  }catch(err){
+    // 跨域等原因 fetch 失败时，退而求其次在新标签页打开，用户可手动长按/右键保存
+    console.error('下载图片失败，改为新标签页打开', err);
+    window.open(s.src, '_blank');
+    showToast('该图片暂不支持直接下载，已为您在新标签页打开，请长按或右键保存');
+  }
+}
 
 // Swipe support for lightbox
 (function(){
@@ -3138,6 +3424,9 @@ function openUploadSong(key){
   document.getElementById('newSongName').value='';
   document.getElementById('newSongUrl').value='';
   document.getElementById('localFileInput').value='';
+  document.getElementById('uploadLibPickSearch').value='';
+  pendingLocalSrc='';
+  setUploadSourceTab('new');
   renderUploadList();
   document.getElementById('uploadSongOverlay').classList.add('open');
 }
@@ -3163,19 +3452,206 @@ function handleLocalFile(e){
 function addSongEntry(){
   const name=document.getElementById('newSongName').value.trim();
   if(!name){ alert('请输入诗歌名称'); return; }
+  if(uploadDraft.some(s=>s.title===name)){ alert('本周诗歌列表中已经有同名诗歌了'); return; }
   const urlInput=document.getElementById('newSongUrl').value.trim();
   const src=pendingLocalSrc||urlInput||'';
   uploadDraft.push({title:name, src});
+  ensureSongInLibrary(name, src); // 新建的诗歌自动归档进歌单库，供以后复用
   pendingLocalSrc='';
   document.getElementById('newSongName').value='';
   document.getElementById('newSongUrl').value='';
   document.getElementById('localFileInput').value='';
   renderUploadList();
 }
+function setUploadSourceTab(tab){
+  document.getElementById('uploadTabNew').classList.toggle('active', tab==='new');
+  document.getElementById('uploadTabLib').classList.toggle('active', tab==='lib');
+  document.getElementById('uploadNewPanel').style.display = tab==='new' ? '' : 'none';
+  document.getElementById('uploadLibPanel').style.display = tab==='lib' ? '' : 'none';
+  if (tab==='lib') renderUploadLibPickList();
+}
+function renderUploadLibPickList(){
+  const kw = document.getElementById('uploadLibPickSearch').value.trim().toLowerCase();
+  const totalEl = document.getElementById('uploadLibTotalCount');
+  if (totalEl) totalEl.textContent = songLibrary.length;
+  const list = songLibrary
+    .slice()
+    .sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt))
+    .filter(s => !kw || s.title.toLowerCase().includes(kw));
+  const wrap = document.getElementById('uploadLibPickList');
+  if (!songLibrary.length) {
+    wrap.innerHTML = `<div class="upload-lib-pick-empty">歌单库还是空的，先在"新建诗歌"里添加几首吧</div>`;
+    return;
+  }
+  if (!list.length) {
+    wrap.innerHTML = `<div class="upload-lib-pick-empty">没有找到匹配的诗歌</div>`;
+    return;
+  }
+  wrap.innerHTML = list.map(s => {
+    const already = uploadDraft.some(d => d.title === s.title);
+    const thumb = s.src ? `<img src="${s.src}">` : `<i class="ti ti-photo"></i>`;
+    return `<div class="upload-lib-pick-row${already?' already-added':''}" onclick="${already?'':`pickSongFromLibrary('${s.id}')`}">
+      <div class="upload-lib-pick-thumb">${thumb}</div>
+      <span class="upload-lib-pick-name">${escapeHtml(s.title)}</span>
+      <span class="upload-lib-pick-add">${already?'已添加':'+ 添加'}</span>
+    </div>`;
+  }).join('');
+}
+function pickSongFromLibrary(id){
+  const s = songLibrary.find(x => x.id === id);
+  if (!s) return;
+  if (uploadDraft.some(d => d.title === s.title)) return;
+  uploadDraft.push({title: s.title, src: s.src});
+  renderUploadList();
+  renderUploadLibPickList();
+}
 function saveUploadedSongs(){
   songData[uploadEditKey]=JSON.parse(JSON.stringify(uploadDraft));
   document.getElementById('uploadSongOverlay').classList.remove('open');
+  persistSongLibrary();
   render();
+}
+
+// ── Song library (歌单库) ──────────────────────────────
+let songLibSearchKeyword = '';
+function openSongLibrary(){
+  document.getElementById('songLibSearchInput').value = '';
+  songLibSearchKeyword = '';
+  document.getElementById('songLibSearchClear').classList.remove('visible');
+  renderSongLibraryGrid();
+  updateSongLibImportHint();
+  document.getElementById('songLibraryOverlay').classList.add('open');
+}
+// 扫描 songData 中所有周次，按标题去重，找出尚未收录进 songLibrary 的历史诗歌
+// 同名歌曲优先采用带图片链接的版本，便于一键导入时图片不缺失
+function getUnimportedHistoricalSongs(){
+  const byTitle = new Map();
+  Object.keys(songData).forEach(key => {
+    (songData[key] || []).forEach(s => {
+      const title = (s?.title || '').trim();
+      if (!title) return;
+      const existing = byTitle.get(title);
+      if (!existing || (!existing.src && s.src)) byTitle.set(title, { title, src: s.src || '' });
+    });
+  });
+  const libTitles = new Set(songLibrary.map(s => s.title));
+  return Array.from(byTitle.values()).filter(s => !libTitles.has(s.title));
+}
+function updateSongLibImportHint(){
+  const hint = document.getElementById('songLibImportHint');
+  if (!hint) return;
+  if (!isAdmin) { hint.classList.remove('show'); return; }
+  const pending = getUnimportedHistoricalSongs();
+  document.getElementById('songLibImportCount').textContent = pending.length;
+  hint.classList.toggle('show', pending.length > 0);
+}
+async function importHistoricalSongs(){
+  const hint = document.getElementById('songLibImportHint');
+  const pending = getUnimportedHistoricalSongs();
+  if (!pending.length) return;
+  hint.classList.add('importing');
+  pending.forEach(s => ensureSongInLibrary(s.title, s.src));
+  persistSongLibrary();
+  updateSongLibImportHint();
+  renderSongLibraryGrid();
+  hint.classList.remove('importing');
+  showToast(`✅ 已导入 ${pending.length} 首历史诗歌到歌单库`);
+  await syncSongLibraryToRemote('☁️ 歌单库已同步到云端');
+}
+function closeSongLibrary(e){
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('songLibraryOverlay').classList.remove('open');
+}
+function onSongLibrarySearch(){
+  songLibSearchKeyword = document.getElementById('songLibSearchInput').value.trim();
+  document.getElementById('songLibSearchClear').classList.toggle('visible', songLibSearchKeyword.length > 0);
+  renderSongLibraryGrid();
+}
+function clearSongLibrarySearch(){
+  document.getElementById('songLibSearchInput').value = '';
+  songLibSearchKeyword = '';
+  document.getElementById('songLibSearchClear').classList.remove('visible');
+  renderSongLibraryGrid();
+  document.getElementById('songLibSearchInput').focus();
+}
+function getFilteredSongLibrary(){
+  const list = songLibrary.slice().sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
+  if (!songLibSearchKeyword) return list;
+  const kw = songLibSearchKeyword.toLowerCase();
+  return list.filter(s => s.title.toLowerCase().includes(kw));
+}
+function renderSongLibraryGrid(){
+  const grid = document.getElementById('songLibGrid');
+  const countEl = document.getElementById('songLibCount');
+  const list = getFilteredSongLibrary();
+  countEl.textContent = songLibSearchKeyword
+    ? `找到 ${list.length} 首`
+    : `共收录 ${songLibrary.length} 首诗歌`;
+  if (!list.length) {
+    grid.innerHTML = `<div class="song-lib-empty"><i class="ti ${songLibSearchKeyword?'ti-search-off':'ti-music-off'}"></i>${songLibSearchKeyword?'没有找到匹配的诗歌':'歌单库还是空的，上传诗歌后会自动收录'}</div>`;
+    return;
+  }
+  grid.innerHTML = list.map((s,i) => {
+    const thumb = s.src
+      ? `<img src="${s.src}" alt="${escapeHtml(s.title)}" loading="lazy" onclick="event.stopPropagation();openLightboxFromLibraryGrid(${i})"><div class="song-lib-zoom-hint" onclick="event.stopPropagation();openLightboxFromLibraryGrid(${i})"><i class="ti ti-maximize"></i></div>`
+      : `<i class="ti ti-photo"></i>`;
+    return `<div class="song-lib-card" onclick="openSongLibDetail('${s.id}')">
+      <div class="song-lib-card-thumb${s.src?' has-img':''}">${thumb}</div>
+      <div class="song-lib-card-title">${escapeHtml(s.title)}</div>
+    </div>`;
+  }).join('');
+}
+// 点击歌单库网格中的缩略图：以当前筛选结果为列表打开大图查看器，可左右翻看同批搜索结果
+function openLightboxFromLibraryGrid(index){
+  const list = getFilteredSongLibrary();
+  openLightboxWithList(list, index);
+}
+let songLibDetailCurrent = null;
+function openSongLibDetail(id){
+  const s = songLibrary.find(x => x.id === id);
+  if (!s) return;
+  songLibDetailCurrent = s;
+  document.getElementById('songLibDetailThumb').innerHTML = s.src
+    ? `<img src="${s.src}" alt="${escapeHtml(s.title)}" style="cursor:zoom-in" onclick="openLightboxFromDetail()">`
+    : `<i class="ti ti-photo"></i>`;
+  document.getElementById('songLibDetailTitle').textContent = s.title;
+  const d = new Date(s.createdAt);
+  const dateLabel = isNaN(d) ? '' : `首次收录于 ${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  document.getElementById('songLibDetailMeta').textContent = dateLabel;
+  const weeks = findSongUsageWeeks(s.title);
+  const usageList = document.getElementById('songLibUsageList');
+  usageList.innerHTML = weeks.length
+    ? weeks.map(key => {
+        const wd = new Date(key + 'T00:00:00');
+        return `<div class="song-lib-usage-item"><i class="ti ti-calendar-event"></i>${wd.getMonth()+1}月${wd.getDate()}日（周日）</div>`;
+      }).join('')
+    : `<div class="song-lib-usage-empty">暂无使用记录</div>`;
+  const actions = document.getElementById('songLibDetailActions');
+  actions.innerHTML = isAdmin
+    ? `<button class="btn-cancel" onclick="closeSongLibDetail()">关闭</button>
+       <button class="btn-save" style="background:#e74c3c" onclick="deleteSongFromLibrary('${s.id}')">从歌单库删除</button>`
+    : `<button class="btn-save" style="flex:1" onclick="closeSongLibDetail()">关闭</button>`;
+  document.getElementById('songLibDetailOverlay').classList.add('open');
+}
+// 点击歌单库详情页中的大图：打开放大查看器（仅这一张图，无翻页）
+function openLightboxFromDetail(){
+  if (!songLibDetailCurrent || !songLibDetailCurrent.src) return;
+  openLightboxWithList([songLibDetailCurrent], 0);
+}
+function closeSongLibDetail(e){
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('songLibDetailOverlay').classList.remove('open');
+}
+async function deleteSongFromLibrary(id){
+  const s = songLibrary.find(x => x.id === id);
+  if (!s) return;
+  if (!confirm(`确定要从歌单库删除《${s.title}》吗？已经排入各周诗歌列表的记录不会受影响。`)) return;
+  removeSongFromLibrary(id);
+  persistSongLibrary();
+  closeSongLibDetail();
+  renderSongLibraryGrid();
+  showToast('已从歌单库删除');
+  await syncSongLibraryToRemote();
 }
 
 // ── Weekly sermon passages ───────────────────────────
@@ -5327,6 +5803,7 @@ function getSharedAppStateSnapshot() {
     sermon_themes_by_date: normalizeSimpleMap(sermonThemesByDate),
     sermon_audio_by_date: normalizeSimpleMap(sermonAudioByDate),
     leave_requests: normalizeLeaveRequests(leaveRequests),
+    song_library: normalizeSongLibrary(songLibrary),
   };
 }
 
@@ -5341,6 +5818,10 @@ function applyRemoteAppState(row) {
   if (row && row.leave_requests !== undefined) {
     leaveRequests = normalizeLeaveRequests(row.leave_requests);
     persistLeaveRequests();
+  }
+  if (row && row.song_library !== undefined) {
+    songLibrary = normalizeSongLibrary(row.song_library);
+    persistSongLibrary();
   }
   updateLeaveBadge();
 }
@@ -5580,9 +6061,22 @@ saveUploadedSongs = async function() {
   if (!initSupabaseClient()) return _localSaveUploadedSongs();
   try {
     const serviceDate = uploadEditKey;
+    const beforeTitles = (uploadDraft || []).map(s => ({ title: s.title, wasLocal: (s.src||'').startsWith('data:') }));
     songData[serviceDate] = await normalizeSongsForRemote(serviceDate, uploadDraft);
+    // 本地 data: 图片经 normalizeSongsForRemote 上传后会拿到真实 URL，
+    // 这里把歌单库里同名条目的 src 也同步更新为真实 URL，避免库内长期存着巨大的 base64
+    songData[serviceDate].forEach((s, i) => {
+      const wasLocal = beforeTitles[i]?.wasLocal;
+      if (wasLocal && s.src && !s.src.startsWith('data:')) {
+        const libEntry = songLibrary.find(l => l.title === s.title);
+        if (libEntry) libEntry.src = s.src;
+      }
+      ensureSongInLibrary(s.title, s.src);
+    });
+    persistSongLibrary();
     document.getElementById('uploadSongOverlay').classList.remove('open');
     await syncRemoteField('song_data', songData);
+    await syncSongLibraryToRemote();
     render();
     showToast('☁️ 诗歌已同步到云端');
   } catch (e) {
@@ -5601,6 +6095,7 @@ async function bootstrapApp() {
   loadSermonNotes();
   loadSermonCollapsed();
   loadLeaveRequests();
+  loadSongLibrary();
   loadSettings();
   applySettingsToDOM();
   syncResponsiveLayout();
