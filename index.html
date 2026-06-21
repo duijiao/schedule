@@ -879,8 +879,9 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
     top: 94px;
     align-self: start;
   }
-  #desktopLeftRail { grid-column: 1; }
-  #mainScheduleInner { grid-column: 2; min-width: 0; }
+  #desktopLeftRail { grid-column: 1; grid-row: 1; }
+  #mainScheduleInner { grid-column: 2; grid-row: 1; min-width: 0; }
+  #desktopRightRail { grid-column: 3; grid-row: 1; }
   #desktopRightRail,
   #nameReminderBanner,
   #sermonPassageSection,
@@ -2025,7 +2026,7 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
     <div id="bibleSection"></div>
     <div id="songSection"></div>
     <div class="schedule-head">
-      <div class="schedule-section-label">本周排班</div>
+      <div class="schedule-section-label" id="scheduleSectionLabel">本周排班</div>
       <div style="display:flex;align-items:center;gap:6px">
         <div class="view-toggle-wrap">
           <button class="view-toggle-btn" id="viewBtnList" onclick="setViewMode('list')" title="列表视图">
@@ -2819,11 +2820,12 @@ let lightboxSongs=[], lightboxIndex=0;
 function renderSongs(key){
   const sec=document.getElementById('songSection');
   const songs=songData[key]||[];
+  const songTitle=getRelativeWeekSectionTitle(selectedSunday,'诗歌');
   const uploadBtn=`<button class="upload-song-btn ${isAdmin?'show':''}" onclick="openUploadSong('${key}')"><i class="ti ti-upload"></i>上传诗歌</button>`;
   if(!songs.length){
     sec.innerHTML=`
-      <div class="section-title-row"><span class="section-ttl">本周诗歌</span>${uploadBtn}</div>
-      <div class="song-empty"><i class="ti ti-music-off"></i>本周诗歌暂无上传</div>`;
+      <div class="section-title-row"><span class="section-ttl">${songTitle}</span>${uploadBtn}</div>
+      <div class="song-empty"><i class="ti ti-music-off"></i>${songTitle}暂无上传</div>`;
     return;
   }
   const cards=songs.map((s,i)=>{
@@ -2836,7 +2838,7 @@ function renderSongs(key){
   const pages=Math.ceil(songs.length/3);
   const dots=Array.from({length:pages},(_,i)=>`<div class="song-dot${i===0?' active':''}" id="sdot-${i}"></div>`).join('');
   sec.innerHTML=`
-    <div class="section-title-row"><span class="section-ttl">本周诗歌</span>${uploadBtn}</div>
+    <div class="section-title-row"><span class="section-ttl">${songTitle}</span>${uploadBtn}</div>
     <div class="song-slider-wrap"><div class="song-slider" id="songSlider" onscroll="updateDots(this,${pages})">${cards}</div></div>
     <div class="song-dots">${dots}</div>`;
 }
@@ -3040,6 +3042,8 @@ function openSermonThemeDetail(key){
 function renderSermonPassages(key){
   const sec=document.getElementById('sermonPassageSection');
   if(!sec) return;
+  const sermonTitle=getRelativeWeekSectionTitle(selectedSunday,'证道');
+  const sermonPassageTitle=getRelativeWeekSectionTitle(selectedSunday,'证道经文');
   const items=getSermonPassagesForKey(key);
   const theme=getSermonThemeForKey(key).trim();
   const preacher=getSermonForKey(key);
@@ -3073,7 +3077,7 @@ function renderSermonPassages(key){
        <div class="sermon-preview-list" id="sermonPreviewList">
         <div class="bible-loading">正在加载经文...</div>
       </div>`
-    : `<div class="sermon-preview-empty"><i class="ti ti-book-off"></i>本周证道经文尚未设置</div>`;
+    : `<div class="sermon-preview-empty"><i class="ti ti-book-off"></i>${sermonPassageTitle}尚未设置</div>`;
   const audioHtml=safeAudioUrl
     ? `<a class="sermon-audio-link" href="${escapeHtml(safeAudioUrl)}" target="_blank" rel="noopener noreferrer"><i class="ti ti-headphones"></i>讲道音频链接</a>`
     : `<div class="sermon-extra-empty">${audioUrl ? '音频链接格式无效，请重新设置' : '暂未添加讲道音频链接'}</div>`;
@@ -3088,7 +3092,7 @@ function renderSermonPassages(key){
       <div class="section-title-row">
         <div class="sermon-section-head-left">
           <div class="sermon-section-icon"><i class="ti ti-book-2"></i></div>
-          <span class="section-ttl">本周证道</span>
+          <span class="section-ttl">${sermonTitle}</span>
         </div>
         <div class="sermon-section-actions">${collapseBtn}${editBtn}</div>
       </div>
@@ -3348,6 +3352,8 @@ function render(){
   document.getElementById('hdrMini').textContent='敬拜排班表';
   const lbl=document.getElementById('cardDateLabel');
   if(lbl) lbl.innerHTML=`${month+1}月${d.getDate()}日&nbsp;<span>周日</span>`;
+  const scheduleLabel=document.getElementById('scheduleSectionLabel');
+  if(scheduleLabel) scheduleLabel.textContent=getRelativeWeekSectionTitle(d,'排班');
   // Sunday pills
   const nav=document.getElementById('sundayNav'); nav.innerHTML='';
   sundays.forEach(s=>{ const a=s.toDateString()===d.toDateString(); const p=document.createElement('div'); p.className='sunday-pill'+(a?' active':''); p.innerHTML=`<span class="s-label">日</span><span class="s-num">${s.getDate()}</span>`; p.onclick=()=>{selectedSunday=s;render();}; nav.appendChild(p); });
@@ -3722,17 +3728,24 @@ function getCurrentWeekSunday(){
   if(!t){ const f=s.filter(x=>x>=now); t=f.length?f[0]:s[s.length-1]; }
   return t;
 }
-function getRelativeWeekLabel(d){
+function getRelativeWeekPrefix(d){
   const cur=getCurrentWeekSunday();
-  if(!d || !cur) return '本周排班';
-  const diffDays=Math.round((d.setHours(0,0,0,0)-new Date(cur).setHours(0,0,0,0))/(24*60*60*1000));
+  if(!d || !cur) return '本周';
+  const target=new Date(d);
+  const diffDays=Math.round((target.setHours(0,0,0,0)-new Date(cur).setHours(0,0,0,0))/(24*60*60*1000));
   const diffWeeks=Math.round(diffDays/7);
-  if(diffWeeks===0) return '本周排班';
-  if(diffWeeks===1) return '下周排班';
-  if(diffWeeks===-1) return '上周排班';
-  if(diffWeeks===2) return '下下周排班';
-  if(diffWeeks===-2) return '上上周排班';
-  return `${d.getMonth()+1}月${d.getDate()}日排班`;
+  if(diffWeeks===0) return '本周';
+  if(diffWeeks===1) return '下周';
+  if(diffWeeks===-1) return '上周';
+  if(diffWeeks===2) return '下下周';
+  if(diffWeeks===-2) return '上上周';
+  return `${target.getMonth()+1}月${target.getDate()}日`;
+}
+function getRelativeWeekSectionTitle(d,suffix='排班'){
+  return `${getRelativeWeekPrefix(d)}${suffix}`;
+}
+function getRelativeWeekLabel(d){
+  return getRelativeWeekSectionTitle(d,'排班');
 }
 function goToday(){
   selectedSunday=getCurrentWeekSunday(); updateAdminUI(); render();
@@ -4396,17 +4409,11 @@ function sendPushNotification(matches, key) {
 (function wrapScheduleInner() {
   const main = document.getElementById('mainSchedule');
   if (!main) return;
-  // Wrap the non-section content (schedule head + card) in a div
-  // Actually mainScheduleInner is set as the last child of mainSchedule
-  // We need to wrap existing non-section children
+  const existingInner = document.getElementById('mainScheduleInner');
+  if (existingInner) return;
   const noticeEl = document.getElementById('noticeSection');
-  const bibleEl  = document.getElementById('bibleSection');
-  const songEl   = document.getElementById('songSection');
-
-  // Create inner wrapper for schedule head + main-card
   const inner = document.createElement('div');
   inner.id = 'mainScheduleInner';
-  // Move all children not already named sections into inner
   const children = Array.from(main.children);
   const sectionIds = new Set(['desktopLeftRail','desktopRightRail','noticeSection','sermonPassageSection','bibleSection','songSection','nameReminderBanner']);
   children.forEach(child => {
@@ -4414,7 +4421,8 @@ function sendPushNotification(matches, key) {
       inner.appendChild(child);
     }
   });
-  main.appendChild(inner);
+  if (noticeEl) main.insertBefore(inner, noticeEl);
+  else main.appendChild(inner);
 })();
 
 // ── Override render to include name reminder check ────
