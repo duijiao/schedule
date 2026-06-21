@@ -179,6 +179,8 @@ body.a11y-mode {
 body.a11y-mode .app { max-width: 480px; }
 body.a11y-mode .shift-name,
 body.a11y-mode .person-name { font-size: 15px !important; }
+body.a11y-mode .person-leave-tag { font-size: 12px !important; padding: 2px 10px !important; }
+body.a11y-mode .cvi-chip-leave-icon { font-size: 14px !important; }
 body.a11y-mode .role-badge .role-icon { font-size: 22px !important; }
 body.a11y-mode .role-badge .role-text { font-size: 13px !important; }
 body.a11y-mode .sunday-pill .s-num { font-size: 22px !important; width: 42px; height: 42px; }
@@ -1049,6 +1051,15 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
 .person { display: flex; align-items: center; gap: 6px; }
 .avatar { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 500; flex-shrink: 0; }
 .person-name { font-size: 12px; color: #888; word-break: break-all; }
+.person.person-on-leave { opacity: 0.6; }
+.person.person-on-leave .person-name { text-decoration: line-through; text-decoration-color: #e74c3c; }
+.person-leave-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: #fcebeb; color: #a32d2d; border-radius: 999px;
+  padding: 1px 8px; font-size: 10px; font-weight: 600; flex-shrink: 0;
+}
+.person-leave-tag i { font-size: 10px; }
+.active-card .person-leave-tag { background: rgba(255,255,255,0.85); }
 .active-card .person-name { color: rgba(255,255,255,0.85); }
 .more-btn { position: absolute; top: 8px; right: 10px; background: none; border: none; cursor: pointer; color: #ccc; font-size: 15px; line-height: 1; }
 .active-card .more-btn { color: rgba(255,255,255,0.6); }
@@ -1180,6 +1191,11 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
   background: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500;
   color: inherit;
 }
+.cvi-chip-leave {
+  text-decoration: line-through; text-decoration-color: #a32d2d;
+  background: rgba(255,255,255,0.85); display: inline-flex; align-items: center; gap: 4px;
+}
+.cvi-chip-leave-icon { font-size: 12px; text-decoration: none; color: #a32d2d; }
 .cvi-edit-btn {
   position: absolute; top: 10px; right: 12px;
   background: rgba(255,255,255,0.4); border: none; border-radius: 8px;
@@ -1554,6 +1570,16 @@ body.a11y-mode .leave-modal { max-width: 480px; }
 .leave-list-empty { text-align: center; color: #bbb; font-size: 14px; padding: 2.5rem 0; }
 .leave-list-empty i { font-size: 32px; display: block; margin-bottom: 8px; color: #ddd; }
 .leave-list-filter-row { display: flex; gap: 6px; margin-bottom: 14px; }
+.leave-notif-hint {
+  display: none; align-items: center; gap: 8px;
+  background: var(--primary-light); color: var(--primary);
+  border-radius: 12px; padding: 10px 12px; margin-bottom: 12px;
+  font-size: 12px; cursor: pointer; line-height: 1.5;
+}
+.leave-notif-hint.show { display: flex; }
+.leave-notif-hint i:first-child { font-size: 16px; flex-shrink: 0; }
+.leave-notif-hint span { flex: 1; }
+.leave-notif-hint i:last-child { font-size: 14px; flex-shrink: 0; opacity: 0.7; }
 .leave-filter-btn {
   flex: 1; padding: 7px; border-radius: 9px; font-size: 12px; font-weight: 500;
   cursor: pointer; font-family: inherit; border: 1.5px solid rgba(0,0,0,0.1); background: #fff; color: #888;
@@ -1924,6 +1950,11 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
     <div class="picker-handle"></div>
     <div class="drawer-title">请假申请管理</div>
     <div class="drawer-sub">审批后可直接前往排班修改替补人员</div>
+    <div class="leave-notif-hint" id="leaveNotifHint" onclick="openSettings();closeLeaveList()">
+      <i class="ti ti-bell-ringing"></i>
+      <span>开启浏览器推送通知，有新请假申请时可第一时间收到提醒</span>
+      <i class="ti ti-chevron-right"></i>
+    </div>
     <div class="leave-list-filter-row">
       <button class="leave-filter-btn active" id="leaveFilterPending" onclick="setLeaveListFilter('pending')">待处理</button>
       <button class="leave-filter-btn" id="leaveFilterApproved" onclick="setLeaveListFilter('approved')">已批准</button>
@@ -2047,7 +2078,7 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
           <div class="settings-row-icon" style="background:#e8f0fe"><i class="ti ti-bell" style="color:#3B5BDB"></i></div>
           <div class="settings-row-body">
             <div class="settings-row-label">浏览器推送通知</div>
-            <div class="settings-row-desc">当排班包含关注人名时弹出系统通知</div>
+            <div class="settings-row-desc">排班含关注人名、或收到新的请假申请时弹出系统通知</div>
           </div>
           <span class="notif-status" id="notifStatus">未授权</span>
           <button onclick="requestNotifPermission()" style="margin-left:6px;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap">授权</button>
@@ -3498,8 +3529,11 @@ function renderShifts(key){
     shifts.forEach(s=>{
       const col=roleColors[s.role]||{bg:'#f0f0ee',text:'#444',badgeBg:'#888',badgeText:'#fff',icon:'ti-user'};
       const ec=isAdmin?' editable':'';
-      const editHandler=isAdmin?`onclick="openEditDrawer('${s.role}','${key}')"` : '';
-      const chips=s.persons.map(p=>`<span class="cvi-chip">${p}</span>`).join('');
+      const leaveSet=new Set(Array.isArray(s.leavePersons)?s.leavePersons:[]);
+      const chips=s.persons.map(p=>{
+        const onLeave=leaveSet.has(p);
+        return `<span class="cvi-chip${onLeave?' cvi-chip-leave':''}">${escapeHtml(p)}${onLeave?'<i class="ti ti-calendar-off cvi-chip-leave-icon" title="已请假"></i>':''}</span>`;
+      }).join('');
       const item=document.createElement('div');
       item.className=`card-view-item${ec}`;
       item.style.cssText=`background:${col.bg};color:${col.text}`;
@@ -3519,9 +3553,12 @@ function renderShifts(key){
       const isFirst=i===0;
       const col=roleColors[s.role]||{bg:'#ddd',text:'#444',badgeBg:'#888',badgeText:'#fff',icon:'ti-user'};
       const row=document.createElement('div'); row.className='role-row';
+      const leaveSet=new Set(Array.isArray(s.leavePersons)?s.leavePersons:[]);
       const personsHtml=s.persons.map(p=>{
         const ab=isFirst?'rgba(255,255,255,0.28)':col.bg, at=isFirst?'#fff':col.text;
-        return `<div class="person"><div class="avatar" style="background:${ab};color:${at}">${getInitials(p)}</div><span class="person-name">${p}</span></div>`;
+        const onLeave=leaveSet.has(p);
+        const leaveTag=onLeave?'<span class="person-leave-tag"><i class="ti ti-calendar-off"></i>请假</span>':'';
+        return `<div class="person${onLeave?' person-on-leave':''}"><div class="avatar" style="background:${ab};color:${at}">${getInitials(p)}</div><span class="person-name">${escapeHtml(p)}</span>${leaveTag}</div>`;
       }).join('');
       const ec=isAdmin?' editable':'';
       const ea=isAdmin?`title="点击修改" onclick="openEditDrawer('${s.role}','${key}')"`:'';
@@ -3804,7 +3841,7 @@ function saveEdit(){
     if(!persons.length){ scheduleData[key]=scheduleData[key].filter(s=>s.role!==role); return; }
     const ex=scheduleData[key].find(s=>s.role===role);
     if(ex){ex.persons=persons;ex.name=persons.join('/');}
-    else scheduleData[key].push({role,name:persons.join('/'),persons});
+    else scheduleData[key].push({role,name:persons.join('/'),persons,leavePersons:[]});
   });
   scheduleData[key].sort((a,b)=>ROLES.indexOf(a.role)-ROLES.indexOf(b.role));
   if(!scheduleData[key].length) delete scheduleData[key];
@@ -4627,6 +4664,15 @@ function pickLeaveNameByIdx(el) {
   leaveDraftName = shift.persons[idx];
   renderLeaveNameChips();
 }
+function sendLeaveRequestNotification(item) {
+  if (!isAdmin) return; // 只提醒当前设备上的管理员，避免提交者收到"自己发给自己"的通知
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const dateStr = formatLeaveDateLabel(item.key);
+  new Notification('📋 收到新的请假申请', {
+    body: `${item.name}（${item.role}）申请 ${dateStr} 请假${item.reason ? '：' + item.reason : ''}`,
+    tag: 'leave-request-' + item.id,
+  });
+}
 async function submitLeaveRequest() {
   const errEl = document.getElementById('leaveFormError');
   if (!leaveDraftKey || !leaveDraftRole || !leaveDraftName) {
@@ -4649,12 +4695,18 @@ async function submitLeaveRequest() {
   updateLeaveBadge();
   document.getElementById('leaveFormBox').style.display = 'none';
   document.getElementById('leaveSuccessBox').classList.add('show');
+  sendLeaveRequestNotification(item);
   await syncLeaveRequestsToRemote();
 }
 
 // ── Leave requests (admin review) ─────────────────────
 function openLeaveList() {
   setLeaveListFilter('pending');
+  const hint = document.getElementById('leaveNotifHint');
+  if (hint) {
+    const canPrompt = ('Notification' in window) && Notification.permission === 'default';
+    hint.classList.toggle('show', canPrompt);
+  }
   document.getElementById('leaveListOverlay').classList.add('open');
 }
 function closeLeaveList(e) {
@@ -4698,6 +4750,11 @@ function renderLeaveList() {
            <button class="leave-list-btn decline" onclick="declineLeaveRequest('${r.id}')">拒绝</button>
            <button class="leave-list-btn goto" onclick="gotoLeaveShift('${r.id}')">前往排班</button>
          </div>`
+      : r.status === 'approved'
+      ? `<div class="leave-list-actions">
+           <button class="leave-list-btn goto" onclick="gotoLeaveShift('${r.id}')">前往排班</button>
+           <button class="leave-list-btn" onclick="unmarkLeaveRequest('${r.id}')">撤销标签</button>
+         </div>`
       : `<div class="leave-list-actions">
            <button class="leave-list-btn goto" onclick="gotoLeaveShift('${r.id}')">查看排班</button>
          </div>`;
@@ -4716,15 +4773,60 @@ function renderLeaveList() {
     </div>`;
   }).join('');
 }
+async function syncScheduleStateWithRemote(successMsg) {
+  if (!initSupabaseClient()) return false;
+  try {
+    await upsertRemoteAppState({
+      schedule_data: normalizeScheduleData(scheduleData),
+    });
+    if (successMsg) showToast(successMsg);
+    return true;
+  } catch (e) {
+    console.error('同步排班失败', e);
+    showToast('请假标注已保存到本地，但云端同步失败');
+    return false;
+  }
+}
+function markShiftPersonOnLeave(key, role, name) {
+  const rows = scheduleData[key];
+  if (!Array.isArray(rows)) return false;
+  const shift = rows.find(s => s.role === role);
+  if (!shift) return false;
+  if (!shift.persons.includes(name)) return false; // 该人已不在此岗位，无需标记
+  const cur = Array.isArray(shift.leavePersons) ? shift.leavePersons : [];
+  if (!cur.includes(name)) shift.leavePersons = uniqPeople([...cur, name]);
+  return true;
+}
+function clearShiftLeaveTag(key, role, name) {
+  const rows = scheduleData[key];
+  if (!Array.isArray(rows)) return;
+  const shift = rows.find(s => s.role === role);
+  if (!shift || !Array.isArray(shift.leavePersons)) return;
+  shift.leavePersons = shift.leavePersons.filter(n => n !== name);
+}
 async function approveLeaveRequest(id) {
   const r = leaveRequests.find(x => x.id === id);
   if (!r) return;
   r.status = 'approved';
   persistLeaveRequests();
+  const marked = markShiftPersonOnLeave(r.key, r.role, r.name);
   updateLeaveBadge();
   renderLeaveList();
-  showToast(`✅ 已批准 ${r.name} 的请假申请`);
+  render();
+  showToast(marked
+    ? `✅ 已批准 ${r.name} 的请假申请，排班卡片已标注，请尽快安排替补`
+    : `✅ 已批准 ${r.name} 的请假申请`);
   await syncLeaveRequestsToRemote();
+  if (marked) await syncScheduleStateWithRemote('☁️ 请假标注已同步到云端');
+}
+async function unmarkLeaveRequest(id) {
+  const r = leaveRequests.find(x => x.id === id);
+  if (!r) return;
+  clearShiftLeaveTag(r.key, r.role, r.name);
+  render();
+  renderLeaveList();
+  showToast(`已撤销 ${r.name} 在排班卡片上的请假标签`);
+  await syncScheduleStateWithRemote();
 }
 async function declineLeaveRequest(id) {
   const r = leaveRequests.find(x => x.id === id);
@@ -5168,10 +5270,12 @@ function normalizeScheduleData(raw) {
       const persons = Array.isArray(row?.persons)
         ? row.persons.filter(Boolean)
         : (typeof row?.name === 'string' ? row.name.split('/').map(s => s.trim()).filter(Boolean) : []);
+      const leavePersons = Array.isArray(row?.leavePersons) ? row.leavePersons.filter(Boolean) : [];
       return {
         role: row?.role || '',
         name: persons.join('/'),
         persons,
+        leavePersons,
       };
     }).filter(row => row.role);
     next[key].sort((a, b) => ROLES.indexOf(a.role) - ROLES.indexOf(b.role));
