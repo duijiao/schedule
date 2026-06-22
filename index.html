@@ -384,6 +384,8 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
   align-items: flex-end; justify-content: center;
 }
 .modal-overlay.open { display: flex; }
+/* Edit drawer must sit above the monthly editor overlay */
+#editOverlay { z-index: 300; }
 @keyframes slideUp {
   from { transform: translateY(60px); opacity: 0; }
   to   { transform: translateY(0); opacity: 1; }
@@ -1287,6 +1289,99 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
 .export-option-icon i { font-size: 20px; }
 .export-option-title { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 2px; }
 .export-option-desc { font-size: 12px; color: #aaa; }
+
+/* ── Monthly schedule editor ─────────────────────── */
+.monthly-editor-overlay.open { display: flex; }
+.monthly-editor-panel {
+  width: 100%; max-width: 520px; background: #fff;
+  border-radius: 24px 24px 0 0; padding: 0; animation: slideUp 0.25s ease;
+  max-height: 92vh; overflow: hidden; display: flex; flex-direction: column;
+  position: relative;
+}
+.monthly-editor-head {
+  padding: 18px 20px 0; flex-shrink: 0;
+}
+.monthly-editor-handle { width: 36px; height: 4px; background: #e0e0e0; border-radius: 2px; margin: 0 auto 14px; }
+.monthly-editor-nav {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
+}
+.monthly-editor-title { font-size: 16px; font-weight: 700; color: #1a1a1a; }
+.monthly-editor-sub { font-size: 12px; color: #aaa; text-align: center; margin-bottom: 14px; }
+.monthly-editor-nav-btn {
+  background: #f5f5f2; border: none; border-radius: 10px;
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #666; font-size: 16px; flex-shrink: 0;
+}
+.monthly-editor-nav-btn:hover { background: var(--primary-light); color: var(--primary); }
+.monthly-editor-body {
+  flex: 1; overflow-y: auto; padding: 0 16px 24px;
+  scrollbar-width: thin; scrollbar-color: #e0e0e0 transparent;
+}
+.monthly-editor-body::-webkit-scrollbar { width: 4px; }
+.monthly-editor-body::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 2px; }
+.me-sunday-block {
+  margin-bottom: 14px; border-radius: 18px; overflow: hidden;
+  border: 1.5px solid rgba(0,0,0,0.07); background: #fff;
+}
+.me-sunday-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; background: #f8f8f6; cursor: pointer;
+  user-select: none; transition: background 0.15s;
+}
+.me-sunday-header:hover { background: #f0f0ec; }
+.me-sunday-header.active-week { background: var(--primary-light); }
+.me-sunday-date { font-size: 14px; font-weight: 700; color: #1a1a1a; }
+.me-sunday-header.active-week .me-sunday-date { color: var(--primary); }
+.me-sunday-meta { font-size: 12px; color: #aaa; margin-top: 2px; }
+.me-sunday-chevron { font-size: 16px; color: #bbb; transition: transform 0.2s; flex-shrink: 0; }
+.me-sunday-chevron.open { transform: rotate(180deg); }
+.me-sunday-body { display: none; padding: 10px 12px 12px; }
+.me-sunday-body.open { display: block; }
+.me-role-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 12px; margin-bottom: 6px;
+  background: #f8f8f6; transition: background 0.15s;
+}
+.me-role-row.editable { cursor: pointer; }
+.me-role-row.editable:hover { background: #f0f0ec; }
+.me-role-badge {
+  display: flex; align-items: center; gap: 4px; border-radius: 7px;
+  padding: 3px 8px; font-size: 11px; font-weight: 600; flex-shrink: 0; min-width: 42px;
+  justify-content: center;
+}
+.me-role-badge i { font-size: 11px; }
+.me-role-persons { flex: 1; font-size: 13px; color: #333; min-width: 0; }
+.me-role-persons.empty { color: #ccc; font-style: italic; }
+.me-role-edit-hint { font-size: 11px; color: #bbb; flex-shrink: 0; }
+.me-add-row {
+  display: none; margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+.me-add-row.show { display: block; }
+.me-add-btn {
+  width: 100%; padding: 9px; background: var(--primary-light); color: var(--primary);
+  border: none; border-radius: 10px; font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: inherit; display: flex; align-items: center;
+  justify-content: center; gap: 5px;
+}
+.me-add-btn:hover { background: var(--primary-mid); }
+.me-empty { text-align: center; color: #bbb; font-size: 14px; padding: 3rem 0; }
+.me-empty i { font-size: 36px; display: block; margin-bottom: 10px; color: #ddd; }
+.me-copy-bar {
+  flex-shrink: 0; padding: 12px 16px; border-top: 1px solid rgba(0,0,0,0.06);
+  display: flex; gap: 8px; background: #fff;
+}
+.me-copy-btn {
+  flex: 1; padding: 10px 8px; border: none; border-radius: 12px;
+  font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.me-copy-btn.secondary { background: #f5f5f2; color: #555; }
+.me-copy-btn.secondary:hover { background: #ebebea; }
+.me-copy-btn.primary { background: var(--primary); color: #fff; }
+.me-copy-btn.primary:hover { background: var(--primary-dark); }
+.me-copy-btn.danger { background: #FEF2F2; color: #d9534f; }
+.me-copy-btn.danger:hover { background: #fde8e8; }
 
 /* ── Login modal ──────────────────────────────────── */
 .login-modal {
@@ -2218,6 +2313,33 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
     </button>
   </div>
 </div>
+<!-- ── Monthly Schedule Editor ──────────────────────── -->
+<div class="modal-overlay monthly-editor-overlay" id="monthlyEditorOverlay" onclick="closeMonthlyEditor(event)">
+  <div class="monthly-editor-panel" onclick="event.stopPropagation()">
+    <div class="monthly-editor-head">
+      <div class="monthly-editor-handle"></div>
+      <div class="monthly-editor-nav">
+        <button class="monthly-editor-nav-btn" onclick="shiftMonthlyEditor(-1)"><i class="ti ti-chevron-left"></i></button>
+        <div style="text-align:center;flex:1;min-width:0;padding:0 8px">
+          <div class="monthly-editor-title" id="monthlyEditorTitle"></div>
+        </div>
+        <button class="monthly-editor-nav-btn" onclick="shiftMonthlyEditor(1)"><i class="ti ti-chevron-right"></i></button>
+        <button class="monthly-editor-nav-btn" onclick="closeMonthlyEditor()" style="margin-left:6px;background:#f0f0ee" title="关闭"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="monthly-editor-sub" id="monthlyEditorSub"></div>
+    </div>
+    <div class="monthly-editor-body" id="monthlyEditorBody"></div>
+    <div class="me-copy-bar" id="monthlyEditorCopyBar" style="display:none">
+      <button class="me-copy-btn secondary" onclick="meCopyFromLastMonth()">
+        <i class="ti ti-copy"></i>复制上月排班
+      </button>
+      <button class="me-copy-btn danger" onclick="meClearMonth()">
+        <i class="ti ti-trash"></i>清空本月
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="bookmarksOverlay" onclick="closeBookmarks(event)">
   <div class="bookmarks-panel" onclick="event.stopPropagation()">
     <div class="picker-handle"></div>
@@ -2508,7 +2630,7 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
   <div class="search-result-panel" id="searchResultPanel">
     <div class="search-result-header">
       <span class="search-result-title" id="searchResultTitle"></span>
-      <button class="export-btn" onclick="document.getElementById('exportChoiceOverlay').classList.add('open')">
+      <button class="export-btn" onclick="doExportPerson(document.getElementById('searchInput').value.trim())">
         <i class="ti ti-download"></i>导出
       </button>
     </div>
@@ -2548,6 +2670,9 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
         </div>
         <button class="view-toggle-btn" onclick="openMonthOverview()" title="查看本月所有排班">
           <i class="ti ti-calendar-month"></i>
+        </button>
+        <button class="admin-monthly-edit-btn" id="adminMonthlyEditBtn" onclick="openMonthlyEditor()" title="按月编辑排班" style="display:none;align-items:center;gap:5px;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
+          <i class="ti ti-calendar-edit" style="font-size:14px"></i>月排班
         </button>
         <button class="schedule-toggle-btn" id="scheduleToggleBtn" onclick="toggleScheduleSection()">
           <i class="ti ti-chevron-up"></i><span id="scheduleToggleText">收起</span>
@@ -3352,6 +3477,7 @@ function updateAdminUI(){
   document.getElementById('adminBar').classList.toggle('show',isAdmin);
   document.getElementById('loginEntryBtn').style.display=isAdmin?'none':'flex';
   const b=document.getElementById('addShiftBtn'); if(b) b.style.display=isAdmin?'flex':'none';
+  const me=document.getElementById('adminMonthlyEditBtn'); if(me) me.style.display=isAdmin?'flex':'none';
   document.querySelectorAll('.upload-song-btn').forEach(el=>el.classList.toggle('show',isAdmin));
   document.querySelectorAll('.sermon-edit-btn').forEach(el=>el.classList.toggle('show',isAdmin));
   updateLeaveBadge();
@@ -4405,6 +4531,25 @@ function createEmptyPeopleByRole(){
   ROLES.forEach(role => { next[role] = []; });
   return next;
 }
+// Tracks people explicitly deleted by admin — persisted inside rotationConfig
+function ensureRemovedPeople(){
+  if(!rotationConfig.removedPeople || typeof rotationConfig.removedPeople !== 'object')
+    rotationConfig.removedPeople = {};
+  ROLES.forEach(r => { if(!Array.isArray(rotationConfig.removedPeople[r])) rotationConfig.removedPeople[r] = []; });
+  return rotationConfig.removedPeople;
+}
+function isPersonRemoved(role, name){
+  return (ensureRemovedPeople()[role] || []).includes(name);
+}
+function markPersonRemoved(role, name){
+  const removed = ensureRemovedPeople();
+  if(!removed[role].includes(name)) removed[role].push(name);
+}
+function unmarkPersonRemoved(role, name){
+  const removed = ensureRemovedPeople();
+  removed[role] = removed[role].filter(n => n !== name);
+}
+
 function normalizePeopleByRole(raw){
   const next = createEmptyPeopleByRole();
   if(raw && typeof raw === 'object'){
@@ -4415,6 +4560,18 @@ function normalizePeopleByRole(raw){
   }
   return next;
 }
+// Seed DEFAULT_ALL_PEOPLE into peopleByRole only when the library is completely empty
+// (first-time init). Called once at bootstrap.
+function seedDefaultPeopleIfEmpty(){
+  const lib = ensureRotationPeopleLibrary();
+  const removed = ensureRemovedPeople();
+  const isEmpty = ROLES.every(r => !(lib[r] || []).length);
+  if(isEmpty){
+    ROLES.forEach(role => {
+      lib[role] = uniqPeople((DEFAULT_ALL_PEOPLE[role] || []).filter(n => !(removed[role]||[]).includes(n)));
+    });
+  }
+}
 function ensureRotationPeopleLibrary(){
   rotationConfig.peopleByRole = normalizePeopleByRole(rotationConfig.peopleByRole);
   return rotationConfig.peopleByRole;
@@ -4423,21 +4580,23 @@ function getPersistedRolePeople(role){
   return ensureRotationPeopleLibrary()[role] || [];
 }
 function collectScheduledRolePeople(role){
+  const removed = ensureRemovedPeople()[role] || [];
   const names = [];
   Object.values(scheduleData || {}).forEach(rows => {
     (Array.isArray(rows) ? rows : []).forEach(row => {
-      if(row?.role === role && Array.isArray(row.persons)) names.push(...row.persons);
+      if(row?.role === role && Array.isArray(row.persons))
+        names.push(...row.persons.filter(n => !removed.includes(n)));
     });
   });
   return uniqPeople(names);
 }
 function getRolePeople(role, extras=[]){
+  const removed = ensureRemovedPeople()[role] || [];
   return uniqPeople([
-    ...(DEFAULT_ALL_PEOPLE[role] || []),
     ...getPersistedRolePeople(role),
     ...collectScheduledRolePeople(role),
     ...(Array.isArray(extras) ? extras : []),
-  ]);
+  ]).filter(n => !removed.includes(n));
 }
 function addRolePeopleToLibrary(role, names){
   const incoming = Array.isArray(names) ? names : [names];
@@ -4454,9 +4613,14 @@ function removeRolePersonFromLibrary(role, name){
   const after = before.filter(item => item !== name);
   const changed = before.length !== after.length;
   lib[role] = after;
+  markPersonRemoved(role, name);  // blacklist so they don't reappear from scheduleData
   return changed;
 }
-function decodeInlineValue(val){
+function addRolePersonBackToLibrary(role, name){
+  // When re-adding a previously removed person, clear blacklist entry
+  unmarkPersonRemoved(role, name);
+  addRolePeopleToLibrary(role, [name]);
+}function decodeInlineValue(val){
   try { return decodeURIComponent(val); } catch(e) { return val; }
 }
 function togglePersonByCode(roleCode,nameCode){
@@ -4488,9 +4652,8 @@ function renderEditDrawer(){
     const all=getRolePeople(role, custom);
     const sec=document.createElement('div'); sec.className='role-section';
     const chips=all.map(p=>{
-      const isCustom=!(DEFAULT_ALL_PEOPLE[role]||[]).includes(p);
       const roleCode=encodeURIComponent(role), nameCode=encodeURIComponent(p);
-      return `<button class="person-chip ${sel.has(p)?'selected':''} ${isCustom?'custom-chip':''}" onclick="togglePersonByCode('${roleCode}','${nameCode}')">
+      return `<button class="person-chip ${sel.has(p)?'selected':''} custom-chip" onclick="togglePersonByCode('${roleCode}','${nameCode}')">
         <i class="ti ti-check chip-check"></i>${escapeHtml(p)}<span class="chip-remove" onclick="event.stopPropagation();removePersonByCode('${roleCode}','${nameCode}')">×</span></button>`;
     }).join('');
     sec.innerHTML=`
@@ -4514,6 +4677,7 @@ function addCustomPerson(role){
   const inp=document.getElementById(`inp-${role}`);
   const name=inp.value.trim(); if(!name) return;
   if(!customPeople[role]) customPeople[role]=[];
+  unmarkPersonRemoved(role, name);  // allow re-adding previously deleted people
   addRolePeopleToLibrary(role, name);
   if(!customPeople[role].includes(name)) customPeople[role].push(name);
   if(!editSelections[role]) editSelections[role]=new Set();
@@ -4522,7 +4686,7 @@ function addCustomPerson(role){
 function removePerson(role,name){
   const idx=(customPeople[role]||[]).indexOf(name);
   if(idx>-1) customPeople[role].splice(idx,1);
-  if(!(DEFAULT_ALL_PEOPLE[role]||[]).includes(name)) removeRolePersonFromLibrary(role, name);
+  removeRolePersonFromLibrary(role, name);
   if(editSelections[role]) editSelections[role].delete(name);
   renderEditDrawer();
 }
@@ -4636,6 +4800,80 @@ function doExport(mode){
   a.download=fname; a.href=canvas.toDataURL('image/png'); a.click();
 }
 
+function doExportPerson(name){
+  if(!name) return;
+  const d=selectedSunday, year=d.getFullYear(), month=d.getMonth();
+  const prefix=`${year}-${String(month+1).padStart(2,'0')}-`;
+  // collect all shifts for this person in the current month
+  const results=[];
+  Object.entries(scheduleData).forEach(([key,shifts])=>{
+    if(!key.startsWith(prefix)) return;
+    (shifts||[]).forEach(s=>{
+      if(s.persons.some(p=>p.includes(name))){
+        const[,m,dd]=key.split('-');
+        results.push({key,date:`${parseInt(m)}月${parseInt(dd)}日`,role:s.role,shiftName:s.name,persons:s.persons});
+      }
+    });
+  });
+
+  const dpr=window.devicePixelRatio||1;
+  const W=560, padX=24, padY=20;
+  const hdrH=80, rowH=52, emptyH=80;
+  const H=hdrH+(results.length?results.length*rowH+padY:emptyH)+padY+16;
+
+  const canvas=document.getElementById('exportCanvas');
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+
+  const primary=settings ? settings.primaryColor : '#1D9E75';
+
+  // background
+  ctx.fillStyle='#f2f2f0'; ctx.fillRect(0,0,W,H);
+
+  // title bar
+  rr(ctx,0,0,W,hdrH,0,primary);
+  ctx.fillStyle='#fff'; ctx.font='bold 18px PingFang SC,sans-serif'; ctx.textAlign='center';
+  ctx.fillText(`${name} — ${year}年${ZH_MONTHS[month]}月排班明细`,W/2,34);
+  ctx.font='13px PingFang SC,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.78)';
+  const subStr=results.length?`本月共 ${results.length} 条排班`:'本月暂无排班记录';
+  ctx.fillText(subStr,W/2,60);
+
+  if(!results.length){
+    ctx.fillStyle='#ccc'; ctx.font='14px PingFang SC,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('本月暂无该人员的排班',W/2,hdrH+emptyH/2+10);
+  } else {
+    results.forEach((r,i)=>{
+      const y=hdrH+i*rowH+padY/2;
+      const bg=i%2===0?'#ffffff':'#f9f9f7';
+      rr(ctx,padX,y,W-padX*2,rowH-6,10,bg);
+
+      // role badge
+      const col=roleColors[r.role]||{badgeBg:'#888',badgeText:'#fff'};
+      rr(ctx,padX+10,y+8,44,rowH-22,8,col.badgeBg);
+      ctx.fillStyle=col.badgeText; ctx.font='bold 11px PingFang SC,sans-serif'; ctx.textAlign='center';
+      ctx.fillText(r.role,padX+10+22,y+(rowH-22)/2+8+4);
+
+      // date
+      ctx.fillStyle=primary; ctx.font='bold 13px PingFang SC,sans-serif'; ctx.textAlign='left';
+      ctx.fillText(r.date,padX+64,y+18);
+
+      // shift name
+      ctx.fillStyle='#333'; ctx.font='12px PingFang SC,sans-serif';
+      ctx.fillText(r.shiftName,padX+64,y+36);
+
+      // persons (highlight matched name)
+      const personsStr=r.persons.join(' / ');
+      ctx.fillStyle='#888'; ctx.font='12px PingFang SC,sans-serif'; ctx.textAlign='right';
+      ctx.fillText(personsStr,W-padX-10,y+rowH/2+6);
+    });
+  }
+
+  const a=document.createElement('a');
+  a.download=`${name}_${year}年${month+1}月排班明细.png`;
+  a.href=canvas.toDataURL('image/png'); a.click();
+}
+
 function rr(ctx,x,y,w,h,r,fill){
   ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
   ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
@@ -4706,30 +4944,234 @@ function renderMonthOverview(year, month){
   title.textContent=`📅 ${year}年${ZH_MONTHS[month]}月排班总览`;
   sub.textContent=`本月共 ${sundays.length} 个主日 · 点击日期可跳转查看`;
   if(!sundays.length){
-    list.innerHTML=`<div class="result-empty"><i class="ti ti-calendar-off"></i>该月没有主日</div>`;
+    list.innerHTML=`<div class="leave-list-empty"><i class="ti ti-calendar-off"></i>该月没有主日</div>`;
     return;
   }
   list.innerHTML=sundays.map(s=>{
     const key=toKey(s);
     const shifts=scheduleData[key]||[];
-    const preacher=getSermonForKey(key);
-    const dateLabel=`${month+1}月${s.getDate()}日（周日）`;
+    const preacher=getSermonForKey(key).trim();
+    const dateLabel=`${month+1}月${s.getDate()}日`;
     const isCur=selectedSunday && s.toDateString()===selectedSunday.toDateString();
+
     const itemsHtml=shifts.length
       ? shifts.map(sh=>{
           const c=roleColors[sh.role]||{badgeBg:'#888',badgeText:'#fff',icon:'ti-user'};
-          return `<div class="result-item"><div class="result-role-badge" style="background:${c.badgeBg}"><i class="ti ${c.icon}" style="color:${c.badgeText}"></i><span style="color:${c.badgeText}">${sh.role}</span></div><div class="result-info"><div class="result-name">${sh.name}</div><div class="result-team">${sh.persons.join(' / ')}</div></div></div>`;
+          const leaveSet=new Set(Array.isArray(sh.leavePersons)?sh.leavePersons:[]);
+          const personsHtml=sh.persons.map(p=>
+            leaveSet.has(p)
+              ? `<span style="text-decoration:line-through;color:#bbb">${escapeHtml(p)}</span>`
+              : escapeHtml(p)
+          ).join(' / ');
+          return `<div class="leave-list-item" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-left:none;border-radius:14px">
+            <div style="width:42px;height:42px;border-radius:12px;background:${c.badgeBg};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i class="ti ${c.icon}" style="color:${c.badgeText};font-size:20px"></i>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;color:#aaa;margin-bottom:3px">${escapeHtml(sh.role)}</div>
+              <div style="font-size:14px;font-weight:500;color:#1a1a1a;line-height:1.4">${personsHtml}</div>
+            </div>
+          </div>`;
         }).join('')
-      : `<div class="result-empty" style="padding:1rem 0"><i class="ti ti-calendar-off"></i>暂未排班</div>`;
+      : `<div class="leave-list-empty" style="padding:1.2rem 0"><i class="ti ti-calendar-off"></i>暂未排班</div>`;
+
     return `<div class="result-date-group">
-      <div class="result-date-label" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;${isCur?'color:var(--primary)':''}"
-        onclick="jumpToMonthOverviewWeek(${s.getFullYear()},${s.getMonth()},${s.getDate()})">
-        <span>${dateLabel}${isCur?' · 当前':''}</span>
-        <span style="color:var(--primary);font-weight:600;text-align:right">证道：${escapeHtml(preacher)}</span>
+      <div class="leave-list-head" style="margin-bottom:8px;padding:0 2px">
+        <div>
+          <span style="font-size:13px;font-weight:700;color:${isCur?'var(--primary)':'#1a1a1a'}">${dateLabel}（周日）${isCur?' · 当前':''}</span>
+          ${preacher?`<span class="leave-list-when" style="margin-left:8px">证道：${escapeHtml(preacher)}</span>`:''}
+        </div>
+        <button onclick="jumpToMonthOverviewWeek(${s.getFullYear()},${s.getMonth()},${s.getDate()})"
+          style="background:${isCur?'var(--primary)':'#f5f5f2'};color:${isCur?'#fff':'#666'};border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap">
+          跳转查看
+        </button>
       </div>
       ${itemsHtml}
     </div>`;
   }).join('');
+}
+
+// ── Monthly Schedule Editor ───────────────────────────
+let meYear = null, meMonth = null;
+
+function openMonthlyEditor(){
+  if(!isAdmin) return;
+  const d = selectedSunday || new Date();
+  meYear = d.getFullYear();
+  meMonth = d.getMonth();
+  renderMonthlyEditor();
+  document.getElementById('monthlyEditorOverlay').classList.add('open');
+}
+
+function closeMonthlyEditor(e){
+  if(!e || e.target === document.getElementById('monthlyEditorOverlay')){
+    document.getElementById('monthlyEditorOverlay').classList.remove('open');
+    render();
+  }
+}
+
+function shiftMonthlyEditor(delta){
+  const d = new Date(meYear, meMonth + delta, 1);
+  meYear = d.getFullYear();
+  meMonth = d.getMonth();
+  renderMonthlyEditor();
+}
+
+function renderMonthlyEditor(){
+  const sundays = getSundaysOfMonth(meYear, meMonth);
+  document.getElementById('monthlyEditorTitle').textContent =
+    `${meYear}年${ZH_MONTHS[meMonth]}月排班`;
+  document.getElementById('monthlyEditorSub').textContent =
+    `本月共 ${sundays.length} 个主日 · 点击角色可直接编辑`;
+
+  // copy bar only for admins (always shown in this context)
+  document.getElementById('monthlyEditorCopyBar').style.display = isAdmin ? 'flex' : 'none';
+
+  const body = document.getElementById('monthlyEditorBody');
+  if(!sundays.length){
+    body.innerHTML = `<div class="me-empty"><i class="ti ti-calendar-off"></i>该月没有主日</div>`;
+    return;
+  }
+
+  const curKey = selectedSunday ? toKey(selectedSunday) : null;
+
+  body.innerHTML = sundays.map((s, idx) => {
+    const key = toKey(s);
+    const shifts = scheduleData[key] || [];
+    const dateLabel = `${meMonth+1}月${s.getDate()}日（周日）`;
+    const preacher = getSermonForKey(key).trim();
+    const isCur = key === curKey;
+    const filledCount = shifts.length;
+    const totalRoles = ROLES.length;
+    const metaStr = filledCount
+      ? `已排 ${filledCount}/${totalRoles} 个角色${preacher ? ' · 证道：'+preacher : ''}`
+      : `尚未排班${preacher ? ' · 证道：'+preacher : ''}`;
+
+    // expand first sunday or current week by default
+    const isOpen = idx === 0 || isCur;
+
+    const rolesHtml = ROLES.map(role => {
+      const col = roleColors[role] || {badgeBg:'#888', badgeText:'#fff', icon:'ti-user'};
+      const shift = shifts.find(s => s.role === role);
+      const personsStr = shift ? shift.persons.join(' / ') : '';
+      const editAttr = isAdmin
+        ? `onclick="meEditRole('${role}','${key}')" class="me-role-row editable"`
+        : `class="me-role-row"`;
+      return `<div ${editAttr}>
+        <div class="me-role-badge" style="background:${col.badgeBg}">
+          <i class="ti ${col.icon}" style="color:${col.badgeText}"></i>
+          <span style="color:${col.badgeText}">${role}</span>
+        </div>
+        <div class="me-role-persons ${personsStr?'':'empty'}">${escapeHtml(personsStr)||'未安排'}</div>
+        ${isAdmin ? '<div class="me-role-edit-hint">✎</div>' : ''}
+      </div>`;
+    }).join('');
+
+    const addRowHtml = isAdmin
+      ? `<div class="me-add-row show">
+          <button class="me-add-btn" onclick="meOpenAddForDate('${key}')">
+            <i class="ti ti-plus"></i>新增 / 批量编辑
+          </button>
+        </div>` : '';
+
+    return `<div class="me-sunday-block" id="me-block-${key}">
+      <div class="me-sunday-header ${isCur?'active-week':''}" onclick="meToggleBlock('${key}')">
+        <div>
+          <div class="me-sunday-date">${dateLabel}${isCur?' 〈当前〉':''}</div>
+          <div class="me-sunday-meta">${escapeHtml(metaStr)}</div>
+        </div>
+        <i class="ti ti-chevron-down me-sunday-chevron ${isOpen?'open':''}" id="me-chev-${key}"></i>
+      </div>
+      <div class="me-sunday-body ${isOpen?'open':''}" id="me-body-${key}">
+        ${rolesHtml}
+        ${addRowHtml}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function meToggleBlock(key){
+  const body = document.getElementById(`me-body-${key}`);
+  const chev = document.getElementById(`me-chev-${key}`);
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chev.classList.toggle('open', !isOpen);
+}
+
+function meEditRole(role, key){
+  if(!isAdmin) return;
+  // Store month/year so we can re-render after saving
+  const origSave = saveEdit;
+  openEditDrawer(role, key);
+  // Hook into save to re-render monthly editor after
+  const overlay = document.getElementById('editOverlay');
+  const onSave = () => {
+    overlay.removeEventListener('transitionend', onSave);
+    if(document.getElementById('monthlyEditorOverlay').classList.contains('open'))
+      renderMonthlyEditor();
+  };
+  overlay.addEventListener('transitionend', onSave, {once: true});
+}
+
+function meOpenAddForDate(key){
+  if(!isAdmin) return;
+  // Temporarily switch selectedSunday to this date so openAddDrawer uses it
+  const parts = key.split('-');
+  const prevSunday = selectedSunday;
+  selectedSunday = new Date(+parts[0], +parts[1]-1, +parts[2]);
+  editMode = 'add'; editKey = key; editRole = null; editSelections = {}; customPeople = {};
+  const ex = scheduleData[editKey] || [];
+  ROLES.forEach(r => { const f = ex.find(s => s.role === r); editSelections[r] = new Set(f ? f.persons : []); customPeople[r] = []; });
+  renderEditDrawer();
+  document.getElementById('editOverlay').classList.add('open');
+  // After closing editOverlay, restore & re-render
+  const overlay = document.getElementById('editOverlay');
+  const onClose = () => {
+    overlay.removeEventListener('transitionend', onClose);
+    selectedSunday = prevSunday;
+    if(document.getElementById('monthlyEditorOverlay').classList.contains('open'))
+      renderMonthlyEditor();
+  };
+  overlay.addEventListener('transitionend', onClose, {once: true});
+}
+
+function meCopyFromLastMonth(){
+  if(!isAdmin) return;
+  const prevD = new Date(meYear, meMonth - 1, 1);
+  const prevY = prevD.getFullYear(), prevM = prevD.getMonth();
+  const prevSundays = getSundaysOfMonth(prevY, prevM);
+  const curSundays = getSundaysOfMonth(meYear, meMonth);
+  if(!prevSundays.length){ alert('上月没有主日可复制'); return; }
+  if(!curSundays.length){ alert('本月没有主日'); return; }
+  const hasData = curSundays.some(s => scheduleData[toKey(s)]?.length);
+  if(hasData && !confirm(`本月已有部分排班数据，复制上月排班会覆盖相同主日的角色。确定继续？`)) return;
+  // Copy each week's data in order, wrapping if unequal counts
+  curSundays.forEach((s, i) => {
+    const srcKey = toKey(prevSundays[i % prevSundays.length]);
+    const dstKey = toKey(s);
+    const src = scheduleData[srcKey];
+    if(src && src.length){
+      scheduleData[dstKey] = src.map(sh => ({...sh, persons:[...sh.persons], leavePersons:[]}));
+    }
+  });
+  renderMonthlyEditor();
+  // Trigger remote sync if available
+  if(typeof syncRemoteField === 'function'){
+    try { syncRemoteField('schedule_data', scheduleData); } catch(e){}
+  }
+}
+
+function meClearMonth(){
+  if(!isAdmin) return;
+  const sundays = getSundaysOfMonth(meYear, meMonth);
+  const count = sundays.filter(s => scheduleData[toKey(s)]?.length).length;
+  if(!count){ alert('本月暂无排班数据'); return; }
+  if(!confirm(`确定要清空${meYear}年${ZH_MONTHS[meMonth]}月的所有排班数据（共 ${count} 周）？此操作不可撤销。`)) return;
+  sundays.forEach(s => delete scheduleData[toKey(s)]);
+  renderMonthlyEditor();
+  if(typeof syncRemoteField === 'function'){
+    try { syncRemoteField('schedule_data', scheduleData); } catch(e){}
+  }
 }
 
 // ── Roster management ────────────────────────────────
@@ -5961,6 +6403,9 @@ function deepClone(obj) {
 
 function normalizeRotationConfig(raw) {
   const next = raw && typeof raw === 'object' ? deepClone(raw) : {};
+  const removedRaw = next?.removedPeople || {};
+  const removedNorm = {};
+  ROLES.forEach(r => { removedNorm[r] = Array.isArray(removedRaw[r]) ? removedRaw[r] : []; });
   return {
     leader: {
       base: next?.leader?.base || '',
@@ -5971,6 +6416,7 @@ function normalizeRotationConfig(raw) {
       list: Array.isArray(next?.prayer?.list) ? next.prayer.list : [],
     },
     peopleByRole: normalizePeopleByRole(next?.peopleByRole || next?.people_by_role),
+    removedPeople: removedNorm,
   };
 }
 
@@ -6087,11 +6533,22 @@ async function loadRemoteAppState() {
   if (error) throw error;
 
   if (!data) {
+    // First run: seed peopleByRole with DEFAULT_ALL_PEOPLE before writing to cloud
+    seedDefaultPeopleIfEmpty();
     await upsertRemoteAppState(getSharedAppStateSnapshot());
     return true;
   }
 
   applyRemoteAppState(data);
+
+  // If cloud peopleByRole is empty/missing (e.g. old schema), seed defaults and push up
+  seedDefaultPeopleIfEmpty();
+  const lib = rotationConfig.peopleByRole;
+  const wasEmpty = ROLES.every(r => !(lib[r] || []).length);
+  if (wasEmpty) {
+    await syncRemoteField('rotation_config', rotationConfig);
+  }
+
   return true;
 }
 
@@ -6186,6 +6643,9 @@ logout = async function() {
 const _localSaveEdit = saveEdit;
 saveEdit = async function() {
   _localSaveEdit();
+  // Refresh monthly editor view if it's open
+  if(document.getElementById('monthlyEditorOverlay').classList.contains('open'))
+    renderMonthlyEditor();
   if (!initSupabaseClient()) return;
   try {
     await upsertRemoteAppState({
@@ -6262,6 +6722,7 @@ removePerson = async function(role, name) {
   if (!initSupabaseClient()) return;
   try {
     await syncRemoteField('rotation_config', rotationConfig);
+    showToast(`☁️ 已从「${role}」名单移除 ${name}`);
   } catch (e) {
     console.error('移除排班人员库失败', e);
     showToast('人员显示已更新，但云端名单同步失败');
