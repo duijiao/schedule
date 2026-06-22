@@ -760,6 +760,7 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
 
 /* ── Desktop layout ─────────────────────────────────── */
 .desktop-rail { display: none; }
+#desktopCenterColumn { display: contents; }
 .desktop-side-card {
   background: #fff;
   border-radius: 24px;
@@ -936,23 +937,21 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
   #desktopRightRail { grid-column: 3; grid-row: 1; }
   /* Notice card content is already shown in the left sidebar weekly card — avoid duplicate/overlap */
   #noticeSection { display: none !important; }
-  /* Content-heavy sections live in the center column, stacked above the schedule card */
-  #nameReminderBanner,
-  #sermonPassageSection,
-  #songSection,
-  #bibleSection,
-  #mainScheduleInner {
+  /* Center column: all stacked sections live inside one wrapper (#desktopCenterColumn)
+     so they flow vertically via normal block layout. This wrapper is placed in
+     grid-column 2 / grid-row 1, same row as the side rails. */
+  #desktopCenterColumn {
     grid-column: 2;
+    grid-row: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
   }
-  #nameReminderBanner   { grid-row: 1; }
-  #sermonPassageSection { grid-row: 2; }
-  #bibleSection         { grid-row: 3; }
-  #songSection          { grid-row: 4; }
-  #mainScheduleInner    { grid-row: 5; }
+  #desktopCenterColumn > * { width: 100%; }
   #sermonPassageSection .sermon-passage-card,
   #bibleSection .bible-search-card,
-  #nameReminderBanner.name-reminder-banner { margin-bottom: 0; }
+  #nameReminderBanner.name-reminder-banner { margin-bottom: 22px; }
+  #mainScheduleInner { margin-bottom: 0; }
   .main-card,
   .notice-card,
   .sermon-passage-card,
@@ -1079,7 +1078,7 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
 }
 .song-lib-entry-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
 .song-lib-modal {
-  width: 100%; max-width: 480px; background: #fff;
+  width: 100%; max-width: 560px; background: #fff;
   border-radius: 24px 24px 0 0; padding: 20px 20px 28px; animation: slideUp 0.25s ease;
   max-height: 88vh; overflow: hidden; display: flex; flex-direction: column;
 }
@@ -1144,23 +1143,42 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
   flex: 1; min-height: 0;
 }
 .song-lib-card {
-  border-radius: 12px; overflow: hidden; background: #f8f8f6; cursor: pointer;
-  border: 1.5px solid transparent; transition: border-color 0.15s;
+  display: flex; align-items: center; gap: 8px;
+  border-radius: 12px; background: #f8f8f6; cursor: pointer;
+  border: 1.5px solid transparent; transition: border-color 0.15s, background 0.15s;
+  padding: 7px;
 }
-.song-lib-card:hover { border-color: var(--primary); }
-.song-lib-card-thumb { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #ececea; overflow: hidden; position: relative; }
+.song-lib-card:hover { border-color: var(--primary); background: var(--primary-light); }
+.song-lib-card-thumb {
+  width: 44px; height: 44px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #ececea; overflow: hidden; position: relative;
+}
 .song-lib-card-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.song-lib-card-thumb i { font-size: 26px; color: #d0d0cc; }
+.song-lib-card-thumb i { font-size: 18px; color: #d0d0cc; }
 .song-lib-card-thumb.has-img { cursor: zoom-in; }
 .song-lib-zoom-hint {
   position: absolute; inset: 0; background: rgba(0,0,0,0); transition: background 0.15s;
   display: flex; align-items: center; justify-content: center; opacity: 0;
 }
-.song-lib-card-thumb.has-img:hover .song-lib-zoom-hint { background: rgba(0,0,0,0.15); opacity: 1; }
-.song-lib-zoom-hint i { font-size: 18px; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.4); }
-.song-lib-card-title { font-size: 11px; color: #444; padding: 6px 8px 8px; line-height: 1.3; word-break: break-all; }
+.song-lib-card-thumb.has-img:hover .song-lib-zoom-hint { background: rgba(0,0,0,0.25); opacity: 1; }
+.song-lib-zoom-hint i { font-size: 14px; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+.song-lib-card-info { min-width: 0; flex: 1; }
+.song-lib-card-title {
+  font-size: 12.5px; font-weight: 600; color: #1a1a1a; line-height: 1.3;
+  word-break: break-all; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.song-lib-card-meta {
+  display: flex; align-items: center; gap: 4px; margin-top: 3px;
+  font-size: 10.5px; color: #aaa; white-space: nowrap; overflow: hidden;
+}
+.song-lib-card-meta i { font-size: 10px; flex-shrink: 0; }
+.song-lib-card-meta .ulib-dot { color: #ddd; }
 .song-lib-empty { text-align: center; color: #bbb; font-size: 13px; padding: 2.5rem 0; grid-column: 1 / -1; }
 .song-lib-empty i { font-size: 32px; display: block; margin-bottom: 8px; color: #ddd; }
+@media (max-width: 380px) {
+  .song-lib-grid { grid-template-columns: repeat(2, 1fr); }
+}
 
 /* ── Song library: detail view (usage history) ─────── */
 .song-lib-detail-modal {
@@ -3784,9 +3802,21 @@ function renderSongLibraryGrid(){
     const thumb = s.src
       ? `<img src="${s.src}" alt="${escapeHtml(s.title)}" loading="lazy" onclick="event.stopPropagation();openLightboxFromLibraryGrid(${i})"><div class="song-lib-zoom-hint" onclick="event.stopPropagation();openLightboxFromLibraryGrid(${i})"><i class="ti ti-maximize"></i></div>`
       : `<i class="ti ti-photo"></i>`;
+    const usageCount = findSongUsageWeeks(s.title).length;
+    const d = new Date(s.createdAt);
+    const dateLabel = isNaN(d) ? '' : `${d.getMonth()+1}/${d.getDate()}收录`;
+    const metaParts = [];
+    if (usageCount > 0) metaParts.push(`<i class="ti ti-repeat"></i>用过${usageCount}次`);
+    if (dateLabel) metaParts.push(dateLabel);
+    const meta = metaParts.length
+      ? metaParts.join('<span class="ulib-dot"> · </span>')
+      : '<span style="color:#ccc">暂无使用记录</span>';
     return `<div class="song-lib-card" onclick="openSongLibDetail('${s.id}')">
       <div class="song-lib-card-thumb${s.src?' has-img':''}">${thumb}</div>
-      <div class="song-lib-card-title">${escapeHtml(s.title)}</div>
+      <div class="song-lib-card-info">
+        <div class="song-lib-card-title">${escapeHtml(s.title)}</div>
+        <div class="song-lib-card-meta">${meta}</div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -5608,24 +5638,42 @@ function sendPushNotification(matches, key) {
   });
 }
 
-// ── Init: wrap inner schedule for ordering ────────────
+// ── Init: wrap inner schedule + build desktop center column ──
 (function wrapScheduleInner() {
   const main = document.getElementById('mainSchedule');
   if (!main) return;
-  const existingInner = document.getElementById('mainScheduleInner');
-  if (existingInner) return;
-  const noticeEl = document.getElementById('noticeSection');
-  const inner = document.createElement('div');
-  inner.id = 'mainScheduleInner';
-  const children = Array.from(main.children);
-  const sectionIds = new Set(['desktopLeftRail','desktopRightRail','noticeSection','sermonPassageSection','bibleSection','songSection','nameReminderBanner']);
-  children.forEach(child => {
-    if (!sectionIds.has(child.id)) {
-      inner.appendChild(child);
-    }
+
+  // Step 1: wrap the "schedule head + main-card" (the leftover, un-IDed children) into #mainScheduleInner
+  let inner = document.getElementById('mainScheduleInner');
+  if (!inner) {
+    const noticeEl = document.getElementById('noticeSection');
+    inner = document.createElement('div');
+    inner.id = 'mainScheduleInner';
+    const children = Array.from(main.children);
+    const sectionIds = new Set(['desktopLeftRail','desktopRightRail','noticeSection','sermonPassageSection','bibleSection','songSection','nameReminderBanner']);
+    children.forEach(child => {
+      if (!sectionIds.has(child.id)) {
+        inner.appendChild(child);
+      }
+    });
+    if (noticeEl) main.insertBefore(inner, noticeEl);
+    else main.appendChild(inner);
+  }
+
+  // Step 2: build #desktopCenterColumn — a single grid cell (column 2, row 1) that
+  // holds notice/banner/sermon/bible/song/schedule stacked via normal block flow,
+  // so the desktop 3-column grid never produces an oversized empty row.
+  let centerCol = document.getElementById('desktopCenterColumn');
+  if (!centerCol) {
+    centerCol = document.createElement('div');
+    centerCol.id = 'desktopCenterColumn';
+    main.insertBefore(centerCol, document.getElementById('desktopLeftRail').nextSibling);
+  }
+  const centerOrder = ['nameReminderBanner', 'sermonPassageSection', 'bibleSection', 'songSection', 'mainScheduleInner'];
+  centerOrder.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) centerCol.appendChild(el);
   });
-  if (noticeEl) main.insertBefore(inner, noticeEl);
-  else main.appendChild(inner);
 })();
 
 // ── Override render to include name reminder check ────
