@@ -4685,6 +4685,7 @@ function addCustomPerson(role){
   editSelections[role].add(name); inp.value=''; renderEditDrawer();
 }
 function removePerson(role,name){
+  if(!confirm(`确定要从「${role}」名单中删除「${name}」吗？\n\n删除后该人员将不再出现在排班选择列表中。`)) return;
   const idx=(customPeople[role]||[]).indexOf(name);
   if(idx>-1) customPeople[role].splice(idx,1);
   removeRolePersonFromLibrary(role, name);
