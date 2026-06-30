@@ -4886,9 +4886,21 @@ function rr(ctx,x,y,w,h,r,fill){
 
 // ── Init ──────────────────────────────────────────────
 function getCurrentWeekSunday(){
-  const now=new Date(), s=getSundaysOfMonth(now.getFullYear(),now.getMonth());
+  const now=new Date();
+  const s=getSundaysOfMonth(now.getFullYear(),now.getMonth());
   let t=s.find(x=>x.toDateString()===now.toDateString());
-  if(!t){ const f=s.filter(x=>x>=now); t=f.length?f[0]:s[s.length-1]; }
+  if(!t){
+    const f=s.filter(x=>x>=now);
+    if(f.length){
+      t=f[0];
+    } else {
+      // 本月的主日都已过完（包括最后一个周末），自动跳到下个月第一个主日
+      let ny=now.getFullYear(), nm=now.getMonth()+1;
+      if(nm>11){ nm=0; ny++; }
+      const ns=getSundaysOfMonth(ny,nm);
+      t=ns.length?ns[0]:s[s.length-1];
+    }
+  }
   return t;
 }
 function getRelativeWeekPrefix(d){
