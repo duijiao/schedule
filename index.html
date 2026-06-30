@@ -4667,9 +4667,32 @@ function renderEditDrawer(){
     c.appendChild(sec);
   });
 }
+function findPersonConflictRole(role,name){
+  if(role==='教歌') return null;
+  // 1) 检查本次编辑会话中其他岗位（新增排班时可能同时编辑多个岗位）
+  for(const r in editSelections){
+    if(r===role || r==='教歌') continue;
+    if(editSelections[r] && editSelections[r].has(name)) return r;
+  }
+  // 2) 检查该主日已保存但本次未在编辑范围内的其他岗位（单岗位修改场景）
+  const existing=scheduleData[editKey]||[];
+  for(const item of existing){
+    if(item.role===role || item.role==='教歌') continue;
+    if(editMode==='edit' && item.role===editRole) continue; // 已被上面的 editSelections 覆盖
+    if(item.persons && item.persons.includes(name)) return item.role;
+  }
+  return null;
+}
 function togglePerson(role,name){
   if(!editSelections[role]) editSelections[role]=new Set();
-  const sel=editSelections[role]; sel.has(name)?sel.delete(name):sel.add(name);
+  const sel=editSelections[role];
+  if(sel.has(name)){
+    sel.delete(name);
+  } else {
+    sel.add(name);
+    const conflictRole=findPersonConflictRole(role,name);
+    if(conflictRole) showToast(`⚠️ ${name} 本周已在「${conflictRole}」岗位，请确认是否重复安排`, 3500);
+  }
   document.querySelectorAll(`#grid-${role} .person-chip`).forEach(btn=>{
     const n=btn.textContent.replace('×','').trim(); btn.classList.toggle('selected',sel.has(n));
   });
@@ -4723,9 +4746,10 @@ function doExport(mode){
   const cols=mode==='week'?1:Math.min(keys.length,4);
   const totalCols=cols+1;
   const cw=(W-padX*2)/totalCols;
-  const rowH=48, hdrH=80, dateRowH=44;
+  const rowH=52, hdrH=80, dateRowH=44;
   const roles=ROLES.filter(r=>keys.some(k=>(scheduleData[k]||[]).find(s=>s.role===r)));
   const H=hdrH+dateRowH+(roles.length*rowH)+padY*2+20;
+  const roleIcons={ '主领':'🎤','伴唱':'🎵','键盘':'🎹','吉他':'🎸','贝斯':'🎻','鼓':'🥁','教歌':'📖' };
 
   const canvas=document.getElementById('exportCanvas');
   canvas.width=W*dpr; canvas.height=H*dpr;
@@ -4737,7 +4761,7 @@ function doExport(mode){
   // title bar - use actual hex color (CSS vars don't work in canvas)
   const canvasPrimary = settings ? settings.primaryColor : '#1D9E75';
   rr(ctx,0,0,W,hdrH,0,canvasPrimary);
-  ctx.fillStyle='#fff'; ctx.font='bold 20px PingFang SC,sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle='#fff'; ctx.font='bold 21px PingFang SC,sans-serif'; ctx.textAlign='center';
   const titleStr=`${year}年${ZH_MONTHS[month]}月份敬拜排班表`;
   ctx.fillText(titleStr,W/2,36);
   ctx.font='13px PingFang SC,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.75)';
@@ -4746,12 +4770,12 @@ function doExport(mode){
 
   // table header
   ctx.fillStyle='#fff'; ctx.fillRect(padX,hdrH,W-padX*2,dateRowH);
-  ctx.fillStyle='#555'; ctx.font='bold 13px PingFang SC,sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle='#555'; ctx.font='bold 14px PingFang SC,sans-serif'; ctx.textAlign='center';
   ctx.fillText('类别',padX+cw/2,hdrH+28);
   keys.forEach((k,i)=>{
     const[,m,dd]=k.split('-');
-    ctx.fillStyle=settings ? settings.primaryColor : '#1D9E75'; ctx.font='bold 13px PingFang SC,sans-serif';
-    ctx.fillText(`${parseInt(m)}/${parseInt(dd)}`,padX+cw*(i+1)+cw/2,hdrH+28);
+    ctx.fillStyle=settings ? settings.primaryColor : '#1D9E75'; ctx.font='bold 14px PingFang SC,sans-serif';
+    ctx.fillText(`${parseInt(dd)}/${parseInt(m)}`,padX+cw*(i+1)+cw/2,hdrH+28);
   });
 
   // divider
@@ -4764,22 +4788,35 @@ function doExport(mode){
     const bg=ri%2===0?'#ffffff':'#f9f9f7';
     ctx.fillStyle=bg; ctx.fillRect(padX,y,W-padX*2,rowH);
     const col=roleColors[role]||{badgeBg:'#888',badgeText:'#fff'};
-    rr(ctx,padX+6,y+10,cw-20,rowH-20,8,col.badgeBg);
-    ctx.fillStyle=col.badgeText; ctx.font='bold 12px PingFang SC,sans-serif'; ctx.textAlign='center';
-    ctx.fillText(role,padX+6+(cw-20)/2,y+rowH/2+4);
+    const badgeX=padX+6, badgeW=cw-20, badgeY=y+10, badgeH=rowH-20;
+    rr(ctx,badgeX,badgeY,badgeW,badgeH,8,col.badgeBg);
+    // icon + role text, centered together as a group
+    const icon=roleIcons[role]||'';
+    const iconFont='13px PingFang SC,sans-serif';
+    const textFont='bold 13px PingFang SC,sans-serif';
+    ctx.font=iconFont; const iconW=icon?ctx.measureText(icon).width:0;
+    ctx.font=textFont; const textW=ctx.measureText(role).width;
+    const gap=icon?5:0;
+    const groupW=iconW+gap+textW;
+    let gx=badgeX+badgeW/2-groupW/2;
+    const gy=badgeY+badgeH/2;
+    ctx.textBaseline='middle'; ctx.textAlign='left';
+    if(icon){ ctx.font=iconFont; ctx.fillStyle=col.badgeText; ctx.fillText(icon,gx,gy+1); gx+=iconW+gap; }
+    ctx.font=textFont; ctx.fillStyle=col.badgeText; ctx.fillText(role,gx,gy);
+    ctx.textBaseline='alphabetic'; ctx.textAlign='center';
     keys.forEach((k,i)=>{
       const shift=(scheduleData[k]||[]).find(s=>s.role===role);
       const cx=padX+cw*(i+1), cy=y;
-      ctx.fillStyle='#333'; ctx.font='12px PingFang SC,sans-serif'; ctx.textAlign='center';
+      ctx.fillStyle='#333'; ctx.font='13px PingFang SC,sans-serif'; ctx.textAlign='center';
       if(shift){
         const names=shift.persons;
         if(names.length===1){ ctx.fillText(names[0],cx+cw/2,cy+rowH/2+4); }
         else{
           const line1=names.slice(0,Math.ceil(names.length/2)).join('/');
           const line2=names.slice(Math.ceil(names.length/2)).join('/');
-          ctx.fillStyle='#444'; ctx.font='11px PingFang SC,sans-serif';
+          ctx.fillStyle='#444'; ctx.font='12px PingFang SC,sans-serif';
           ctx.fillText(line1,cx+cw/2,cy+rowH/2-4);
-          ctx.fillText(line2,cx+cw/2,cy+rowH/2+12);
+          ctx.fillText(line2,cx+cw/2,cy+rowH/2+13);
         }
       } else { ctx.fillStyle='#ccc'; ctx.fillText('—',cx+cw/2,cy+rowH/2+4); }
     });
