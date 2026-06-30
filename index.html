@@ -5250,10 +5250,37 @@ function renderRosterChips(type){
   const container = document.getElementById(containerId);
   container.innerHTML = cfg.list.map((name,i) =>
     `<div style="display:flex;align-items:center;gap:4px;background:#f5f5f2;border-radius:20px;padding:5px 8px 5px 12px;font-size:13px;color:#444">
-      <span>${name}</span>
+      <span ondblclick="startEditRosterPerson('${type}',${i})">${escapeHtml(name)}</span>
+      <button onclick="startEditRosterPerson('${type}',${i})" title="修改姓名" style="background:none;border:none;cursor:pointer;color:#999;font-size:12px;padding:0 2px;line-height:1;display:flex"><i class="ti ti-pencil"></i></button>
       <button onclick="removeRosterPerson('${type}',${i})" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:13px;padding:0 2px;line-height:1">×</button>
     </div>`
   ).join('');
+}
+
+function startEditRosterPerson(type, idx){
+  const cfg = rotationConfig[type];
+  const containerId = type==='leader' ? 'leaderChips' : 'prayerChips';
+  const container = document.getElementById(containerId);
+  const chip = container.children[idx];
+  if(!chip) return;
+  const oldName = cfg.list[idx];
+  const inputId = `rosterEditInput-${type}-${idx}`;
+  chip.innerHTML = `<input type="text" value="${escapeHtml(oldName)}" id="${inputId}"
+    style="border:1px solid var(--primary);border-radius:14px;padding:4px 10px;font-size:13px;width:84px;outline:none"
+    onkeydown="if(event.key==='Enter'){this.blur();}else if(event.key==='Escape'){this.dataset.cancel='1';this.blur();}"
+    onblur="confirmEditRosterPerson('${type}',${idx})">`;
+  const inp = document.getElementById(inputId);
+  inp.focus(); inp.select();
+}
+
+function confirmEditRosterPerson(type, idx){
+  const inputId = `rosterEditInput-${type}-${idx}`;
+  const inp = document.getElementById(inputId);
+  if(!inp){ renderRosterChips(type); return; }
+  const cfg = rotationConfig[type];
+  const newName = inp.dataset.cancel ? cfg.list[idx] : inp.value.trim();
+  if(newName && newName !== cfg.list[idx]) cfg.list[idx] = newName;
+  renderRosterChips(type);
 }
 
 function addRosterPerson(type){
@@ -6789,6 +6816,22 @@ removeRosterPerson = async function(type, idx) {
   } catch (e) {
     console.error('同步名单失败', e);
     showToast('名单已改动，但云端同步失败');
+  }
+};
+
+const _localConfirmEditRosterPerson = confirmEditRosterPerson;
+confirmEditRosterPerson = async function(type, idx) {
+  const cfg = rotationConfig[type];
+  const before = cfg ? cfg.list[idx] : undefined;
+  _localConfirmEditRosterPerson(type, idx);
+  const after = cfg ? cfg.list[idx] : undefined;
+  if (before === after || !initSupabaseClient()) return;
+  try {
+    await syncRemoteField('rotation_config', rotationConfig);
+    showToast(`☁️ 已将「${before}」改为「${after}」并同步到云端`);
+  } catch (e) {
+    console.error('同步名单失败', e);
+    showToast('姓名已修改，但云端同步失败');
   }
 };
 
