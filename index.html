@@ -4751,12 +4751,12 @@ function doExport(mode){
   const keys=mode==='week'?[toKey(d)]:sundays.map(s=>toKey(s)).filter(k=>scheduleData[k]);
 
   const dpr=window.devicePixelRatio||1;
-  const W=720, padX=28, padY=20;
+  const W=760, padX=28, padY=20;
   const colW=(W-padX*2)/5; // 类别 + 4 sundays (or 1)
   const cols=mode==='week'?1:Math.min(keys.length,4);
   const totalCols=cols+1;
   const cw=(W-padX*2)/totalCols;
-  const rowH=52, hdrH=80, dateRowH=44;
+  const rowH=64, hdrH=88, dateRowH=50;
   const roles=ROLES.filter(r=>keys.some(k=>(scheduleData[k]||[]).find(s=>s.role===r)));
   const H=hdrH+dateRowH+(roles.length*rowH)+padY*2+20;
   const roleIcons={ '主领':'🎤','伴唱':'🎵','键盘':'🎹','吉他':'🎸','贝斯':'🎻','鼓':'🥁','教歌':'📖' };
@@ -4771,21 +4771,21 @@ function doExport(mode){
   // title bar - use actual hex color (CSS vars don't work in canvas)
   const canvasPrimary = settings ? settings.primaryColor : '#1D9E75';
   rr(ctx,0,0,W,hdrH,0,canvasPrimary);
-  ctx.fillStyle='#fff'; ctx.font='bold 21px PingFang SC,sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle='#fff'; ctx.font='bold 24px PingFang SC,sans-serif'; ctx.textAlign='center';
   const titleStr=`${year}年${ZH_MONTHS[month]}月份敬拜排班表`;
-  ctx.fillText(titleStr,W/2,36);
-  ctx.font='13px PingFang SC,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.75)';
+  ctx.fillText(titleStr,W/2,40);
+  ctx.font='15px PingFang SC,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.75)';
   const subStr=mode==='week'?`${month+1}月${d.getDate()}日（周日）`:`本月全部 ${keys.length} 个主日`;
-  ctx.fillText(subStr,W/2,60);
+  ctx.fillText(subStr,W/2,66);
 
   // table header
   ctx.fillStyle='#fff'; ctx.fillRect(padX,hdrH,W-padX*2,dateRowH);
-  ctx.fillStyle='#555'; ctx.font='bold 14px PingFang SC,sans-serif'; ctx.textAlign='center';
-  ctx.fillText('类别',padX+cw/2,hdrH+28);
+  ctx.fillStyle='#555'; ctx.font='bold 16px PingFang SC,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('类别',padX+cw/2,hdrH+31);
   keys.forEach((k,i)=>{
     const[,m,dd]=k.split('-');
-    ctx.fillStyle=settings ? settings.primaryColor : '#1D9E75'; ctx.font='bold 14px PingFang SC,sans-serif';
-    ctx.fillText(`${parseInt(dd)}/${parseInt(m)}`,padX+cw*(i+1)+cw/2,hdrH+28);
+    ctx.fillStyle=settings ? settings.primaryColor : '#1D9E75'; ctx.font='bold 16px PingFang SC,sans-serif';
+    ctx.fillText(`${parseInt(dd)}/${parseInt(m)}`,padX+cw*(i+1)+cw/2,hdrH+31);
   });
 
   // divider
@@ -4798,37 +4798,36 @@ function doExport(mode){
     const bg=ri%2===0?'#ffffff':'#f9f9f7';
     ctx.fillStyle=bg; ctx.fillRect(padX,y,W-padX*2,rowH);
     const col=roleColors[role]||{badgeBg:'#888',badgeText:'#fff'};
-    const badgeX=padX+6, badgeW=cw-20, badgeY=y+10, badgeH=rowH-20;
+    const badgeX=padX+6, badgeW=cw-20, badgeY=y+8, badgeH=rowH-16;
     rr(ctx,badgeX,badgeY,badgeW,badgeH,8,col.badgeBg);
-    // icon + role text, centered together as a group
+    // icon on top, role text below - stacked vertically, centered as a group
     const icon=roleIcons[role]||'';
-    const iconFont='13px PingFang SC,sans-serif';
-    const textFont='bold 13px PingFang SC,sans-serif';
-    ctx.font=iconFont; const iconW=icon?ctx.measureText(icon).width:0;
-    ctx.font=textFont; const textW=ctx.measureText(role).width;
-    const gap=icon?5:0;
-    const groupW=iconW+gap+textW;
-    let gx=badgeX+badgeW/2-groupW/2;
-    const gy=badgeY+badgeH/2;
-    ctx.textBaseline='middle'; ctx.textAlign='left';
-    if(icon){ ctx.font=iconFont; ctx.fillStyle=col.badgeText; ctx.fillText(icon,gx,gy+1); gx+=iconW+gap; }
-    ctx.font=textFont; ctx.fillStyle=col.badgeText; ctx.fillText(role,gx,gy);
+    const iconFont='18px PingFang SC,sans-serif';
+    const textFont='bold 14px PingFang SC,sans-serif';
+    const bcx=badgeX+badgeW/2, bcy=badgeY+badgeH/2;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    if(icon){
+      ctx.font=iconFont; ctx.fillStyle=col.badgeText; ctx.fillText(icon,bcx,bcy-11);
+      ctx.font=textFont; ctx.fillText(role,bcx,bcy+11);
+    } else {
+      ctx.font=textFont; ctx.fillStyle=col.badgeText; ctx.fillText(role,bcx,bcy);
+    }
     ctx.textBaseline='alphabetic'; ctx.textAlign='center';
     keys.forEach((k,i)=>{
       const shift=(scheduleData[k]||[]).find(s=>s.role===role);
       const cx=padX+cw*(i+1), cy=y;
-      ctx.fillStyle='#333'; ctx.font='13px PingFang SC,sans-serif'; ctx.textAlign='center';
+      ctx.fillStyle='#333'; ctx.font='15px PingFang SC,sans-serif'; ctx.textAlign='center';
       if(shift){
         const names=shift.persons;
-        if(names.length===1){ ctx.fillText(names[0],cx+cw/2,cy+rowH/2+4); }
+        if(names.length===1){ ctx.fillText(names[0],cx+cw/2,cy+rowH/2+5); }
         else{
           const line1=names.slice(0,Math.ceil(names.length/2)).join('/');
           const line2=names.slice(Math.ceil(names.length/2)).join('/');
-          ctx.fillStyle='#444'; ctx.font='12px PingFang SC,sans-serif';
-          ctx.fillText(line1,cx+cw/2,cy+rowH/2-4);
-          ctx.fillText(line2,cx+cw/2,cy+rowH/2+13);
+          ctx.fillStyle='#444'; ctx.font='14px PingFang SC,sans-serif';
+          ctx.fillText(line1,cx+cw/2,cy+rowH/2-5);
+          ctx.fillText(line2,cx+cw/2,cy+rowH/2+15);
         }
-      } else { ctx.fillStyle='#ccc'; ctx.fillText('—',cx+cw/2,cy+rowH/2+4); }
+      } else { ctx.fillStyle='#ccc'; ctx.fillText('—',cx+cw/2,cy+rowH/2+5); }
     });
     // row divider
     ctx.strokeStyle='rgba(0,0,0,0.05)'; ctx.lineWidth=1;
@@ -4866,8 +4865,8 @@ function doExportPerson(name){
   });
 
   const dpr=window.devicePixelRatio||1;
-  const W=560, padX=24, padY=20;
-  const hdrH=80, rowH=52, emptyH=80;
+  const W=600, padX=24, padY=20;
+  const hdrH=88, rowH=60, emptyH=88;
   const H=hdrH+(results.length?results.length*rowH+padY:emptyH)+padY+16;
 
   const canvas=document.getElementById('exportCanvas');
@@ -4882,14 +4881,14 @@ function doExportPerson(name){
 
   // title bar
   rr(ctx,0,0,W,hdrH,0,primary);
-  ctx.fillStyle='#fff'; ctx.font='bold 18px PingFang SC,sans-serif'; ctx.textAlign='center';
-  ctx.fillText(`${name} — ${year}年${ZH_MONTHS[month]}月排班明细`,W/2,34);
-  ctx.font='13px PingFang SC,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.78)';
+  ctx.fillStyle='#fff'; ctx.font='bold 20px PingFang SC,sans-serif'; ctx.textAlign='center';
+  ctx.fillText(`${name} — ${year}年${ZH_MONTHS[month]}月排班明细`,W/2,38);
+  ctx.font='15px PingFang SC,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.78)';
   const subStr=results.length?`本月共 ${results.length} 条排班`:'本月暂无排班记录';
-  ctx.fillText(subStr,W/2,60);
+  ctx.fillText(subStr,W/2,66);
 
   if(!results.length){
-    ctx.fillStyle='#ccc'; ctx.font='14px PingFang SC,sans-serif'; ctx.textAlign='center';
+    ctx.fillStyle='#ccc'; ctx.font='16px PingFang SC,sans-serif'; ctx.textAlign='center';
     ctx.fillText('本月暂无该人员的排班',W/2,hdrH+emptyH/2+10);
   } else {
     results.forEach((r,i)=>{
@@ -4899,22 +4898,22 @@ function doExportPerson(name){
 
       // role badge
       const col=roleColors[r.role]||{badgeBg:'#888',badgeText:'#fff'};
-      rr(ctx,padX+10,y+8,44,rowH-22,8,col.badgeBg);
-      ctx.fillStyle=col.badgeText; ctx.font='bold 11px PingFang SC,sans-serif'; ctx.textAlign='center';
-      ctx.fillText(r.role,padX+10+22,y+(rowH-22)/2+8+4);
+      rr(ctx,padX+10,y+7,50,rowH-20,8,col.badgeBg);
+      ctx.fillStyle=col.badgeText; ctx.font='bold 13px PingFang SC,sans-serif'; ctx.textAlign='center';
+      ctx.fillText(r.role,padX+10+25,y+(rowH-20)/2+7+5);
 
       // date
-      ctx.fillStyle=primary; ctx.font='bold 13px PingFang SC,sans-serif'; ctx.textAlign='left';
-      ctx.fillText(r.date,padX+64,y+18);
+      ctx.fillStyle=primary; ctx.font='bold 15px PingFang SC,sans-serif'; ctx.textAlign='left';
+      ctx.fillText(r.date,padX+72,y+20);
 
       // shift name
-      ctx.fillStyle='#333'; ctx.font='12px PingFang SC,sans-serif';
-      ctx.fillText(r.shiftName,padX+64,y+36);
+      ctx.fillStyle='#333'; ctx.font='14px PingFang SC,sans-serif';
+      ctx.fillText(r.shiftName,padX+72,y+40);
 
       // persons (highlight matched name)
       const personsStr=r.persons.join(' / ');
-      ctx.fillStyle='#888'; ctx.font='12px PingFang SC,sans-serif'; ctx.textAlign='right';
-      ctx.fillText(personsStr,W-padX-10,y+rowH/2+6);
+      ctx.fillStyle='#888'; ctx.font='14px PingFang SC,sans-serif'; ctx.textAlign='right';
+      ctx.fillText(personsStr,W-padX-10,y+rowH/2+7);
     });
   }
 
