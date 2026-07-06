@@ -1335,6 +1335,16 @@ body.a11y-mode .back-to-today-fab i { font-size: 18px; }
 .me-sunday-meta { font-size: 12px; color: #aaa; margin-top: 2px; }
 .me-sunday-chevron { font-size: 16px; color: #bbb; transition: transform 0.2s; flex-shrink: 0; }
 .me-sunday-chevron.open { transform: rotate(180deg); }
+.me-sunday-header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.me-swap-btns { display: flex; gap: 4px; }
+.me-swap-btn {
+  width: 26px; height: 26px; border-radius: 8px; border: none;
+  background: #fff; color: #999; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 13px; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+}
+.me-swap-btn i { font-size: 13px; }
+.me-swap-btn:hover:not(:disabled) { background: var(--primary-light); color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+.me-swap-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .me-sunday-body { display: none; padding: 10px 12px 12px; }
 .me-sunday-body.open { display: block; }
 .me-role-row {
@@ -5125,13 +5135,23 @@ function renderMonthlyEditor(){
           </button>
         </div>` : '';
 
+    const swapBtnsHtml = isAdmin
+      ? `<div class="me-swap-btns" onclick="event.stopPropagation()">
+          <button class="me-swap-btn" title="与上一周对调排班" ${idx===0?'disabled':''} onclick="meSwapWeek(${idx},-1)"><i class="ti ti-arrow-up"></i></button>
+          <button class="me-swap-btn" title="与下一周对调排班" ${idx===sundays.length-1?'disabled':''} onclick="meSwapWeek(${idx},1)"><i class="ti ti-arrow-down"></i></button>
+        </div>`
+      : '';
+
     return `<div class="me-sunday-block" id="me-block-${key}">
       <div class="me-sunday-header ${isCur?'active-week':''}" onclick="meToggleBlock('${key}')">
         <div>
           <div class="me-sunday-date">${dateLabel}${isCur?' 〈当前〉':''}</div>
           <div class="me-sunday-meta">${escapeHtml(metaStr)}</div>
         </div>
-        <i class="ti ti-chevron-down me-sunday-chevron ${isOpen?'open':''}" id="me-chev-${key}"></i>
+        <div class="me-sunday-header-right">
+          ${swapBtnsHtml}
+          <i class="ti ti-chevron-down me-sunday-chevron ${isOpen?'open':''}" id="me-chev-${key}"></i>
+        </div>
       </div>
       <div class="me-sunday-body ${isOpen?'open':''}" id="me-body-${key}">
         ${rolesHtml}
@@ -5139,6 +5159,34 @@ function renderMonthlyEditor(){
       </div>
     </div>`;
   }).join('');
+}
+
+async function meSwapWeek(idx, direction){
+  if(!isAdmin) return;
+  const sundays = getSundaysOfMonth(meYear, meMonth);
+  const otherIdx = idx + direction;
+  if(otherIdx < 0 || otherIdx >= sundays.length) return;
+  const keyA = toKey(sundays[idx]);
+  const keyB = toKey(sundays[otherIdx]);
+  const dataA = scheduleData[keyA];
+  const dataB = scheduleData[keyB];
+  if(dataB !== undefined) scheduleData[keyA] = dataB; else delete scheduleData[keyA];
+  if(dataA !== undefined) scheduleData[keyB] = dataA; else delete scheduleData[keyB];
+  renderMonthlyEditor();
+  const label = `${sundays[idx].getMonth()+1}月${sundays[idx].getDate()}日 与 ${sundays[otherIdx].getMonth()+1}月${sundays[otherIdx].getDate()}日`;
+  if(typeof initSupabaseClient === 'function' && initSupabaseClient() && typeof syncRemoteField === 'function'){
+    try {
+      await syncRemoteField('schedule_data', scheduleData);
+      showToast(`☁️ 已对调 ${label} 的排班并同步到云端`);
+    } catch(e){
+      console.error('同步排班顺序失败', e);
+      showToast('排班顺序已对调，但云端同步失败');
+    }
+  } else {
+    showToast(`已对调 ${label} 的排班`);
+  }
+  // keep main view in sync if the swapped week is currently displayed
+  if(typeof render === 'function') render();
 }
 
 function meToggleBlock(key){
