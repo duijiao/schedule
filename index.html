@@ -4751,12 +4751,12 @@ function doExport(mode){
   const keys=mode==='week'?[toKey(d)]:sundays.map(s=>toKey(s)).filter(k=>scheduleData[k]);
 
   const dpr=window.devicePixelRatio||1;
-  const W=760, padX=28, padY=20;
+  const W=760, padX=10, padY=8;
   const colW=(W-padX*2)/5; // 类别 + 4 sundays (or 1)
   const cols=mode==='week'?1:Math.min(keys.length,4);
   const totalCols=cols+1;
   const cw=(W-padX*2)/totalCols;
-  const rowH=64, hdrH=88, dateRowH=50;
+  const rowH=74, hdrH=96, dateRowH=56;
   const roles=ROLES.filter(r=>keys.some(k=>(scheduleData[k]||[]).find(s=>s.role===r)));
   const H=hdrH+dateRowH+(roles.length*rowH)+padY*2+20;
   const roleIcons={ '主领':'🎤','伴唱':'🎵','键盘':'🎹','吉他':'🎸','贝斯':'🎻','鼓':'🥁','教歌':'📖' };
@@ -4771,21 +4771,21 @@ function doExport(mode){
   // title bar - use actual hex color (CSS vars don't work in canvas)
   const canvasPrimary = settings ? settings.primaryColor : '#1D9E75';
   rr(ctx,0,0,W,hdrH,0,canvasPrimary);
-  ctx.fillStyle='#fff'; ctx.font='bold 24px PingFang SC,sans-serif'; ctx.textAlign='center';
+  ctx.fillStyle='#fff'; ctx.font='bold 28px PingFang SC,sans-serif'; ctx.textAlign='center';
   const titleStr=`${year}年${ZH_MONTHS[month]}月份敬拜排班表`;
-  ctx.fillText(titleStr,W/2,40);
-  ctx.font='15px PingFang SC,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.75)';
+  ctx.fillText(titleStr,W/2,44);
+  ctx.font='17px PingFang SC,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.75)';
   const subStr=mode==='week'?`${month+1}月${d.getDate()}日（周日）`:`本月全部 ${keys.length} 个主日`;
-  ctx.fillText(subStr,W/2,66);
+  ctx.fillText(subStr,W/2,70);
 
   // table header
   ctx.fillStyle='#fff'; ctx.fillRect(padX,hdrH,W-padX*2,dateRowH);
-  ctx.fillStyle='#555'; ctx.font='bold 16px PingFang SC,sans-serif'; ctx.textAlign='center';
-  ctx.fillText('类别',padX+cw/2,hdrH+31);
+  ctx.fillStyle='#555'; ctx.font='bold 20px PingFang SC,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('类别',padX+cw/2,hdrH+35);
   keys.forEach((k,i)=>{
     const[,m,dd]=k.split('-');
-    ctx.fillStyle=settings ? settings.primaryColor : '#1D9E75'; ctx.font='bold 16px PingFang SC,sans-serif';
-    ctx.fillText(`${parseInt(dd)}/${parseInt(m)}`,padX+cw*(i+1)+cw/2,hdrH+31);
+    ctx.fillStyle=settings ? settings.primaryColor : '#1D9E75'; ctx.font='bold 20px PingFang SC,sans-serif';
+    ctx.fillText(`${parseInt(dd)}/${parseInt(m)}`,padX+cw*(i+1)+cw/2,hdrH+35);
   });
 
   // divider
@@ -4802,8 +4802,8 @@ function doExport(mode){
     rr(ctx,badgeX,badgeY,badgeW,badgeH,8,col.badgeBg);
     // icon on top, role text below - stacked vertically, centered as a group
     const icon=roleIcons[role]||'';
-    const iconFont='18px PingFang SC,sans-serif';
-    const textFont='bold 14px PingFang SC,sans-serif';
+    const iconFont='20px PingFang SC,sans-serif';
+    const textFont='bold 16px PingFang SC,sans-serif';
     const bcx=badgeX+badgeW/2, bcy=badgeY+badgeH/2;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     if(icon){
@@ -4816,18 +4816,18 @@ function doExport(mode){
     keys.forEach((k,i)=>{
       const shift=(scheduleData[k]||[]).find(s=>s.role===role);
       const cx=padX+cw*(i+1), cy=y;
-      ctx.fillStyle='#333'; ctx.font='15px PingFang SC,sans-serif'; ctx.textAlign='center';
+      ctx.fillStyle='#333'; ctx.font='19px PingFang SC,sans-serif'; ctx.textAlign='center';
       if(shift){
         const names=shift.persons;
-        if(names.length===1){ ctx.fillText(names[0],cx+cw/2,cy+rowH/2+5); }
+        if(names.length===1){ ctx.fillText(names[0],cx+cw/2,cy+rowH/2+7); }
         else{
           const line1=names.slice(0,Math.ceil(names.length/2)).join('/');
           const line2=names.slice(Math.ceil(names.length/2)).join('/');
-          ctx.fillStyle='#444'; ctx.font='14px PingFang SC,sans-serif';
-          ctx.fillText(line1,cx+cw/2,cy+rowH/2-5);
-          ctx.fillText(line2,cx+cw/2,cy+rowH/2+15);
+          ctx.fillStyle='#444'; ctx.font='17px PingFang SC,sans-serif';
+          ctx.fillText(line1,cx+cw/2,cy+rowH/2-6);
+          ctx.fillText(line2,cx+cw/2,cy+rowH/2+18);
         }
-      } else { ctx.fillStyle='#ccc'; ctx.fillText('—',cx+cw/2,cy+rowH/2+5); }
+      } else { ctx.fillStyle='#ccc'; ctx.fillText('—',cx+cw/2,cy+rowH/2+7); }
     });
     // row divider
     ctx.strokeStyle='rgba(0,0,0,0.05)'; ctx.lineWidth=1;
