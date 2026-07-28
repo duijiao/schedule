@@ -3120,9 +3120,9 @@ const BIBLE_BOOKS = [
   {name:'雅各书', abbr:'jas', chapters:5},
   {name:'彼得前书', abbr:'1pe', chapters:5},
   {name:'彼得后书', abbr:'2pe', chapters:3},
-  {name:'约翰一书', abbr:'1jo', chapters:5},
-  {name:'约翰二书', abbr:'2jo', chapters:1},
-  {name:'约翰三书', abbr:'3jo', chapters:1},
+  {name:'约翰一书', abbr:'1jn', chapters:5},
+  {name:'约翰二书', abbr:'2jn', chapters:1},
+  {name:'约翰三书', abbr:'3jn', chapters:1},
   {name:'犹大书', abbr:'jud', chapters:1},
   {name:'启示录', abbr:'rev', chapters:22},
 ];
@@ -4751,10 +4751,12 @@ function doExport(mode){
   const keys=mode==='week'?[toKey(d)]:sundays.map(s=>toKey(s)).filter(k=>scheduleData[k]);
 
   const dpr=window.devicePixelRatio||1;
-  const W=760, padX=10, padY=8;
-  const colW=(W-padX*2)/5; // 类别 + 4 sundays (or 1)
-  const cols=mode==='week'?1:Math.min(keys.length,4);
+  const padX=10, padY=8;
+  const cols=mode==='week'?1:keys.length; // 按实际主日数量，不再限制为4个
   const totalCols=cols+1;
+  // 列数越多，画布越宽，保证每列有足够宽度显示姓名
+  const minColW=110;
+  const W=Math.max(760, padX*2+totalCols*minColW);
   const cw=(W-padX*2)/totalCols;
   const rowH=74, hdrH=96, dateRowH=56;
   const roles=ROLES.filter(r=>keys.some(k=>(scheduleData[k]||[]).find(s=>s.role===r)));
