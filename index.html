@@ -1936,6 +1936,29 @@ body.a11y-mode .leave-modal { max-width: 480px; }
 .settings-card {
   background: #f8f8f6; border-radius: 16px; overflow: hidden;
 }
+.log-row {
+  background: #f8f8f6; border-radius: 12px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.log-row-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.log-row-main { font-size: 13px; font-weight: 600; color: #1a1a1a; word-break: break-all; }
+.log-row-time { font-size: 11px; color: #aaa; white-space: nowrap; }
+.log-row-sub { font-size: 11px; color: #999; word-break: break-all; }
+.log-row-tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+.log-row-tag.ok { background: var(--primary-light); color: var(--primary); }
+.log-row-tag.fail { background: #fdeaea; color: #d64545; }
+.svc-stat-row {
+  display: flex; align-items: center; gap: 10px; background: #f8f8f6;
+  border-radius: 12px; padding: 9px 12px;
+}
+.svc-stat-rank {
+  width: 22px; height: 22px; border-radius: 50%; background: var(--primary-light);
+  color: var(--primary); font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.svc-stat-name { font-size: 13px; font-weight: 600; color: #1a1a1a; flex-shrink: 0; min-width: 56px; }
+.svc-stat-detail { flex: 1; font-size: 11px; color: #999; }
+.svc-stat-count { font-size: 13px; font-weight: 700; color: var(--primary); white-space: nowrap; }
 .settings-row {
   display: flex; align-items: center; gap: 12px;
   padding: 13px 16px; border-bottom: 1px solid rgba(0,0,0,0.05);
@@ -2108,6 +2131,7 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
         <div id="adminBar" class="admin-bar">
           <div class="admin-badge"><i class="ti ti-shield-check"></i>管理员</div>
           <button class="logout-btn roster-btn" onclick="openRoster()" title="名单管理" aria-label="名单管理"><i class="ti ti-users"></i></button>
+          <button class="logout-btn roster-btn" onclick="openAdminData()" title="访客与登录记录" aria-label="访客与登录记录"><i class="ti ti-chart-bar"></i></button>
           <button class="logout-btn" onclick="logout()" title="退出登录" aria-label="退出登录"><i class="ti ti-logout"></i></button>
         </div>
         <button class="leave-entry-btn" id="leaveEntryBtn" onclick="openLeaveEntry()" title="请假申请" aria-label="请假申请">
@@ -2203,8 +2227,50 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
       </div>
       <div id="sermonMonthList" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
+    <div class="role-section">
+      <div class="role-section-head"><div class="role-section-badge" style="background:#6741D9"><i class="ti ti-chart-bar" style="color:#fff"></i><span style="color:#fff">服侍次数统计</span></div></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <input type="month" id="svcStatStart" style="flex:1;min-width:120px;padding:8px 10px;border:1.5px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;outline:none;font-family:inherit">
+        <span style="color:#aaa;font-size:12px">至</span>
+        <input type="month" id="svcStatEnd" style="flex:1;min-width:120px;padding:8px 10px;border:1.5px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;outline:none;font-family:inherit">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <select id="svcStatRole" style="flex:1;min-width:120px;padding:8px 10px;border:1.5px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;outline:none;font-family:inherit;background:#fff">
+          <option value="">全部岗位</option>
+        </select>
+        <button class="add-person-btn" onclick="renderServiceStats()">统计</button>
+      </div>
+      <div id="svcStatSummary" style="font-size:11px;color:#aaa;margin-bottom:8px"></div>
+      <div id="svcStatList" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
     <div class="drawer-actions">
       <button class="btn-save" style="flex:1" onclick="closeRoster()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Admin: site visits & login logs ───────────────────── -->
+<div class="modal-overlay" id="adminDataOverlay" onclick="closeAdminData(event)">
+  <div class="edit-drawer modal-has-close-btn" onclick="event.stopPropagation()" style="max-height:90vh">
+    <button class="modal-close-btn" onclick="closeAdminData()" aria-label="关闭"><i class="ti ti-x"></i></button>
+    <div class="picker-handle"></div>
+    <div class="drawer-title">访客与登录记录</div>
+    <div class="drawer-sub">仅管理员可见，数据来自云端，最多展示最近 200 条</div>
+
+    <div class="upload-source-tabs" style="margin-bottom:14px">
+      <button class="upload-source-tab active" id="adminDataTabVisits" onclick="switchAdminDataTab('visits')">访客记录</button>
+      <button class="upload-source-tab" id="adminDataTabLogins" onclick="switchAdminDataTab('logins')">登录记录</button>
+    </div>
+
+    <div id="adminDataSummary" style="font-size:12px;color:#888;margin-bottom:10px;display:flex;gap:14px;flex-wrap:wrap"></div>
+
+    <div id="adminDataLoading" style="text-align:center;color:#aaa;font-size:13px;padding:20px 0">加载中…</div>
+    <div id="adminDataVisitsPane" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div id="adminDataLoginsPane" style="display:none;flex-direction:column;gap:8px"></div>
+
+    <div class="drawer-actions">
+      <button class="btn-cancel" style="flex:1" onclick="refreshAdminData()">刷新</button>
+      <button class="btn-save" style="flex:1" onclick="closeAdminData()">关闭</button>
     </div>
   </div>
 </div>
@@ -5285,12 +5351,102 @@ function openRoster(){
   const monthVal = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   document.getElementById('sermonMonthInput').value = monthVal;
   renderSermonMonthUI();
+  initServiceStatsUI();
   document.getElementById('rosterOverlay').classList.add('open');
 }
 function closeRoster(e){
   if(!e || e.target===document.getElementById('rosterOverlay'))
     document.getElementById('rosterOverlay').classList.remove('open');
   render();
+}
+
+// ── Service (serving) count statistics ────────────────
+function initServiceStatsUI(){
+  const roleSel = document.getElementById('svcStatRole');
+  if(roleSel && roleSel.options.length <= 1){
+    ROLES.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r; opt.textContent = r;
+      roleSel.appendChild(opt);
+    });
+  }
+  const d = selectedSunday || new Date();
+  const curMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  const startEl = document.getElementById('svcStatStart');
+  const endEl = document.getElementById('svcStatEnd');
+  if(startEl && !startEl.value){
+    const startD = new Date(d.getFullYear(), d.getMonth() - 5, 1);
+    startEl.value = `${startD.getFullYear()}-${String(startD.getMonth()+1).padStart(2,'0')}`;
+  }
+  if(endEl && !endEl.value) endEl.value = curMonth;
+  renderServiceStats();
+}
+
+// 计算某段月份区间内，每人每岗位被排班（服侍）的次数
+// startMonth/endMonth 格式为 "YYYY-MM"（闭区间，含首尾月）
+function computeServiceStats(startMonth, endMonth, roleFilter){
+  const result = {}; // name -> { total, byRole: {role:count} }
+  if(!startMonth || !endMonth) return result;
+  const [sy, sm] = startMonth.split('-').map(Number);
+  const [ey, em] = endMonth.split('-').map(Number);
+  const startKey = `${sy}-${String(sm).padStart(2,'0')}`;
+  const endKey = `${ey}-${String(em).padStart(2,'0')}`;
+  Object.keys(scheduleData).forEach(dateKey => {
+    const ym = dateKey.slice(0, 7); // "YYYY-MM"
+    if(ym < startKey || ym > endKey) return;
+    const rows = scheduleData[dateKey] || [];
+    rows.forEach(row => {
+      if(roleFilter && row.role !== roleFilter) return;
+      const persons = Array.isArray(row.persons) && row.persons.length
+        ? row.persons
+        : (row.name ? row.name.split('/').map(s=>s.trim()).filter(Boolean) : []);
+      const onLeave = new Set(row.leavePersons || []);
+      persons.forEach(name => {
+        if(!name || onLeave.has(name)) return; // 请假的不计入服侍次数
+        if(!result[name]) result[name] = { total: 0, byRole: {} };
+        result[name].total += 1;
+        result[name].byRole[row.role] = (result[name].byRole[row.role] || 0) + 1;
+      });
+    });
+  });
+  return result;
+}
+
+function renderServiceStats(){
+  const startMonth = document.getElementById('svcStatStart')?.value;
+  const endMonth = document.getElementById('svcStatEnd')?.value;
+  const roleFilter = document.getElementById('svcStatRole')?.value || '';
+  const listEl = document.getElementById('svcStatList');
+  const summaryEl = document.getElementById('svcStatSummary');
+  if(!listEl || !summaryEl) return;
+  if(!startMonth || !endMonth){
+    listEl.innerHTML = '';
+    summaryEl.textContent = '请选择起止月份';
+    return;
+  }
+  if(startMonth > endMonth){
+    listEl.innerHTML = '';
+    summaryEl.textContent = '起始月份不能晚于结束月份';
+    return;
+  }
+  const stats = computeServiceStats(startMonth, endMonth, roleFilter);
+  const entries = Object.entries(stats).sort((a,b) => b[1].total - a[1].total);
+  const [sy, sm] = startMonth.split('-');
+  const [ey, em] = endMonth.split('-');
+  summaryEl.textContent = `统计区间：${sy}年${Number(sm)}月 至 ${ey}年${Number(em)}月${roleFilter ? '　岗位：'+roleFilter : ''}　共 ${entries.length} 人`;
+  if(!entries.length){
+    listEl.innerHTML = '<div style="text-align:center;color:#ccc;font-size:12px;padding:10px 0">该区间内暂无排班数据</div>';
+    return;
+  }
+  listEl.innerHTML = entries.map(([name, info], idx) => {
+    const detail = Object.entries(info.byRole).map(([r,c]) => `${r} ${c}次`).join('　');
+    return `<div class="svc-stat-row">
+      <div class="svc-stat-rank">${idx+1}</div>
+      <div class="svc-stat-name">${name}</div>
+      <div class="svc-stat-detail">${detail}</div>
+      <div class="svc-stat-count">${info.total} 次</div>
+    </div>`;
+  }).join('');
 }
 
 function renderRosterChips(type){
@@ -6505,6 +6661,8 @@ const SUPABASE_CONFIG = {
   table: 'church_app_state',
   rowId: 1,
   songBucket: 'song-images',
+  visitsTable: 'site_visits',
+  loginLogsTable: 'login_logs',
 };
 
 let supabaseClient = null;
@@ -6699,6 +6857,140 @@ async function syncAuthState() {
   updateAdminUI();
 }
 
+// ── Visitor tracking & login logs ─────────────────────
+const LS_VISITOR_ID = 'churchAppVisitorId';
+function getVisitorId() {
+  try {
+    let id = localStorage.getItem(LS_VISITOR_ID);
+    if (!id) {
+      id = 'v_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem(LS_VISITOR_ID, id);
+    }
+    return id;
+  } catch (e) { return 'unknown'; }
+}
+
+// 记录一次访问（每次打开/刷新页面调用一次），静默失败，不影响主流程
+async function recordVisit() {
+  if (!initSupabaseClient()) return;
+  try {
+    await supabaseClient.from(SUPABASE_CONFIG.visitsTable).insert({
+      path: location.pathname || '/',
+      referrer: document.referrer || '',
+      user_agent: navigator.userAgent || '',
+      visitor_id: getVisitorId(),
+    });
+  } catch (e) {
+    console.error('访客记录写入失败', e);
+  }
+}
+
+// 记录一次登录尝试（成功或失败），静默失败，不影响登录流程本身
+async function recordLoginAttempt(email, success) {
+  if (!initSupabaseClient()) return;
+  try {
+    await supabaseClient.from(SUPABASE_CONFIG.loginLogsTable).insert({
+      email: email || '',
+      success: !!success,
+      user_agent: navigator.userAgent || '',
+    });
+  } catch (e) {
+    console.error('登录记录写入失败', e);
+  }
+}
+
+let adminDataTab = 'visits';
+let adminDataLoaded = false;
+
+function openAdminData() {
+  document.getElementById('adminDataOverlay').classList.add('open');
+  adminDataTab = 'visits';
+  switchAdminDataTab('visits');
+  refreshAdminData();
+}
+function closeAdminData(e) {
+  if (!e || e.target === document.getElementById('adminDataOverlay'))
+    document.getElementById('adminDataOverlay').classList.remove('open');
+}
+function switchAdminDataTab(tab) {
+  adminDataTab = tab;
+  document.getElementById('adminDataTabVisits').classList.toggle('active', tab === 'visits');
+  document.getElementById('adminDataTabLogins').classList.toggle('active', tab === 'logins');
+  document.getElementById('adminDataVisitsPane').style.display = tab === 'visits' ? 'flex' : 'none';
+  document.getElementById('adminDataLoginsPane').style.display = tab === 'logins' ? 'flex' : 'none';
+}
+
+async function refreshAdminData() {
+  const loadingEl = document.getElementById('adminDataLoading');
+  const summaryEl = document.getElementById('adminDataSummary');
+  const visitsPane = document.getElementById('adminDataVisitsPane');
+  const loginsPane = document.getElementById('adminDataLoginsPane');
+  if (!initSupabaseClient()) {
+    loadingEl.textContent = '云端未配置，无法读取访客与登录记录';
+    return;
+  }
+  loadingEl.style.display = 'block';
+  loadingEl.textContent = '加载中…';
+  visitsPane.innerHTML = '';
+  loginsPane.innerHTML = '';
+  try {
+    const [visitsRes, loginsRes, totalRes, todayRes] = await Promise.all([
+      supabaseClient.from(SUPABASE_CONFIG.visitsTable).select('*').order('created_at', { ascending: false }).limit(200),
+      supabaseClient.from(SUPABASE_CONFIG.loginLogsTable).select('*').order('created_at', { ascending: false }).limit(200),
+      supabaseClient.from(SUPABASE_CONFIG.visitsTable).select('*', { count: 'exact', head: true }),
+      supabaseClient.from(SUPABASE_CONFIG.visitsTable).select('*', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString()),
+    ]);
+    if (visitsRes.error) throw visitsRes.error;
+    if (loginsRes.error) throw loginsRes.error;
+
+    const visits = visitsRes.data || [];
+    const logins = loginsRes.data || [];
+    const uniqueVisitors = new Set(visits.map(v => v.visitor_id).filter(Boolean)).size;
+
+    summaryEl.innerHTML = `
+      <span>累计访问：<b>${totalRes.count ?? visits.length}</b> 次</span>
+      <span>今日访问：<b>${todayRes.count ?? '-'}</b> 次</span>
+      <span>近期独立访客：<b>${uniqueVisitors}</b> 人</span>
+      <span>登录记录：<b>${logins.length}</b> 条</span>
+    `;
+
+    visitsPane.innerHTML = visits.length ? visits.map(v => `
+      <div class="log-row">
+        <div class="log-row-top">
+          <span class="log-row-main">${(v.path || '/')}</span>
+          <span class="log-row-time">${formatLogTime(v.created_at)}</span>
+        </div>
+        <div class="log-row-sub">来源：${v.referrer ? v.referrer : '直接访问'}</div>
+        <div class="log-row-sub">${v.user_agent || ''}</div>
+      </div>
+    `).join('') : '<div style="text-align:center;color:#ccc;font-size:12px;padding:20px 0">暂无访客记录</div>';
+
+    loginsPane.innerHTML = logins.length ? logins.map(l => `
+      <div class="log-row">
+        <div class="log-row-top">
+          <span class="log-row-main">${l.email || '(未知账号)'}</span>
+          <span class="log-row-tag ${l.success ? 'ok' : 'fail'}">${l.success ? '登录成功' : '登录失败'}</span>
+        </div>
+        <div class="log-row-sub">${formatLogTime(l.created_at)}</div>
+        <div class="log-row-sub">${l.user_agent || ''}</div>
+      </div>
+    `).join('') : '<div style="text-align:center;color:#ccc;font-size:12px;padding:20px 0">暂无登录记录</div>';
+
+    loadingEl.style.display = 'none';
+  } catch (e) {
+    console.error('读取访客/登录记录失败', e);
+    loadingEl.textContent = '读取失败，请确认已在 Supabase 中建好 site_visits / login_logs 表并配置好权限';
+  }
+}
+
+function formatLogTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 async function dataUrlToBlob(dataUrl) {
   const res = await fetch(dataUrl);
   return await res.blob();
@@ -6747,11 +7039,13 @@ doLogin = async function() {
   const password = document.getElementById('loginPass').value;
   const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) {
+    recordLoginAttempt(email, false);
     document.getElementById('loginError').classList.add('show');
     document.getElementById('loginPass').value = '';
     document.getElementById('loginPass').focus();
     return;
   }
+  recordLoginAttempt(email, true);
   isAdmin = true;
   document.getElementById('loginOverlay').classList.remove('open');
   updateAdminUI();
@@ -6948,6 +7242,7 @@ async function bootstrapApp() {
     } catch (e) {
       console.error('Supabase 初始化失败，已回退到本地模式', e);
     }
+    recordVisit();
   } else {
     updateAdminUI();
   }
