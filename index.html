@@ -2548,7 +2548,7 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
     <button class="modal-close-btn" onclick="closeAdminData()" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="drawer-title">访客与登录记录</div>
-    <div class="drawer-sub">仅管理员可见，数据来自云端，最多展示最近 200 条</div>
+    <div class="drawer-sub">仅管理员可见，数据来自云端；按 IP 去重，每位访客只显示最近一次访问，最多拉取最近 200 条原始记录</div>
 
     <div class="upload-source-tabs" style="margin-bottom:14px">
       <button class="upload-source-tab active" id="adminDataTabVisits" onclick="switchAdminDataTab('visits')">访客记录</button>
@@ -7269,15 +7269,29 @@ function getVisitorId() {
   } catch (e) { return 'unknown'; }
 }
 
+// 获取访客公网 IP（第三方免费接口，失败时静默返回空字符串，不影响主流程）
+async function getPublicIp() {
+  try {
+    const res = await fetch('https://api.ipify.org?format=json');
+    if (!res.ok) return '';
+    const data = await res.json();
+    return data.ip || '';
+  } catch (e) {
+    return '';
+  }
+}
+
 // 记录一次访问（每次打开/刷新页面调用一次），静默失败，不影响主流程
 async function recordVisit() {
   if (!initSupabaseClient()) return;
   try {
+    const ip = await getPublicIp();
     await supabaseClient.from(SUPABASE_CONFIG.visitsTable).insert({
       path: location.pathname || '/',
       referrer: document.referrer || '',
       user_agent: navigator.userAgent || '',
       visitor_id: getVisitorId(),
+      ip_address: ip || null,
     });
   } catch (e) {
     console.error('访客记录写入失败', e);
@@ -7344,25 +7358,46 @@ async function refreshAdminData() {
 
     const visits = visitsRes.data || [];
     const logins = loginsRes.data || [];
-    const uniqueVisitors = new Set(visits.map(v => v.visitor_id).filter(Boolean)).size;
+
+    // 按 IP 地址去重：同一个 IP 只保留最近一次访问记录（visits 已按时间倒序），
+    // 没有 IP 的旧数据兜底用 visitor_id 去重，避免刷新页面产生大量重复条目。
+    const visitCountByKey = {};
+    visits.forEach(v => {
+      const key = v.ip_address || v.visitor_id || 'unknown';
+      visitCountByKey[key] = (visitCountByKey[key] || 0) + 1;
+    });
+    const seenKeys = new Set();
+    const dedupedVisits = [];
+    visits.forEach(v => {
+      const key = v.ip_address || v.visitor_id || 'unknown';
+      if (seenKeys.has(key)) return;
+      seenKeys.add(key);
+      dedupedVisits.push(v);
+    });
+    const uniqueVisitors = dedupedVisits.length;
 
     summaryEl.innerHTML = `
       <span>累计访问：<b>${totalRes.count ?? visits.length}</b> 次</span>
       <span>今日访问：<b>${todayRes.count ?? '-'}</b> 次</span>
-      <span>近期独立访客：<b>${uniqueVisitors}</b> 人</span>
+      <span>近期独立访客（按 IP）：<b>${uniqueVisitors}</b> 人</span>
       <span>登录记录：<b>${logins.length}</b> 条</span>
     `;
 
-    visitsPane.innerHTML = visits.length ? visits.map(v => `
+    visitsPane.innerHTML = dedupedVisits.length ? dedupedVisits.map(v => {
+      const key = v.ip_address || v.visitor_id || 'unknown';
+      const count = visitCountByKey[key];
+      return `
       <div class="log-row">
         <div class="log-row-top">
-          <span class="log-row-main">${(v.path || '/')}</span>
+          <span class="log-row-main">${v.ip_address ? escapeHtml(v.ip_address) : 'IP 未知'}</span>
           <span class="log-row-time">${formatLogTime(v.created_at)}</span>
         </div>
+        <div class="log-row-sub">最近访问页面：${v.path || '/'}${count > 1 ? ` · 共访问 ${count} 次` : ''}</div>
         <div class="log-row-sub">来源：${v.referrer ? v.referrer : '直接访问'}</div>
         <div class="log-row-sub">${v.user_agent || ''}</div>
       </div>
-    `).join('') : '<div style="text-align:center;color:#ccc;font-size:12px;padding:20px 0">暂无访客记录</div>';
+    `;
+    }).join('') : '<div style="text-align:center;color:#ccc;font-size:12px;padding:20px 0">暂无访客记录</div>';
 
     loginsPane.innerHTML = logins.length ? logins.map(l => `
       <div class="log-row">
