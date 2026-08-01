@@ -208,7 +208,7 @@ body.a11y-mode .role-badge .role-text { font-size: 13px !important; }
 body.a11y-mode .sunday-pill .s-num { font-size: 22px !important; }
 body.a11y-mode .today-btn { font-size: 16px !important; padding: 9px 20px !important; }
 body.a11y-mode .nav-arrow { font-size: 26px !important; }
-body.a11y-mode .search-input { font-size: 16px !important; padding: 14px 44px !important; }
+body.a11y-mode .search-modal-input { font-size: 16px !important; padding: 14px 44px !important; }
 body.a11y-mode .song-lib-search-input { font-size: 15px !important; padding: 12px 38px !important; }
 body.a11y-mode .song-lib-card-title { font-size: 13px !important; }
 body.a11y-mode .song-lib-detail-title { font-size: 19px !important; }
@@ -255,7 +255,7 @@ body.a11y-mode .settings-entry-btn { min-width: 58px !important; padding: 11px 1
 body.a11y-mode .leave-entry-btn i, body.a11y-mode .login-entry-btn i,
 body.a11y-mode .logout-btn i, body.a11y-mode .settings-entry-btn i { font-size: 21px !important; }
 body.a11y-mode .tb-btn-label { font-size: 12px !important; }
-body.a11y-mode .admin-badge { font-size: 13px !important; padding: 6px 13px !important; }
+body.a11y-mode .admin-badge, body.a11y-mode .guest-badge { font-size: 13px !important; padding: 6px 13px !important; }
 body.a11y-mode .lightbox-close,
 body.a11y-mode .lightbox-download { width: 42px !important; height: 42px !important; font-size: 20px !important; }
 body.a11y-mode .lightbox-download { right: 70px !important; }
@@ -351,12 +351,15 @@ body.a11y-mode .app-topbar-title { font-size: 22px; }
 .header-actions-row {
   display: flex; align-items: center; gap: 6px;
 }
-.header-week-label {
-  background: none; border: none; padding: 0; margin-top: 2px;
-  color: var(--primary); font-size: 12px; font-weight: 600; cursor: pointer;
-  white-space: nowrap; text-align: left; font-family: inherit; flex-shrink: 0;
+.header-search-entry {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--primary-light); border: none; border-radius: 20px;
+  padding: 8px 14px 8px 12px;
+  color: var(--primary); font-size: 12.5px; font-weight: 600; cursor: pointer;
+  white-space: nowrap; font-family: inherit; flex-shrink: 0; transition: background 0.15s;
 }
-.header-week-label:hover { text-decoration: underline; }
+.header-search-entry:hover { background: var(--primary-mid); }
+.header-search-entry i { font-size: 14px; }
 .today-btn {
   background: var(--primary-light); color: var(--primary); border: none;
   border-radius: 10px; padding: 7px 16px; font-size: 14px;
@@ -377,12 +380,47 @@ body.a11y-mode .app-topbar-title { font-size: 22px; }
   gap: 8px;
 }
 .admin-bar.show { display: flex; }
+.admin-menu-wrap { position: relative; flex-shrink: 0; }
+.admin-menu {
+  display: none; flex-direction: column; gap: 2px;
+  position: absolute; top: calc(100% + 8px); right: 0;
+  background: #fff; border-radius: 14px; padding: 6px; min-width: 172px;
+  box-shadow: 0 14px 32px rgba(0,0,0,0.16); border: 1px solid rgba(0,0,0,0.06);
+  z-index: 10; animation: slideDown 0.15s ease;
+}
+.admin-menu.open { display: flex; }
+.admin-menu-item {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  background: none; border: none; border-radius: 10px; padding: 10px 11px;
+  font-size: 13px; font-weight: 500; color: var(--text-2); cursor: pointer;
+  font-family: inherit; white-space: nowrap; text-align: left;
+}
+.admin-menu-item i { font-size: 16px; color: var(--text-3); flex-shrink: 0; width: 18px; text-align: center; }
+.admin-menu-item:hover { background: var(--primary-light); color: var(--primary); }
+.admin-menu-item:hover i { color: var(--primary); }
+.admin-menu-item-badge {
+  display: none; min-width: 18px; height: 18px; margin-left: auto; flex-shrink: 0;
+  border-radius: 999px; background: #e74c3c; color: #fff; font-size: 10px;
+  font-weight: 700; align-items: center; justify-content: center; padding: 0 4px;
+}
+.admin-menu-item-badge.show { display: flex; }
+@keyframes slideDown {
+  from { transform: translateY(-6px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
 .admin-badge {
   display: flex; align-items: center; gap: 5px;
   background: var(--primary-light); color: var(--primary);
   border-radius: 20px; padding: 5px 11px; font-size: 12px; font-weight: 600;
   white-space: nowrap; width: fit-content;
 }
+.guest-badge {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--bg-subtle); color: var(--text-3);
+  border-radius: 20px; padding: 5px 11px; font-size: 12px; font-weight: 600;
+  white-space: nowrap; width: fit-content;
+}
+.guest-badge i { font-size: 12px; }
 .logout-btn,
 .login-entry-btn,
 .leave-entry-btn,
@@ -467,12 +505,12 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 /* ── Modal overlay ────────────────────────────────── */
 .modal-overlay {
   display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.38); z-index: 200;
+  background: rgba(0,0,0,0.38); z-index: 400;
   align-items: flex-end; justify-content: center;
 }
 .modal-overlay.open { display: flex; }
 /* Edit drawer must sit above the monthly editor overlay */
-#editOverlay { z-index: 300; }
+#editOverlay { z-index: 410; }
 @keyframes slideUp {
   from { transform: translateY(60px); opacity: 0; }
   to   { transform: translateY(0); opacity: 1; }
@@ -520,28 +558,39 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 /* ── Scroll area ──────────────────────────────────── */
 .scroll-area { padding: 0 14px; }
 
-/* Search */
-.search-wrap { position: relative; margin-bottom: 14px; }
-.search-input {
+/* Search modal (popup) */
+.search-modal {
+  width: 100%; max-width: 480px; background: #fff;
+  border-radius: 24px 24px 0 0; padding: 20px 20px 28px; animation: slideUp 0.25s ease;
+  max-height: 88vh; overflow: hidden; display: flex; flex-direction: column;
+}
+.search-modal-wrap { position: relative; margin-bottom: 14px; flex-shrink: 0; }
+.search-modal-input {
   width: 100%; padding: 11px 40px; border: 1.5px solid rgba(0,0,0,0.1);
   border-radius: 12px; font-size: 14px; background: #fff; color: var(--text-1);
   outline: none; font-family: inherit; transition: border-color 0.2s;
 }
-.search-input:focus { border-color: var(--primary); }
-.search-input::placeholder { color: var(--text-4); }
-.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-4); font-size: 17px; pointer-events: none; }
-.search-clear {
+.search-modal-input:focus { border-color: var(--primary); }
+.search-modal-input::placeholder { color: var(--text-4); }
+.search-modal-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-4); font-size: 17px; pointer-events: none; }
+.search-modal-clear {
   position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
   background: var(--border-soft); border: none; border-radius: 50%;
   width: 20px; height: 20px; display: none; align-items: center;
   justify-content: center; cursor: pointer; color: var(--text-2); font-size: 12px; padding: 0;
 }
-.search-clear.visible { display: flex; }
+.search-modal-clear.visible { display: flex; }
+.search-modal-hint {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; color: var(--text-4); font-size: 13px; padding: 46px 0 34px; flex: 1; min-height: 0;
+}
+.search-modal-hint i { font-size: 32px; color: var(--border-soft); }
+.search-modal-hint.hidden { display: none; }
+.search-modal-results { display: none; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; padding: 2px 2px 4px; }
+.search-modal-results.visible { display: flex; }
 
 /* Search results */
-.search-result-panel { display: none; flex-direction: column; }
-.search-result-panel.visible { display: flex; }
-.search-result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.search-result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-shrink: 0; }
 .search-result-title { font-size: 13px; color: var(--text-3); }
 .search-result-title strong { color: var(--text-1); font-weight: 600; }
 .export-btn {
@@ -1089,26 +1138,6 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
     gap: 22px;
     align-items: start;
   }
-  .search-wrap,
-  .search-result-panel { grid-column: 2; }
-  .search-wrap {
-    margin-bottom: 0;
-    position: sticky;
-    top: 24px;
-    z-index: 40;
-    background: linear-gradient(180deg, var(--bg-subtle) 0%, var(--bg-subtle) 70%, rgba(247,247,244,0) 100%);
-    padding: 4px 4px 14px;
-    margin: -4px -4px -14px;
-  }
-  .search-input {
-    height: 52px;
-    border-radius: 16px;
-    padding-left: 46px;
-    font-size: 15px;
-    box-shadow: 0 10px 24px rgba(0,0,0,0.04);
-    border-color: rgba(0,0,0,0.06);
-  }
-  .search-icon { left: 16px; font-size: 18px; }
   #mainSchedule {
     grid-column: 1 / -1;
     display: grid !important;
@@ -1171,7 +1200,7 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 /* Lightbox */
 .lightbox {
   display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.9); z-index: 300;
+  background: rgba(0,0,0,0.9); z-index: 450;
   align-items: center; justify-content: center; flex-direction: column; gap: 12px;
 }
 .lightbox.open { display: flex; }
@@ -1970,13 +1999,15 @@ body.a11y-mode .verse-bookmark-btn { font-size: 19px; padding: 2px 4px; }
 .bookmarks-entry-btn i { color: #F5C842; }
 
 /* ── Leave request entry & badge ───────────────────────── */
-.leave-entry-btn .leave-badge-dot {
+.leave-entry-btn .leave-badge-dot,
+#adminMenuBtn .leave-badge-dot {
   position: absolute; top: -3px; right: -3px; min-width: 16px; height: 16px;
   border-radius: 999px; background: #e74c3c; color: #fff; font-size: 10px;
   font-weight: 700; display: none; align-items: center; justify-content: center; padding: 0 3px;
   border: 1.5px solid #fff;
 }
-.leave-entry-btn .leave-badge-dot.show { display: flex; }
+.leave-entry-btn .leave-badge-dot.show,
+#adminMenuBtn .leave-badge-dot.show { display: flex; }
 
 /* ── Leave request modal (self-service) ────────────────── */
 .leave-modal {
@@ -2287,28 +2318,41 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
     <div class="app-topbar-id">
       <div class="app-topbar-title">巴西华人基督教会</div>
       <div class="admin-badge" id="topbarAdminBadge" style="display:none"><i class="ti ti-shield-check"></i>管理员</div>
+      <div class="guest-badge" id="topbarGuestBadge"><i class="ti ti-user"></i>游客模式</div>
     </div>
     <div class="app-topbar-icons">
-      <!-- Logged-out state -->
+      <!-- Logged-out state: guest can log in, or submit a leave request directly -->
       <button class="login-entry-btn" id="loginEntryBtn" onclick="openLogin()" title="管理员登录" aria-label="管理员登录">
         <i class="ti ti-lock"></i><span class="tb-btn-label">登录</span>
       </button>
-      <!-- Logged-in state -->
-      <div id="adminBar" class="admin-bar">
-        <button class="logout-btn roster-btn" onclick="openAdminData()" title="访客与登录记录" aria-label="访客与登录记录">
-          <i class="ti ti-chart-bar"></i><span class="tb-btn-label">数据</span>
-        </button>
-        <button class="logout-btn roster-btn" onclick="openRoster()" title="名单管理" aria-label="名单管理">
-          <i class="ti ti-users"></i><span class="tb-btn-label">成员</span>
-        </button>
-        <button class="logout-btn" onclick="logout()" title="退出登录" aria-label="退出登录">
-          <i class="ti ti-logout"></i><span class="tb-btn-label">退出</span>
-        </button>
-      </div>
       <button class="leave-entry-btn" id="leaveEntryBtn" onclick="openLeaveEntry()" title="请假申请" aria-label="请假申请">
         <i class="ti ti-calendar-off"></i><span class="tb-btn-label">请假</span>
         <span class="leave-badge-dot" id="leaveBadgeDot">0</span>
       </button>
+      <!-- Logged-in state: leave approval lives inside the admin dropdown menu -->
+      <div id="adminBar" class="admin-bar">
+        <div class="admin-menu-wrap">
+          <button class="logout-btn" id="adminMenuBtn" onclick="toggleAdminMenu(event)" title="管理" aria-label="管理">
+            <i class="ti ti-shield-cog"></i><span class="tb-btn-label">管理</span>
+            <span class="leave-badge-dot" id="adminMenuBadgeDot">0</span>
+          </button>
+          <div class="admin-menu" id="adminMenu">
+            <button class="admin-menu-item" onclick="closeAdminMenu();openLeaveEntry()">
+              <i class="ti ti-calendar-off"></i><span>请假审批</span>
+              <span class="admin-menu-item-badge" id="leaveMenuBadge">0</span>
+            </button>
+            <button class="admin-menu-item" onclick="closeAdminMenu();openAdminData()">
+              <i class="ti ti-chart-bar"></i><span>访客与登录数据</span>
+            </button>
+            <button class="admin-menu-item" onclick="closeAdminMenu();openRoster()">
+              <i class="ti ti-users"></i><span>名单成员管理</span>
+            </button>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="logout()" title="退出登录" aria-label="退出登录">
+          <i class="ti ti-logout"></i><span class="tb-btn-label">退出</span>
+        </button>
+      </div>
       <button class="settings-entry-btn" onclick="openSettings()" title="用户设置" aria-label="用户设置">
         <i class="ti ti-settings"></i><span class="tb-btn-label">设置</span>
       </button>
@@ -2335,7 +2379,9 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
         <div class="header-mini" id="hdrMini"></div>
       </div>
     </div>
-    <button class="header-week-label" id="todayBtn" onclick="goToday()">本周排班</button>
+    <button class="header-search-entry" id="searchEntryBtn" onclick="openSearchModal()" title="搜索人员排班" aria-label="搜索排班">
+      <i class="ti ti-search"></i><span>搜索排班</span>
+    </button>
   </div>
   <div class="header-collapsible">
     <div class="week-nav-wrap">
@@ -2351,8 +2397,36 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 </div>
 
 <!-- ── Modals ─────────────────────────────────────────── -->
+<div class="modal-overlay" id="searchOverlay" onclick="closeSearchModal(event)">
+  <div class="search-modal modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="closeSearchModal()" aria-label="关闭"><i class="ti ti-x"></i></button>
+    <div class="picker-handle"></div>
+    <div class="drawer-title">搜索排班</div>
+    <div class="drawer-sub">输入人名，查看本月排班记录</div>
+    <div class="search-modal-wrap">
+      <i class="ti ti-search search-modal-icon"></i>
+      <input class="search-modal-input" id="searchInput" type="text" placeholder="搜索人名，查看本月排班…" oninput="onSearch()" autocomplete="off">
+      <button class="search-modal-clear" id="searchClear" onclick="clearSearch()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="search-modal-hint" id="searchModalHint">
+      <i class="ti ti-search"></i>
+      <span>输入人名，快速查看本月排班</span>
+    </div>
+    <div class="search-modal-results" id="searchResultPanel">
+      <div class="search-result-header">
+        <span class="search-result-title" id="searchResultTitle"></span>
+        <button class="export-btn" onclick="doExportPerson(document.getElementById('searchInput').value.trim())">
+          <i class="ti ti-download"></i>导出
+        </button>
+      </div>
+      <div id="searchResultList"></div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="monthPickerOverlay" onclick="closeMonthPicker(event)">
-  <div class="month-picker" onclick="event.stopPropagation()">
+  <div class="month-picker modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="closeMonthPicker()" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="picker-title">选择月份</div>
     <div class="picker-year-row">
@@ -2365,7 +2439,8 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 </div>
 
 <div class="modal-overlay" id="loginOverlay" onclick="closeLogin(event)">
-  <div class="login-modal" onclick="event.stopPropagation()">
+  <div class="login-modal modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="closeLogin()" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="login-title">管理员登录</div>
     <div class="login-sub">仅管理员可新增或修改排班</div>
@@ -2516,7 +2591,8 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 
 <!-- ── Leave request: admin review list modal ────────────── -->
 <div class="modal-overlay" id="leaveListOverlay" onclick="closeLeaveList(event)">
-  <div class="edit-drawer" onclick="event.stopPropagation()" style="max-height:88vh">
+  <div class="edit-drawer modal-has-close-btn" onclick="event.stopPropagation()" style="max-height:88vh">
+    <button class="modal-close-btn" onclick="closeLeaveList()" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="drawer-title">请假申请管理</div>
     <div class="drawer-sub">审批后可直接前往排班修改替补人员</div>
@@ -2535,7 +2611,8 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 </div>
 
 <div class="modal-overlay" id="noticeDetailOverlay" onclick="this.classList.remove('open')">
-  <div class="notice-detail" onclick="event.stopPropagation()">
+  <div class="notice-detail modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="document.getElementById('noticeDetailOverlay').classList.remove('open')" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="notice-detail-title" id="noticeDetailTitle"></div>
     <div id="noticeDetailBody"></div>
@@ -2543,7 +2620,8 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 </div>
 
 <div class="modal-overlay" id="sermonThemeDetailOverlay" onclick="closeSermonThemeDetail(event)">
-  <div class="notice-detail sermon-theme-detail" onclick="event.stopPropagation()">
+  <div class="notice-detail sermon-theme-detail modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="closeSermonThemeDetail()" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="notice-detail-title" id="sermonThemeDetailTitle"></div>
     <div class="sermon-theme-detail-date" id="sermonThemeDetailDate"></div>
@@ -2552,7 +2630,8 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 </div>
 
 <div class="modal-overlay" id="sermonDetailOverlay" onclick="closeSermonDetail(event)">
-  <div class="notice-detail sermon-theme-detail" onclick="event.stopPropagation()">
+  <div class="notice-detail sermon-theme-detail modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="closeSermonDetail()" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="notice-detail-title" id="sermonDetailTitle"></div>
     <div class="sermon-theme-detail-date" id="sermonDetailDate"></div>
@@ -2561,7 +2640,8 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 </div>
 
 <div class="modal-overlay" id="exportChoiceOverlay" onclick="this.classList.remove('open')">
-  <div class="export-choice" onclick="event.stopPropagation()">
+  <div class="export-choice modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="document.getElementById('exportChoiceOverlay').classList.remove('open')" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="export-choice-title">导出排班明细</div>
     <div class="export-choice-sub">请选择导出范围</div>
@@ -2583,7 +2663,8 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 </div>
 
 <div class="modal-overlay" id="monthOverviewOverlay" onclick="closeMonthOverview(event)">
-  <div class="bookmarks-panel" onclick="event.stopPropagation()">
+  <div class="bookmarks-panel modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="closeMonthOverview()" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="bookmarks-title" id="monthOverviewTitle">📅 本月排班总览</div>
     <div class="bookmarks-sub" id="monthOverviewSub"></div>
@@ -2621,7 +2702,8 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 </div>
 
 <div class="modal-overlay" id="bookmarksOverlay" onclick="closeBookmarks(event)">
-  <div class="bookmarks-panel" onclick="event.stopPropagation()">
+  <div class="bookmarks-panel modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="closeBookmarks()" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="bookmarks-title">⭐ 经文收藏</div>
     <div class="bookmarks-sub">点击条目可跳转至对应章节</div>
@@ -2912,22 +2994,6 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 
 <!-- ── Scroll area ─────────────────────────────────────── -->
 <div class="scroll-area">
-  <div class="search-wrap">
-    <i class="ti ti-search search-icon"></i>
-    <input class="search-input" id="searchInput" type="text" placeholder="搜索人名，查看本月排班…" oninput="onSearch()" autocomplete="off">
-    <button class="search-clear" id="searchClear" onclick="clearSearch()"><i class="ti ti-x"></i></button>
-  </div>
-
-  <div class="search-result-panel" id="searchResultPanel">
-    <div class="search-result-header">
-      <span class="search-result-title" id="searchResultTitle"></span>
-      <button class="export-btn" onclick="doExportPerson(document.getElementById('searchInput').value.trim())">
-        <i class="ti ti-download"></i>导出
-      </button>
-    </div>
-    <div id="searchResultList"></div>
-  </div>
-
   <div id="mainSchedule">
     <div class="desktop-rail desktop-left-rail" id="desktopLeftRail">
       <div id="desktopWeeklyCard"></div>
@@ -3768,11 +3834,24 @@ function doLogin(){
   if(u==='admin'&&p==='church2026'){ isAdmin=true; document.getElementById('loginOverlay').classList.remove('open'); updateAdminUI(); render(); }
   else{ document.getElementById('loginError').classList.add('show'); document.getElementById('loginPass').value=''; document.getElementById('loginPass').focus(); }
 }
-function logout(){ isAdmin=false; updateAdminUI(); render(); }
+function logout(){ isAdmin=false; closeAdminMenu(); updateAdminUI(); render(); }
+function toggleAdminMenu(e){
+  if(e) e.stopPropagation();
+  document.getElementById('adminMenu').classList.toggle('open');
+}
+function closeAdminMenu(){
+  const menu=document.getElementById('adminMenu');
+  if(menu) menu.classList.remove('open');
+}
+document.addEventListener('click', (e)=>{
+  const menu=document.getElementById('adminMenu');
+  if(menu && menu.classList.contains('open') && !e.target.closest('.admin-menu-wrap')) closeAdminMenu();
+});
 function updateAdminUI(){
   document.getElementById('adminBar').classList.toggle('show',isAdmin);
   document.getElementById('loginEntryBtn').style.display=isAdmin?'none':'flex';
   const tb=document.getElementById('topbarAdminBadge'); if(tb) tb.style.display=isAdmin?'flex':'none';
+  const gb=document.getElementById('topbarGuestBadge'); if(gb) gb.style.display=isAdmin?'none':'flex';
   const b=document.getElementById('addShiftBtn'); if(b) b.style.display=isAdmin?'flex':'none';
   const me=document.getElementById('adminMonthlyEditBtn'); if(me) me.style.display=isAdmin?'flex':'none';
   document.querySelectorAll('.upload-song-btn').forEach(el=>el.classList.toggle('show',isAdmin));
@@ -4705,9 +4784,10 @@ function render(){
   const d=selectedSunday, year=d.getFullYear(), month=d.getMonth();
   const sundays=getSundaysOfMonth(year,month);
   const now=new Date();
-  const zhWeek=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
-  document.getElementById('hdrDay').textContent=headerCollapsed ? ZH_MONTHS[month]+'月份' : `${month+1}月${d.getDate()}日`;
-  document.getElementById('hdrInfo').textContent=`${d.getFullYear()}年 · 主日`;
+  const zhWeek=['主日','周一','周二','周三','周四','周五','周六'];
+  document.getElementById('hdrDay').textContent=headerCollapsed ? ZH_MONTHS[month]+'月份' : `${now.getMonth()+1}月${now.getDate()}日`;
+  const wt=document.getElementById('hdrWeekdayTag'); if(wt) wt.textContent = zhWeek[now.getDay()];
+  document.getElementById('hdrInfo').textContent=getSundayCountdownLabel();
   document.getElementById('hdrMini').textContent='敬拜排班表';
   const wl=document.getElementById('todayBtn');
   if(wl) wl.textContent=getRelativeWeekLabel(new Date(d));
@@ -4778,12 +4858,27 @@ function render(){
 }
 
 // ── Search ────────────────────────────────────────────
+function openSearchModal(){
+  document.getElementById('searchInput').value='';
+  document.getElementById('searchClear').classList.remove('visible');
+  document.getElementById('searchResultPanel').classList.remove('visible');
+  const hint=document.getElementById('searchModalHint');
+  if(hint) hint.classList.remove('hidden');
+  document.getElementById('searchOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('searchInput').focus(), 260);
+}
+function closeSearchModal(e){
+  if(e && e.target!==e.currentTarget) return;
+  document.getElementById('searchOverlay').classList.remove('open');
+}
 function onSearch(){
   const q=document.getElementById('searchInput').value.trim();
-  const panel=document.getElementById('searchResultPanel'), main=document.getElementById('mainSchedule');
+  const panel=document.getElementById('searchResultPanel');
+  const hint=document.getElementById('searchModalHint');
   document.getElementById('searchClear').classList.toggle('visible',q.length>0);
-  if(!q){ panel.classList.remove('visible'); main.style.display=''; return; }
-  panel.classList.add('visible'); main.style.display='none';
+  if(!q){ panel.classList.remove('visible'); if(hint) hint.classList.remove('hidden'); return; }
+  if(hint) hint.classList.add('hidden');
+  panel.classList.add('visible');
   renderSearchResults(q);
 }
 function clearSearch(){ document.getElementById('searchInput').value=''; onSearch(); document.getElementById('searchInput').focus(); }
@@ -5243,6 +5338,16 @@ function getCurrentWeekSunday(){
     }
   }
   return t;
+}
+function getSundayCountdownLabel(){
+  const cur=getCurrentWeekSunday();
+  if(!cur) return '主日';
+  const today=new Date(); today.setHours(0,0,0,0);
+  const sunday=new Date(cur); sunday.setHours(0,0,0,0);
+  const days=Math.round((sunday-today)/(24*60*60*1000));
+  if(days<=0) return '今天就是主日';
+  if(days===1) return '明天就是主日';
+  return `距主日还有 ${days} 天`;
 }
 function getRelativeWeekPrefix(d){
   const cur=getCurrentWeekSunday();
@@ -6241,14 +6346,22 @@ function pendingLeaveCount() {
 function updateLeaveBadge() {
   const dot = document.getElementById('leaveBadgeDot');
   const btn = document.getElementById('leaveEntryBtn');
+  const menuBtn = document.getElementById('adminMenuBtn');
+  const menuBtnDot = document.getElementById('adminMenuBadgeDot');
+  const menuItemBadge = document.getElementById('leaveMenuBadge');
   if (!dot) return;
   const n = pendingLeaveCount();
+  const label = n > 99 ? '99+' : String(n);
   if (isAdmin) {
-    if (btn) { btn.title = n > 0 ? `请假审批（${n} 条待处理）` : '请假审批'; btn.setAttribute('aria-label', btn.title); }
-    dot.textContent = n > 99 ? '99+' : String(n);
-    dot.classList.toggle('show', n > 0);
+    // Logged in: leave entry lives inside the admin dropdown menu instead of its own button.
+    if (btn) btn.style.display = 'none';
+    dot.classList.remove('show');
+    if (menuBtn) { menuBtn.title = n > 0 ? `管理（请假 ${n} 条待处理）` : '管理'; menuBtn.setAttribute('aria-label', menuBtn.title); }
+    if (menuBtnDot) { menuBtnDot.textContent = label; menuBtnDot.classList.toggle('show', n > 0); }
+    if (menuItemBadge) { menuItemBadge.textContent = label; menuItemBadge.classList.toggle('show', n > 0); }
   } else {
-    if (btn) { btn.title = '请假申请'; btn.setAttribute('aria-label', '请假申请'); }
+    // Logged out / guest mode: standalone button lets a guest submit their own leave request.
+    if (btn) { btn.style.display = 'flex'; btn.title = '请假申请'; btn.setAttribute('aria-label', '请假申请'); }
     dot.classList.remove('show');
   }
 }
