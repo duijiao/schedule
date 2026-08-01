@@ -2301,6 +2301,57 @@ body.a11y-mode .leave-modal { max-width: 480px; }
 }
 .notif-status.granted { background: var(--primary-light); color: var(--primary); }
 .notif-status.denied { background: #FAECE7; color: #993C1D; }
+.notif-auth-btn {
+  margin-left: 6px; background: var(--primary); color: #fff; border: none;
+  border-radius: 8px; padding: 5px 10px; font-size: 12px; cursor: pointer;
+  font-family: inherit; white-space: nowrap; flex-shrink: 0;
+}
+.notif-auth-btn:hover { background: var(--primary-dark); }
+
+/* Email reminder block — visually nested under "人名排班提醒",
+   linked to the watch-names list above it */
+.reminder-email-block { }
+.reminder-email-block .settings-row { padding-bottom: 8px; border-bottom: none; }
+.reminder-email-content { padding: 0 16px 14px; }
+.reminder-email-status {
+  display: none; flex-direction: column; gap: 8px;
+  background: var(--primary-light); border-radius: 12px;
+  padding: 10px 12px; margin-bottom: 10px;
+}
+.reminder-email-status.show { display: flex; }
+.reminder-email-status-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.reminder-email-status-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.reminder-email-edit-btn {
+  background: none; border: none; color: var(--primary); font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit; white-space: nowrap; padding: 2px 0;
+}
+.reminder-email-edit-btn:hover { text-decoration: underline; }
+.reminder-email-status-email {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--text-1); min-width: 0;
+}
+.reminder-email-status-email i { color: var(--primary); font-size: 15px; flex-shrink: 0; }
+.reminder-email-status-email strong { overflow-wrap: anywhere; }
+.reminder-email-unsub-btn {
+  background: none; border: none; color: #e74c3c; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit; white-space: nowrap; padding: 2px 0; flex-shrink: 0;
+}
+.reminder-email-unsub-btn:hover { text-decoration: underline; }
+.reminder-email-sync-note {
+  display: flex; align-items: flex-start; gap: 5px;
+  font-size: 11px; line-height: 1.5; color: var(--primary-dark);
+}
+.reminder-email-sync-note.muted { color: var(--text-3); }
+.reminder-email-sync-note i { font-size: 12px; margin-top: 2px; flex-shrink: 0; }
+.reminder-email-form { display: none; }
+.reminder-email-form.show { display: flex; }
+.reminder-email-cancel-edit {
+  display: none; margin-top: 8px; background: none; border: none;
+  color: var(--text-3); font-size: 12px; cursor: pointer; font-family: inherit; padding: 0;
+}
+.reminder-email-cancel-edit.show { display: inline-block; }
 
 /* Accessibility mode big toggle */
 .a11y-toggle-wrap {
@@ -2839,7 +2890,7 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
             <div class="settings-row-desc">排班含关注人名、或收到新的请假申请时弹出系统通知</div>
           </div>
           <span class="notif-status" id="notifStatus">未授权</span>
-          <button onclick="requestNotifPermission()" style="margin-left:6px;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap">授权</button>
+          <button class="notif-auth-btn" onclick="requestNotifPermission()">授权</button>
         </div>
         <div class="name-tags-wrap">
           <div class="name-tags" id="nameTagsList"></div>
@@ -2851,25 +2902,31 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 
         <!-- 邮箱提醒：与上方"关注人名"联动 -->
         <div class="reminder-email-block">
-          <div class="settings-row" style="margin-top:14px">
+          <div class="settings-row">
             <div class="settings-row-icon" style="background:#eef2ff"><i class="ti ti-mail" style="color:#3B5BDB"></i></div>
             <div class="settings-row-body">
               <div class="settings-row-label">邮箱提醒订阅</div>
-              <div class="settings-row-desc">每周三、五、六、日邮件提醒本周祷告、证道人及相关服侍安排；若上方已添加关注人名，会在邮件里优先提醒你关注的人</div>
+              <div class="settings-row-desc">每周三、五、六、日提醒本周祷告、证道人及相关服侍安排</div>
             </div>
           </div>
-          <div class="reminder-email-status" id="reminderEmailStatus" style="display:none;flex-direction:column;gap:6px;background:var(--bg-subtle);border-radius:10px;padding:10px 12px;margin-top:8px;font-size:12px;color:var(--text-2)">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-              <span><i class="ti ti-mail-check" style="color:var(--primary);margin-right:4px"></i>当前订阅：<strong id="reminderEmailStatusText"></strong></span>
-              <button onclick="unsubscribeReminderEmail()" style="background:none;border:none;color:#e74c3c;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap">取消订阅</button>
+          <div class="reminder-email-content">
+            <div class="reminder-email-status" id="reminderEmailStatus">
+              <div class="reminder-email-status-top">
+                <span class="reminder-email-status-email"><i class="ti ti-mail-check"></i>当前订阅：<strong id="reminderEmailStatusText"></strong></span>
+                <span class="reminder-email-status-actions">
+                  <button class="reminder-email-edit-btn" onclick="startEditReminderEmail()">更改</button>
+                  <button class="reminder-email-unsub-btn" onclick="unsubscribeReminderEmail()">取消订阅</button>
+                </span>
+              </div>
+              <div class="reminder-email-sync-note" id="reminderEmailWatchSync"></div>
             </div>
-            <div id="reminderEmailWatchSync" style="color:var(--text-3)"></div>
+            <div class="name-add-row reminder-email-form" id="reminderEmailForm">
+              <input class="name-add-input" id="reminderEmailInput" type="email" placeholder="输入邮箱地址接收提醒" onkeydown="if(event.key==='Enter')subscribeReminderEmail()">
+              <button class="name-add-btn" id="reminderEmailSubmitBtn" onclick="subscribeReminderEmail()">订阅</button>
+            </div>
+            <button class="reminder-email-cancel-edit" id="reminderEmailCancelEdit" onclick="cancelEditReminderEmail()">取消更改</button>
+            <div class="leave-form-error" id="reminderEmailError">请输入有效的邮箱地址</div>
           </div>
-          <div id="reminderEmailForm" class="name-add-row" style="margin-top:8px">
-            <input class="name-add-input" id="reminderEmailInput" type="email" placeholder="输入邮箱地址接收提醒" onkeydown="if(event.key==='Enter')subscribeReminderEmail()">
-            <button class="name-add-btn" id="reminderEmailSubmitBtn" onclick="subscribeReminderEmail()">订阅</button>
-          </div>
-          <div class="leave-form-error" id="reminderEmailError">请输入有效的邮箱地址</div>
         </div>
       </div>
     </div>
@@ -6083,6 +6140,7 @@ function openSettings() {
   renderSectionOrderList();
   renderNameTags();
   updateNotifStatus();
+  reminderEmailEditing = false;
   renderReminderEmailUI();
   // sync a11y toggle
   document.getElementById('a11yToggle').checked = settings.a11yMode;
@@ -6450,6 +6508,7 @@ async function fetchReminderSubscribersFromRemote() {
   reminderSubscribers = normalizeReminderSubscribers(data?.reminder_subscribers);
   return reminderSubscribers;
 }
+let reminderEmailEditing = false;
 async function subscribeReminderEmail() {
   const input = document.getElementById('reminderEmailInput');
   const email = (input?.value || '').trim().toLowerCase();
@@ -6461,6 +6520,7 @@ async function subscribeReminderEmail() {
   if (errEl) errEl.classList.remove('show');
   const btn = document.getElementById('reminderEmailSubmitBtn');
   if (btn) btn.disabled = true;
+  const oldEmail = reminderEmailEditing ? getMyReminderEmail() : '';
   try {
     await fetchReminderSubscribersFromRemote();
     const existing = reminderSubscribers.find(s => s.email === email);
@@ -6469,9 +6529,14 @@ async function subscribeReminderEmail() {
     } else {
       reminderSubscribers.push({ email, watchNames: [...settings.watchNames], addedAt: new Date().toISOString() });
     }
+    // 改邮箱：新地址已写入后，把旧地址的订阅记录去掉
+    if (oldEmail && oldEmail !== email) {
+      reminderSubscribers = reminderSubscribers.filter(s => s.email !== oldEmail);
+    }
     await syncRemoteField('reminder_subscribers', reminderSubscribers);
     try { localStorage.setItem(LS_REMINDER_EMAIL, email); } catch (e) {}
-    showToast(`✅ 已订阅邮箱提醒：${email}`);
+    showToast(oldEmail && oldEmail !== email ? `✅ 提醒邮箱已改为：${email}` : `✅ 已订阅邮箱提醒：${email}`);
+    reminderEmailEditing = false;
   } catch (e) {
     console.error('订阅邮箱提醒失败', e);
     if (isMissingRemoteColumnError(e, 'reminder_subscribers')) {
@@ -6483,6 +6548,16 @@ async function subscribeReminderEmail() {
     if (btn) btn.disabled = false;
     renderReminderEmailUI();
   }
+}
+function startEditReminderEmail() {
+  reminderEmailEditing = true;
+  renderReminderEmailUI();
+  const input = document.getElementById('reminderEmailInput');
+  if (input) { input.value = getMyReminderEmail(); input.focus(); input.select(); }
+}
+function cancelEditReminderEmail() {
+  reminderEmailEditing = false;
+  renderReminderEmailUI();
 }
 // 关注人名列表变化后，如果当前设备已订阅邮箱提醒，把最新的关注人名同步给订阅记录，
 // 让邮件提醒和"人名排班提醒"用同一份关注名单，不需要用户重复维护
@@ -6526,22 +6601,32 @@ function renderReminderEmailUI() {
   const formEl = document.getElementById('reminderEmailForm');
   const textEl = document.getElementById('reminderEmailStatusText');
   const syncEl = document.getElementById('reminderEmailWatchSync');
+  const cancelEl = document.getElementById('reminderEmailCancelEdit');
   const email = getMyReminderEmail();
   if (!statusEl || !formEl) return;
-  if (email) {
-    if (textEl) textEl.textContent = email;
-    statusEl.style.display = 'flex';
-    formEl.style.display = 'none';
-    if (syncEl) {
-      syncEl.textContent = settings.watchNames.length
-        ? `⭐ 已联动关注人名：${settings.watchNames.join('、')}（有变动会自动同步）`
-        : '暂未添加关注人名，邮件将只包含本周通用信息；在上方添加后会自动联动';
-    }
-  } else {
-    statusEl.style.display = 'none';
-    formEl.style.display = 'flex';
+  const showForm = !email || reminderEmailEditing;
+  if (showForm) {
+    statusEl.classList.remove('show');
+    formEl.classList.add('show');
+    if (cancelEl) cancelEl.classList.toggle('show', !!email && reminderEmailEditing);
     const input = document.getElementById('reminderEmailInput');
-    if (input) input.value = '';
+    if (input && !reminderEmailEditing) input.value = '';
+    const submitBtn = document.getElementById('reminderEmailSubmitBtn');
+    if (submitBtn) submitBtn.textContent = reminderEmailEditing ? '保存' : '订阅';
+  } else {
+    if (textEl) textEl.textContent = email;
+    statusEl.classList.add('show');
+    formEl.classList.remove('show');
+    if (cancelEl) cancelEl.classList.remove('show');
+    if (syncEl) {
+      if (settings.watchNames.length) {
+        syncEl.classList.remove('muted');
+        syncEl.innerHTML = `<i class="ti ti-link"></i><span>已联动关注人名：${escapeHtml(settings.watchNames.join('、'))}（增删会自动同步）</span>`;
+      } else {
+        syncEl.classList.add('muted');
+        syncEl.innerHTML = `<i class="ti ti-info-circle"></i><span>暂未添加关注人名，邮件只含本周通用信息；上方添加后自动联动</span>`;
+      }
+    }
   }
   const errEl = document.getElementById('reminderEmailError');
   if (errEl) errEl.classList.remove('show');
