@@ -1696,6 +1696,14 @@ body.a11y-mode .sunday-reminder-text { font-size: 15px !important; }
 .btn-cancel { flex: 1; padding: 12px; border: 1.5px solid rgba(0,0,0,0.12); border-radius: 12px; background: none; font-size: 14px; font-weight: 500; color: var(--text-2); cursor: pointer; font-family: inherit; }
 .btn-save { flex: 2; padding: 12px; border: none; border-radius: 12px; background: var(--primary); font-size: 14px; font-weight: 600; color: #fff; cursor: pointer; font-family: inherit; }
 .btn-save:hover { background: var(--primary-dark); }
+.btn-danger-outline {
+  width: 100%; padding: 10px; margin-top: 2px; margin-bottom: 12px;
+  border: 1.5px solid rgba(231,76,60,0.35); border-radius: 12px; background: none;
+  font-size: 12.5px; font-weight: 600; color: #e74c3c; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-danger-outline:hover { background: rgba(231,76,60,0.08); }
+.btn-danger-outline:disabled { opacity: .5; cursor: not-allowed; }
 
 .schedule-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .schedule-head .schedule-section-label { margin-bottom: 0; }
@@ -2556,6 +2564,10 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
     </div>
 
     <div id="adminDataSummary" style="font-size:12px;color:#888;margin-bottom:10px;display:flex;gap:14px;flex-wrap:wrap"></div>
+
+    <button class="btn-danger-outline" id="deleteUnknownVisitsBtn" onclick="deleteUnknownVisits()">
+      <i class="ti ti-trash"></i><span>删除 IP 未知的访客记录</span>
+    </button>
 
     <div id="adminDataLoading" style="text-align:center;color:#aaa;font-size:13px;padding:20px 0">加载中…</div>
     <div id="adminDataVisitsPane" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -7312,6 +7324,28 @@ async function recordLoginAttempt(email, success) {
   }
 }
 
+// 删除所有 IP 地址未知（null）的访客记录，包含加 ip_address 字段之前留下的旧数据
+async function deleteUnknownVisits() {
+  if (!initSupabaseClient()) return;
+  if (!confirm('确定要删除所有 IP 地址未知的访客记录吗？此操作不可撤销。')) return;
+  const btn = document.getElementById('deleteUnknownVisitsBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i><span>删除中…</span>'; }
+  try {
+    const { error, count } = await supabaseClient
+      .from(SUPABASE_CONFIG.visitsTable)
+      .delete({ count: 'exact' })
+      .is('ip_address', null);
+    if (error) throw error;
+    showToast(`已删除 ${count ?? 0} 条 IP 未知的访客记录`);
+    await refreshAdminData();
+  } catch (e) {
+    console.error('删除 IP 未知访客记录失败', e);
+    showToast('删除失败，请稍后重试');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-trash"></i><span>删除 IP 未知的访客记录</span>'; }
+  }
+}
+
 let adminDataTab = 'visits';
 let adminDataLoaded = false;
 
@@ -7331,6 +7365,8 @@ function switchAdminDataTab(tab) {
   document.getElementById('adminDataTabLogins').classList.toggle('active', tab === 'logins');
   document.getElementById('adminDataVisitsPane').style.display = tab === 'visits' ? 'flex' : 'none';
   document.getElementById('adminDataLoginsPane').style.display = tab === 'logins' ? 'flex' : 'none';
+  const delBtn = document.getElementById('deleteUnknownVisitsBtn');
+  if (delBtn) delBtn.style.display = tab === 'visits' ? 'flex' : 'none';
 }
 
 async function refreshAdminData() {
