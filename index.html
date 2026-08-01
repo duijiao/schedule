@@ -638,6 +638,7 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 .notice-detail {
   width: 100%; max-width: 480px; background: #fff;
   border-radius: 24px 24px 0 0; padding: 20px 20px 40px; animation: slideUp 0.25s ease;
+  max-height: 88vh; overflow-y: auto;
 }
 .notice-detail-title { font-size: 16px; font-weight: 600; color: var(--text-1); margin-bottom: 18px; }
 .notice-detail-row {
@@ -1508,6 +1509,27 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 .export-option-title { font-size: 14px; font-weight: 600; color: var(--text-1); margin-bottom: 2px; }
 .export-option-desc { font-size: 12px; color: var(--text-3); }
 
+/* ── Sunday reminder popup ───────────────────────────── */
+.sunday-reminder-modal {
+  width: 100%; max-width: 400px; background: #fff;
+  border-radius: 24px 24px 0 0; padding: 20px 20px 32px; animation: slideUp 0.25s ease;
+  text-align: center;
+}
+.sunday-reminder-icon {
+  width: 64px; height: 64px; margin: 4px auto 16px; border-radius: 50%;
+  background: var(--primary-light); color: var(--primary);
+  display: flex; align-items: center; justify-content: center; font-size: 28px;
+}
+.sunday-reminder-title { font-size: 17px; font-weight: 700; color: var(--text-1); margin-bottom: 6px; }
+.sunday-reminder-text { font-size: 13.5px; color: var(--text-3); line-height: 1.6; margin-bottom: 22px; }
+body.a11y-mode .sunday-reminder-title { font-size: 19px !important; }
+body.a11y-mode .sunday-reminder-text { font-size: 15px !important; }
+.saturday-reminder-icon {
+  width: 64px; height: 64px; margin: 4px auto 16px; border-radius: 50%;
+  background: #EAF1FF; color: #3B5BDB;
+  display: flex; align-items: center; justify-content: center; font-size: 28px;
+}
+
 /* ── Monthly schedule editor ─────────────────────── */
 .monthly-editor-overlay.open { display: flex; }
 .monthly-editor-panel {
@@ -1615,6 +1637,7 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 .login-modal {
   width: 100%; max-width: 480px; background: #fff;
   border-radius: 24px 24px 0 0; padding: 24px 24px 40px; animation: slideUp 0.25s ease;
+  max-height: 88vh; overflow-y: auto;
 }
 .login-title { font-size: 17px; font-weight: 600; color: var(--text-1); text-align: center; margin-bottom: 4px; }
 .login-sub { font-size: 13px; color: var(--text-3); text-align: center; margin-bottom: 22px; }
@@ -2659,6 +2682,26 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
         <div class="export-option-desc">导出当前月份所有周日的排班</div>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="sundayReminderOverlay" onclick="closeSundayReminder(event)">
+  <div class="sunday-reminder-modal" onclick="event.stopPropagation()">
+    <div class="picker-handle"></div>
+    <div class="sunday-reminder-icon"><i class="ti ti-cross"></i></div>
+    <div class="sunday-reminder-title">今天是主日</div>
+    <div class="sunday-reminder-text">记得去教会哦~</div>
+    <button class="submit-btn" onclick="closeSundayReminder()">知道啦</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="saturdayReminderOverlay" onclick="closeSaturdayReminder(event)">
+  <div class="sunday-reminder-modal" onclick="event.stopPropagation()">
+    <div class="picker-handle"></div>
+    <div class="saturday-reminder-icon"><i class="ti ti-music"></i></div>
+    <div class="sunday-reminder-title">今天周六有排练</div>
+    <div class="sunday-reminder-text">如果安排到你记得去排练哦~<br>时间下午三点</div>
+    <button class="submit-btn" onclick="closeSaturdayReminder()">知道啦</button>
   </div>
 </div>
 
@@ -4075,7 +4118,7 @@ function renderUploadList(){
   if(!uploadDraft.length){ list.innerHTML='<div style="color:#bbb;font-size:13px;text-align:center;padding:8px 0">暂无诗歌</div>'; return; }
   list.innerHTML=uploadDraft.map((s,i)=>`
     <div class="upload-song-row">
-      <div class="upload-song-thumb">${s.src?`<img src="${s.src}">`:'<i class="ti ti-photo"></i>'}</div>
+      <div class="upload-song-thumb">${s.src?`<img src="${s.src}" alt="${escapeHtml(s.title||'歌曲封面')}">`:'<i class="ti ti-photo"></i>'}</div>
       <span class="upload-song-name">${s.title}</span>
       <button class="remove-song-btn" onclick="removeSongDraft(${i})"><i class="ti ti-trash"></i></button>
     </div>`).join('');
@@ -4128,7 +4171,7 @@ function renderUploadLibPickList(){
   }
   wrap.innerHTML = list.map(s => {
     const already = uploadDraft.some(d => d.title === s.title);
-    const thumb = s.src ? `<img src="${s.src}">` : `<i class="ti ti-photo"></i>`;
+    const thumb = s.src ? `<img src="${s.src}" alt="${escapeHtml(s.title||'歌曲封面')}">` : `<i class="ti ti-photo"></i>`;
     return `<div class="upload-lib-pick-row${already?' already-added':''}" onclick="${already?'':`pickSongFromLibrary('${s.id}')`}">
       <div class="upload-lib-pick-thumb">${thumb}</div>
       <span class="upload-lib-pick-name">${escapeHtml(s.title)}</span>
@@ -4228,7 +4271,7 @@ function handleSongLibAddFile(e){
   reader.onload = ev => {
     songLibAddPendingSrc = ev.target.result;
     const preview = document.getElementById('songLibAddPreview');
-    preview.innerHTML = `<img src="${songLibAddPendingSrc}"><span>${escapeHtml(file.name)}</span><button onclick="clearSongLibAddPreview()"><i class="ti ti-x"></i></button>`;
+    preview.innerHTML = `<img src="${songLibAddPendingSrc}" alt="封面预览"><span>${escapeHtml(file.name)}</span><button onclick="clearSongLibAddPreview()"><i class="ti ti-x"></i></button>`;
     preview.classList.add('show');
   };
   reader.readAsDataURL(file);
@@ -6077,32 +6120,6 @@ function toggleSectionVisible(key, visible) {
   applySectionOrderAndVisibility();
 }
 
-function applySectionOrderAndVisibility() {
-  // The container that holds the orderable sections
-  const container = document.getElementById('mainSchedule');
-  if (!container) return;
-
-  // Map each section key to its DOM element
-  const elemMap = {
-    notice:   document.getElementById('noticeSection'),
-    topCards: document.getElementById('topCardsRow'),
-    schedule: document.getElementById('mainScheduleInner'),
-  };
-
-  settings.sectionOrder.forEach((key, idx) => {
-    const el = elemMap[key];
-    if (!el) return;
-    // Visibility
-    el.style.display = settings.sectionVisible[key] ? '' : 'none';
-    // Order via CSS order property
-    el.style.order = idx;
-  });
-
-  // Make the parent flex to respect order
-  container.style.display = 'flex';
-  container.style.flexDirection = 'column';
-}
-
 
 // ── Desktop layout helpers ───────────────────────────
 const DESKTOP_BREAKPOINT = 1180;
@@ -6342,6 +6359,40 @@ async function syncLeaveRequestsToRemote(successMsg) {
 }
 function pendingLeaveCount() {
   return leaveRequests.filter(r => r.status === 'pending').length;
+}
+const LS_SUNDAY_REMINDER = 'churchSundayReminderShown';
+function checkSundayReminder(){
+  const today=new Date();
+  if(today.getDay()!==0) return;
+  const todayKey=`${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
+  try{
+    if(localStorage.getItem(LS_SUNDAY_REMINDER)===todayKey) return;
+    localStorage.setItem(LS_SUNDAY_REMINDER, todayKey);
+  }catch(e){}
+  const overlay=document.getElementById('sundayReminderOverlay');
+  if(overlay) overlay.classList.add('open');
+}
+function closeSundayReminder(e){
+  if(!e || e.target===document.getElementById('sundayReminderOverlay')){
+    document.getElementById('sundayReminderOverlay').classList.remove('open');
+  }
+}
+const LS_SATURDAY_REMINDER = 'churchSaturdayReminderShown';
+function checkSaturdayReminder(){
+  const today=new Date();
+  if(today.getDay()!==6) return;
+  const todayKey=`${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
+  try{
+    if(localStorage.getItem(LS_SATURDAY_REMINDER)===todayKey) return;
+    localStorage.setItem(LS_SATURDAY_REMINDER, todayKey);
+  }catch(e){}
+  const overlay=document.getElementById('saturdayReminderOverlay');
+  if(overlay) overlay.classList.add('open');
+}
+function closeSaturdayReminder(e){
+  if(!e || e.target===document.getElementById('saturdayReminderOverlay')){
+    document.getElementById('saturdayReminderOverlay').classList.remove('open');
+  }
 }
 function updateLeaveBadge() {
   const dot = document.getElementById('leaveBadgeDot');
@@ -7596,6 +7647,8 @@ async function bootstrapApp() {
 
   goToday();
   syncTopbarSpacer();
+  checkSundayReminder();
+  checkSaturdayReminder();
 }
 
 bootstrapApp().finally(hideAppLoader);
