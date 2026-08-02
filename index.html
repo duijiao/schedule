@@ -6537,6 +6537,7 @@ async function subscribeReminderEmail() {
     try { localStorage.setItem(LS_REMINDER_EMAIL, email); } catch (e) {}
     showToast(oldEmail && oldEmail !== email ? `✅ 提醒邮箱已改为：${email}` : `✅ 已订阅邮箱提醒：${email}`);
     reminderEmailEditing = false;
+    sendReminderWelcomeEmail(email, settings.watchNames);
   } catch (e) {
     console.error('订阅邮箱提醒失败', e);
     if (isMissingRemoteColumnError(e, 'reminder_subscribers')) {
@@ -6548,6 +6549,20 @@ async function subscribeReminderEmail() {
     if (btn) btn.disabled = false;
     renderReminderEmailUI();
   }
+}
+// 订阅/改邮箱成功后，调用后端 Edge Function 发一封"订阅成功"确认邮件。
+// 静默失败：确认邮件发不出去不影响订阅本身已经成功这件事，不打断用户操作。
+function sendReminderWelcomeEmail(email, watchNames) {
+  if (!isSupabaseEnabled()) return;
+  fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-welcome-email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+      'apikey': SUPABASE_CONFIG.anonKey,
+    },
+    body: JSON.stringify({ email, watchNames: [...watchNames] }),
+  }).catch(e => console.error('发送订阅成功确认邮件失败', e));
 }
 function startEditReminderEmail() {
   reminderEmailEditing = true;
