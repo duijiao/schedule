@@ -1519,6 +1519,62 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 .song-lib-usage-item i { color: var(--primary); font-size: 14px; }
 .song-lib-usage-empty { font-size: 12px; color: var(--text-4); text-align: center; padding: 1rem 0; }
 
+/* ── Song library card: inline play button ─────────── */
+.song-lib-card { position: relative; }
+.song-lib-card-play-btn {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%; border: none;
+  background: rgba(255,255,255,0.92); color: var(--primary); box-shadow: var(--shadow-sm);
+  cursor: pointer; font-size: 14px;
+}
+.song-lib-card-play-btn:hover { background: var(--primary); color: #fff; }
+
+/* ── Music player modal ─────────────────────────────── */
+.music-player-modal {
+  width: 100%; max-width: 420px; background: #fff;
+  border-radius: 24px 24px 0 0; padding: 20px 20px 28px; animation: slideUp 0.25s ease;
+  max-height: 85vh; overflow-y: auto;
+}
+.music-player-title { font-size: 17px; font-weight: 600; color: var(--text-1); text-align: center; margin-bottom: 4px; padding-right: 24px; }
+.music-player-sub { font-size: 12px; color: var(--text-3); text-align: center; margin-bottom: 16px; }
+.music-link-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px; }
+.music-link-chip {
+  display: flex; align-items: center; gap: 5px; max-width: 100%;
+  border: 1.5px solid var(--border-soft); background: var(--bg-subtle);
+  color: var(--text-2); border-radius: 20px; padding: 6px 12px; font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+}
+.music-link-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+.music-link-chip.active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+.music-link-chip-del { background: none; border: none; color: inherit; opacity: 0.55; padding: 0; font-size: 12px; cursor: pointer; flex-shrink: 0; }
+.music-link-chip-del:hover { opacity: 1; color: #e74c3c; }
+.music-link-add-chip {
+  display: flex; align-items: center; gap: 4px; border: 1.5px dashed var(--border-soft); background: none;
+  color: var(--text-3); border-radius: 20px; padding: 6px 12px; font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+}
+.music-link-add-chip:hover { border-color: var(--primary); color: var(--primary); }
+.music-player-stage { margin-bottom: 16px; min-height: 56px; }
+.music-player-embed-wrap { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; background: #000; }
+.music-player-embed-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.music-player-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-4); font-size: 13px;
+  text-align: center; background: var(--bg-subtle); border-radius: 14px; padding: 28px 16px; line-height: 1.6;
+}
+.music-player-empty i { font-size: 26px; }
+.music-player-empty a { color: var(--primary); }
+.music-link-add-form { display: none; border: 1.5px dashed rgba(0,0,0,0.15); border-radius: 14px; padding: 12px; margin-bottom: 16px; }
+.music-link-add-form.show { display: block; }
+.music-link-add-form input[type="text"] {
+  width: 100%; box-sizing: border-box; border: 1.5px solid var(--border-soft); border-radius: 10px;
+  padding: 9px 12px; font-size: 13px; font-family: inherit; margin-bottom: 8px; background: var(--bg-1); color: var(--text-1);
+}
+.music-link-add-form input[type="text"]:focus { border-color: var(--primary); }
+.music-link-add-hint { font-size: 11px; color: var(--text-4); margin: -4px 0 8px; }
+.music-link-add-form-actions { display: flex; gap: 8px; margin-top: 4px; }
+.music-link-add-form-actions button { flex: 1; }
+
 /* ── Upload drawer: library tab switcher ───────────── */
 .upload-source-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
 .upload-source-tab {
@@ -3200,6 +3256,31 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
   </div>
 </div>
 
+<!-- ── Music player: pick a platform link and listen online ── -->
+<div class="modal-overlay" id="musicPlayerOverlay" onclick="closeMusicPlayer(event)">
+  <div class="music-player-modal modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="closeMusicPlayer()" aria-label="关闭"><i class="ti ti-x"></i></button>
+    <div class="picker-handle"></div>
+    <div class="music-player-title" id="musicPlayerTitle"></div>
+    <div class="music-player-sub">选择一个音乐链接在线收听</div>
+    <div class="music-link-chips" id="musicPlayerLinkList"></div>
+    <div class="music-link-add-form" id="musicLinkAddForm">
+      <input type="text" id="musicLinkAddLabel" placeholder="链接说明（可选，如：YouTube 官方MV、伴奏mp3）">
+      <input type="text" id="musicLinkAddUrl" placeholder="粘贴音乐链接（YouTube、mp3直链等）">
+      <div class="music-link-add-hint">支持 YouTube 视频链接、mp3/m4a 等音频直链，或其他可在线播放的链接</div>
+      <div class="leave-form-error" id="musicLinkAddError">请输入音乐链接</div>
+      <div class="music-link-add-form-actions">
+        <button class="btn-cancel" onclick="closeMusicLinkAddForm()">取消</button>
+        <button class="btn-save" onclick="submitMusicLinkAdd()">添加</button>
+      </div>
+    </div>
+    <div class="music-player-stage" id="musicPlayerStage"></div>
+    <div class="drawer-actions">
+      <button class="btn-save" style="flex:1" onclick="closeMusicPlayer()">关闭</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="sermonPassageOverlay" onclick="closeSermonPassageEditor(event)">
   <div class="upload-modal" onclick="event.stopPropagation()">
     <div class="picker-handle"></div>
@@ -3457,6 +3538,18 @@ function normalizeSongLibrary(raw) {
     if (!keys.length && item?.src) {
       keys = [{ id: genSongLibId(), label: '', src: item.src }];
     }
+    let music;
+    if (Array.isArray(item?.music)) {
+      const seenMusicIds = new Set();
+      music = item.music.map(m => {
+        let mid = m?.id || genSongLibId();
+        while (seenMusicIds.has(mid)) mid = mid + '_' + Math.random().toString(36).slice(2, 4);
+        seenMusicIds.add(mid);
+        return { id: mid, label: (m?.label || '').trim(), url: (m?.url || '').trim() };
+      }).filter(m => m.url);
+    } else {
+      music = [];
+    }
     return {
       id,
       title: (item?.title || '').trim(),
@@ -3465,6 +3558,7 @@ function normalizeSongLibrary(raw) {
       songbook: (item?.songbook || '').trim(),
       lyrics: item?.lyrics || '',
       keys,
+      music,
       createdAt: item?.createdAt || new Date().toISOString(),
     };
   }).filter(item => item.title);
@@ -3486,6 +3580,7 @@ function ensureSongInLibrary(title, src) {
     songbook: '',
     lyrics: '',
     keys: src ? [{ id: genSongLibId(), label: '', src }] : [],
+    music: [],
     createdAt: new Date().toISOString(),
   };
   songLibrary.unshift(entry);
@@ -3518,6 +3613,38 @@ function getSongLibSongbooks() {
 }
 function getSongLibKeyDisplayLabel(key) {
   return key?.label ? key.label : '默认';
+}
+// ── 诗歌音乐链接（YouTube / mp3 直链等在线收听）──────────
+// 按标题（trim + 大小写不敏感）在歌单库中查找对应记录，供"本周诗歌"列表与歌单库网格共用
+function findSongLibEntryByTitle(title) {
+  const t = (title || '').trim().toLowerCase();
+  if (!t) return null;
+  return songLibrary.find(s => s.title.trim().toLowerCase() === t) || null;
+}
+function getMusicLinksForTitle(title) {
+  const s = findSongLibEntryByTitle(title);
+  return s?.music || [];
+}
+function detectMusicPlatform(url) {
+  const u = (url || '').toLowerCase();
+  if (/youtu\.?be/.test(u)) return 'youtube';
+  if (/\.(mp3|m4a|wav|ogg|aac|flac)(\?|#|$)/.test(u)) return 'audio';
+  return 'link';
+}
+function getYoutubeEmbedSrc(url) {
+  const patterns = [/[?&]v=([^&]+)/, /youtu\.be\/([^?&]+)/, /youtube\.com\/embed\/([^?&]+)/, /youtube\.com\/shorts\/([^?&]+)/];
+  let id = '';
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m && m[1]) { id = m[1]; break; }
+  }
+  return id ? `https://www.youtube.com/embed/${id}?autoplay=1` : '';
+}
+function getMusicPlatformIcon(platform) {
+  return platform === 'youtube' ? 'ti-brand-youtube' : platform === 'audio' ? 'ti-file-music' : 'ti-link';
+}
+function getMusicPlatformLabel(platform) {
+  return platform === 'youtube' ? 'YouTube' : platform === 'audio' ? '音频文件' : '外部链接';
 }
 // 某首歌（按标题）在哪些主日被使用过，倒序返回 key 列表
 function findSongUsageWeeks(title) {
@@ -4265,10 +4392,12 @@ function renderSongs(key){
     return;
   }
   const rows=songs.map((s,i)=>{
+    const safeTitle=escapeHtml(s.title).replace(/'/g,"\\'");
     return `<div class="song-compact-row">
       <div class="song-compact-num">${i+1}</div>
       <div class="song-compact-title" title="${escapeHtml(s.title)}" onclick="${s.src?`openLightbox('${key}',${i})`:''}">${escapeHtml(s.title)}</div>
       <div class="song-compact-actions">
+        <button class="song-compact-btn" onclick="openMusicPlayer('${safeTitle}')" title="播放音乐"><i class="ti ti-player-play"></i><span>播放</span></button>
         <button class="song-compact-btn ghost" onclick="downloadSongDirect('${key}',${i})" ${s.src?'':'disabled'}><i class="ti ti-download"></i><span>下载</span></button>
       </div>
     </div>`;
@@ -4758,7 +4887,9 @@ function renderSongLibraryGrid(){
     const sourceLine = sourceParts.length
       ? `<div class="song-lib-card-source">${sourceParts.join('<span class="ulib-dot"> · </span>')}</div>`
       : '';
+    const safeTitle=escapeHtml(s.title).replace(/'/g,"\\'");
     return `<div class="song-lib-card" onclick="openSongLibDetail('${s.id}')">
+      <button class="song-lib-card-play-btn" onclick="event.stopPropagation();openMusicPlayer('${safeTitle}')" title="播放音乐"><i class="ti ti-player-play"></i></button>
       <div class="song-lib-card-thumb${firstSrc?' has-img':''}">${thumb}</div>
       <div class="song-lib-card-info">
         <div class="song-lib-card-title-row"><div class="song-lib-card-title">${escapeHtml(s.title)}</div>${badges.join('')}</div>
@@ -5006,6 +5137,115 @@ async function saveSourceEdit(){
   renderSongLibDetailSource();
   renderSongLibraryGrid();
   showToast('✅ 已保存来源信息');
+  await syncSongLibraryToRemote();
+}
+
+// ── 音乐播放弹窗：为某首诗歌挑选平台链接在线收听 ─────────
+let musicPlayerSongTitle = '';
+let musicPlayerActiveId = null;
+function openMusicPlayer(title) {
+  musicPlayerSongTitle = title;
+  const links = getMusicLinksForTitle(title);
+  musicPlayerActiveId = links[0]?.id || null;
+  document.getElementById('musicPlayerTitle').textContent = title;
+  closeMusicLinkAddForm();
+  renderMusicPlayerBody();
+  document.getElementById('musicPlayerOverlay').classList.add('open');
+}
+function closeMusicPlayer(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('musicPlayerOverlay').classList.remove('open');
+  document.getElementById('musicPlayerStage').innerHTML = '';
+}
+function renderMusicPlayerBody() {
+  const links = getMusicLinksForTitle(musicPlayerSongTitle);
+  const listWrap = document.getElementById('musicPlayerLinkList');
+  const stage = document.getElementById('musicPlayerStage');
+  const addChip = `<button class="music-link-add-chip" onclick="openMusicLinkAddForm()"><i class="ti ti-plus"></i>添加链接</button>`;
+  if (!links.length) {
+    listWrap.innerHTML = isAdmin ? addChip : '';
+    stage.innerHTML = `<div class="music-player-empty"><i class="ti ti-music-off"></i>${isAdmin ? '这首诗歌还没有音乐链接，点击上方"添加链接"' : '这首诗歌暂无音乐链接'}</div>`;
+    return;
+  }
+  if (!links.find(l => l.id === musicPlayerActiveId)) musicPlayerActiveId = links[0].id;
+  listWrap.innerHTML = links.map(l => {
+    const platform = detectMusicPlatform(l.url);
+    const delBtn = isAdmin ? `<button class="music-link-chip-del" onclick="event.stopPropagation();deleteMusicLink('${l.id}')" title="删除"><i class="ti ti-x"></i></button>` : '';
+    return `<button class="music-link-chip${l.id === musicPlayerActiveId ? ' active' : ''}" onclick="selectMusicLink('${l.id}')">
+      <i class="ti ${getMusicPlatformIcon(platform)}"></i><span>${escapeHtml(l.label || getMusicPlatformLabel(platform))}</span>${delBtn}
+    </button>`;
+  }).join('') + (isAdmin ? addChip : '');
+  renderMusicStage();
+}
+function renderMusicStage() {
+  const links = getMusicLinksForTitle(musicPlayerSongTitle);
+  const link = links.find(l => l.id === musicPlayerActiveId);
+  const stage = document.getElementById('musicPlayerStage');
+  if (!link) { stage.innerHTML = ''; return; }
+  const platform = detectMusicPlatform(link.url);
+  const safeUrl = getSafeExternalUrl(link.url);
+  if (platform === 'youtube') {
+    const embed = getYoutubeEmbedSrc(link.url);
+    stage.innerHTML = embed
+      ? `<div class="music-player-embed-wrap"><iframe src="${embed}" title="${escapeHtml(musicPlayerSongTitle)}" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
+      : `<div class="music-player-empty"><i class="ti ti-alert-circle"></i>无法解析该 YouTube 链接${safeUrl ? `<br><a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">在新标签页打开</a>` : ''}</div>`;
+  } else if (platform === 'audio') {
+    stage.innerHTML = safeUrl
+      ? `<audio controls autoplay style="width:100%" src="${escapeHtml(safeUrl)}"></audio>`
+      : `<div class="music-player-empty"><i class="ti ti-alert-circle"></i>音频链接无效</div>`;
+  } else {
+    stage.innerHTML = `<div class="music-player-empty"><i class="ti ti-external-link"></i>该链接暂不支持内嵌播放${safeUrl ? `<br><a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">在新标签页打开收听</a>` : ''}</div>`;
+  }
+}
+function selectMusicLink(id) {
+  musicPlayerActiveId = id;
+  renderMusicPlayerBody();
+}
+function openMusicLinkAddForm() {
+  document.getElementById('musicLinkAddLabel').value = '';
+  document.getElementById('musicLinkAddUrl').value = '';
+  document.getElementById('musicLinkAddError').classList.remove('show');
+  document.getElementById('musicLinkAddForm').classList.add('show');
+}
+function closeMusicLinkAddForm() {
+  const panel = document.getElementById('musicLinkAddForm');
+  if (panel) panel.classList.remove('show');
+}
+async function submitMusicLinkAdd() {
+  const title = musicPlayerSongTitle;
+  if (!title) return;
+  const label = document.getElementById('musicLinkAddLabel').value.trim();
+  const url = normalizeExternalUrlInput(document.getElementById('musicLinkAddUrl').value.trim());
+  const errEl = document.getElementById('musicLinkAddError');
+  if (!url) {
+    errEl.textContent = '请输入音乐链接';
+    errEl.classList.add('show');
+    return;
+  }
+  errEl.classList.remove('show');
+  const entry = ensureSongInLibrary(title, '');
+  if (!entry) return;
+  if (!Array.isArray(entry.music)) entry.music = [];
+  const newLink = { id: genSongLibId(), label, url };
+  entry.music.push(newLink);
+  musicPlayerActiveId = newLink.id;
+  persistSongLibrary();
+  closeMusicLinkAddForm();
+  renderMusicPlayerBody();
+  renderSongLibraryGrid();
+  showToast('✅ 已添加音乐链接');
+  await syncSongLibraryToRemote();
+}
+async function deleteMusicLink(id) {
+  const s = findSongLibEntryByTitle(musicPlayerSongTitle);
+  if (!s) return;
+  if (!confirm('确定要删除这个音乐链接吗？')) return;
+  s.music = (s.music || []).filter(m => m.id !== id);
+  persistSongLibrary();
+  if (musicPlayerActiveId === id) musicPlayerActiveId = s.music[0]?.id || null;
+  renderMusicPlayerBody();
+  renderSongLibraryGrid();
+  showToast('已删除音乐链接');
   await syncSongLibraryToRemote();
 }
 
