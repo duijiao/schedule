@@ -22,10 +22,10 @@
   --text-2: #5c5c54;   /* body / secondary text */
   --text-3: #8f8f86;   /* tertiary / meta text */
   --text-4: #b6b6ac;   /* placeholder, disabled, faint icons */
-  --border-soft: #e4e3dc;   /* hairlines, dividers, input borders */
-  --bg-page: #f1efea;       /* app background */
-  --bg-subtle: #f7f6f2;     /* light fill inside cards (rows, pills) */
-  --bg-subtle-2: #eeece5;   /* one step deeper fill / hover state */
+  --border-soft: #e8e9ed;   /* hairlines, dividers, input borders */
+  --bg-page: #F7F8FA;       /* app background */
+  --bg-subtle: #F1F3F6;     /* light fill inside cards (rows, pills) */
+  --bg-subtle-2: #E7E9ED;   /* one step deeper fill / hover state */
 
   /* Elevation — three consistent shadow levels replacing the ad-hoc values */
   --shadow-sm: 0 1px 4px rgba(28,26,20,0.06);
@@ -214,7 +214,7 @@ body.a11y-mode .song-lib-card-title { font-size: 16px !important; }
 body.a11y-mode .song-lib-detail-title { font-size: 19px !important; }
 body.a11y-mode .upload-lib-pick-name,
 body.a11y-mode .upload-source-tab { font-size: 14px !important; }
-body.a11y-mode .notice-text { font-size: 16px !important; }
+body.a11y-mode .leader-name { font-size: 18px !important; }
 body.a11y-mode .section-ttl,
 body.a11y-mode .schedule-section-label { font-size: 18px !important; }
 body.a11y-mode .card-date-label { font-size: 16px !important; }
@@ -230,9 +230,8 @@ body.a11y-mode .role-row { gap: 14px !important; margin-bottom: 12px !important;
 body.a11y-mode .shift-card { padding: 14px 16px !important; border-radius: 18px !important; }
 body.a11y-mode .person { gap: 8px !important; }
 body.a11y-mode .avatar { width: 28px !important; height: 28px !important; font-size: 12px !important; }
-body.a11y-mode .notice-card { padding: 18px 20px !important; border-radius: 20px !important; }
-body.a11y-mode .notice-icon-wrap { width: 44px !important; height: 44px !important; }
-body.a11y-mode .notice-icon-wrap i { font-size: 22px !important; }
+body.a11y-mode .leader-card { padding: 18px 20px !important; border-radius: 20px !important; }
+body.a11y-mode .leader-avatar { width: 52px !important; height: 52px !important; font-size: 26px !important; }
 body.a11y-mode .sermon-passage-card { padding: 18px !important; border-radius: 20px !important; }
 body.a11y-mode .sermon-section-icon { width: 36px !important; height: 36px !important; }
 body.a11y-mode .sermon-section-icon i { font-size: 18px !important; }
@@ -251,9 +250,10 @@ body.a11y-mode .sermon-extra-empty { font-size: 15px !important; }
 body.a11y-mode .songlib-entry-btn,
 body.a11y-mode .login-entry-btn,
 body.a11y-mode .logout-btn,
-body.a11y-mode .settings-entry-btn { min-width: 58px !important; padding: 11px 10px 8px !important; }
+body.a11y-mode .settings-entry-btn,
+body.a11y-mode .search-entry-btn { min-width: 58px !important; padding: 11px 10px 8px !important; }
 body.a11y-mode .songlib-entry-btn i, body.a11y-mode .login-entry-btn i,
-body.a11y-mode .logout-btn i, body.a11y-mode .settings-entry-btn i { font-size: 21px !important; }
+body.a11y-mode .logout-btn i, body.a11y-mode .settings-entry-btn i, body.a11y-mode .search-entry-btn i { font-size: 21px !important; }
 body.a11y-mode .tb-btn-label { font-size: 12px !important; }
 body.a11y-mode .admin-badge, body.a11y-mode .guest-badge { font-size: 13px !important; padding: 6px 13px !important; }
 body.a11y-mode .lightbox-close,
@@ -306,16 +306,23 @@ body.a11y-mode .nrb-row { font-size: 16px; padding: 10px 14px; }
   font-size: 20px; font-weight: 800; color: var(--text-1); line-height: 1.2; letter-spacing: -0.2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.app-topbar-icons { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.app-topbar-icons { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
 .app-topbar-spacer { height: 76px; }
 body.a11y-mode .app-topbar-title { font-size: 22px; }
 
 /* ── Header ─────────────────────────────────────── */
 .header-card {
-  background: #fff; border-radius: 0 0 24px 24px;
-  padding: 14px 20px 0; margin-bottom: 14px;
+  background: linear-gradient(135deg, #E7F7EF 0%, #F1FAF5 55%, #FFFFFF 100%);
+  border-radius: 22px;
+  margin: 14px 14px 14px; padding: 18px 18px 6px;
   box-shadow: var(--shadow-md);
+  position: relative; overflow: hidden;
 }
+.header-card-deco {
+  position: absolute; top: 10px; right: 10px; z-index: 0;
+  width: 96px; height: 96px; pointer-events: none; line-height: 1;
+}
+.header-card-deco img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .header-card.collapsed .header-collapsible { display: none; }
 .header-card.collapsed .header-date-hint { display: none; }
 .header-card.collapsed .header-mini { display: flex; }
@@ -325,27 +332,24 @@ body.a11y-mode .app-topbar-title { font-size: 22px; }
 }
 .date-info-card {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  background: var(--bg-subtle); border-radius: 18px; padding: 14px 14px 14px 12px;
-  margin-bottom: 14px;
+  background: transparent; border-radius: 0; padding: 4px 0 16px;
+  margin-bottom: 0; position: relative; z-index: 1;
 }
 .date-info-top {
   display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; min-width: 0;
 }
-.date-info-icon {
-  width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0;
-  background: var(--primary-light); color: var(--primary);
-  display: flex; align-items: center; justify-content: center; font-size: 26px;
-}
+.date-info-icon { display: none; }
+.today-label { font-size: 12.5px; font-weight: 600; color: var(--primary); margin-bottom: 5px; }
 .header-date { cursor: pointer; user-select: none; display: flex; flex-direction: column; min-width: 0; }
 .church-title { font-size: 15px; font-weight: 700; color: var(--text-1); margin-bottom: 8px; line-height: 1.2; }
 .date-info-date-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.day-num { font-size: 25px; font-weight: 800; color: var(--text-1); line-height: 1.15; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.day-num { font-size: 30px; font-weight: 800; color: var(--text-1); line-height: 1.15; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
 .date-info-weekday-tag {
   background: var(--primary); color: #fff; font-size: 11px; font-weight: 700;
   border-radius: 7px; padding: 3px 8px; white-space: nowrap;
 }
-.header-date-hint { display: flex; align-items: center; gap: 4px; margin-top: 3px; }
-.day-info-text { font-size: 12.5px; color: var(--text-3); font-weight: 500; }
+.header-date-hint { display: flex; align-items: center; gap: 4px; margin-top: 5px; }
+.day-info-text { font-size: 13px; color: var(--text-2); font-weight: 500; }
 .chevron-icon { font-size: 14px; color: var(--text-4); }
 .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .header-actions-row {
@@ -353,12 +357,12 @@ body.a11y-mode .app-topbar-title { font-size: 22px; }
 }
 .header-search-entry {
   display: flex; align-items: center; gap: 6px;
-  background: var(--primary-light); border: none; border-radius: 20px;
-  padding: 8px 14px 8px 12px;
+  background: #fff; border: none; border-radius: 20px;
+  padding: 8px 14px 8px 12px; box-shadow: var(--shadow-sm);
   color: var(--primary); font-size: 12.5px; font-weight: 600; cursor: pointer;
   white-space: nowrap; font-family: inherit; flex-shrink: 0; transition: background 0.15s;
 }
-.header-search-entry:hover { background: var(--primary-mid); }
+.header-search-entry:hover { background: var(--primary-light); }
 .header-search-entry i { font-size: 14px; }
 .today-btn {
   background: var(--primary-light); color: var(--primary); border: none;
@@ -424,38 +428,44 @@ body.a11y-mode .app-topbar-title { font-size: 22px; }
 .logout-btn,
 .login-entry-btn,
 .songlib-entry-btn,
-.settings-entry-btn {
+.settings-entry-btn,
+.search-entry-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 4px; min-width: 50px; border-radius: 14px; border: none;
+  gap: 3px; min-width: 42px; border-radius: 12px; border: none;
   background: var(--bg-subtle); color: var(--text-2); cursor: pointer; font-family: inherit;
-  padding: 9px 8px 7px; position: relative; flex-shrink: 0; transition: all 0.15s;
+  padding: 7px 6px 5px; position: relative; flex-shrink: 0; transition: all 0.15s;
 }
-.logout-btn i, .login-entry-btn i, .songlib-entry-btn i, .settings-entry-btn i { font-size: 19px; }
-.tb-btn-label { font-size: 11px; font-weight: 500; opacity: 0.75; white-space: nowrap; }
-.logout-btn:hover, .login-entry-btn:hover, .songlib-entry-btn:hover, .settings-entry-btn:hover {
+.logout-btn i, .login-entry-btn i, .songlib-entry-btn i, .settings-entry-btn i, .search-entry-btn i { font-size: 16px; }
+.tb-btn-label { font-size: 10px; font-weight: 500; opacity: 0.75; white-space: nowrap; }
+.logout-btn:hover, .login-entry-btn:hover, .songlib-entry-btn:hover, .settings-entry-btn:hover, .search-entry-btn:hover {
   background: var(--primary-light); color: var(--primary);
 }
-.week-nav-wrap { display: flex; align-items: center; gap: 4px; }
+.week-nav-wrap { display: flex; align-items: center; gap: 2px; }
 .nav-arrow {
   background: none; border: none; cursor: pointer;
-  color: var(--text-4); font-size: 20px; padding: 4px; flex-shrink: 0;
+  color: var(--text-4); font-size: 18px; padding: 3px; flex-shrink: 0;
   border-radius: 8px; transition: color 0.15s;
 }
 .nav-arrow:hover { color: var(--primary); background: var(--primary-light); }
-.week-nav { flex: 1; display: flex; align-items: center; justify-content: space-around; gap: 6px; }
+.week-nav {
+  flex: 1; display: flex; align-items: center; justify-content: space-around; gap: 4px;
+  min-width: 0; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.week-nav::-webkit-scrollbar { display: none; }
 .sunday-pill {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  cursor: pointer; padding: 10px 6px; border-radius: 14px; transition: background 0.15s, transform 0.15s;
-  min-width: 50px; background: #fff; box-shadow: var(--shadow-sm); border: 1px solid rgba(0,0,0,0.04);
+  cursor: pointer; padding: 8px 4px; border-radius: 12px; transition: background 0.15s, transform 0.15s, border-color 0.15s;
+  min-width: 42px; flex-shrink: 0; background: rgba(255,255,255,0.6); border: 1.5px solid transparent;
 }
-.sunday-pill:hover { background: var(--primary-light); transform: translateY(-1px); }
+.sunday-pill:hover { background: #fff; transform: translateY(-1px); }
 .sunday-pill .s-num {
-  font-size: 19px; font-weight: 700; color: var(--text-1); line-height: 1.2;
+  font-size: 16px; font-weight: 700; color: var(--text-1); line-height: 1.2;
 }
-.sunday-pill .s-label { font-size: 12px; color: var(--text-3); margin-top: 3px; font-weight: 500; }
-.sunday-pill.active { background: var(--primary); box-shadow: 0 6px 14px rgba(29,158,117,0.25); border-color: transparent; }
-.sunday-pill.active .s-num { color: #fff; }
-.sunday-pill.active .s-label { color: rgba(255,255,255,0.8); }
+.sunday-pill .s-label { font-size: 10px; color: var(--text-3); margin-top: 2px; font-weight: 500; }
+.sunday-pill .s-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--primary); margin-top: 3px; }
+.sunday-pill.active { background: #fff; border-color: var(--primary); box-shadow: var(--shadow-sm); }
+.sunday-pill.active .s-num { color: var(--primary-dark); }
+.sunday-pill.active .s-label { color: var(--primary); }
 .collapse-tab {
   display: flex; align-items: center; justify-content: center;
   gap: 4px; padding: 10px 0 12px; cursor: pointer;
@@ -615,24 +625,32 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 .result-empty { text-align: center; color: var(--text-4); font-size: 14px; padding: 2.5rem 0; }
 .result-empty i { font-size: 32px; display: block; margin-bottom: 8px; color: var(--border-soft); }
 
-/* ── Notice card ──────────────────────────────────── */
-.notice-card {
-  background: #F5C842; border-radius: 14px; padding: 10px 14px;
-  margin-bottom: 12px; cursor: pointer; transition: filter 0.15s; display: flex; align-items: center; gap: 10px;
+/* ── Leader card (本周主理) ───────────────────────── */
+.leader-card {
+  background: #fff; border-radius: 18px; padding: 14px 16px;
+  margin-bottom: 12px; cursor: pointer; display: flex; align-items: center; gap: 12px;
+  box-shadow: var(--shadow-sm); transition: box-shadow 0.15s;
 }
-.notice-card:hover { filter: brightness(0.97); }
-.notice-icon-wrap {
-  width: 30px; height: 30px; background: rgba(255,255,255,0.45);
-  border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+.leader-card:hover { box-shadow: var(--shadow-md); }
+.leader-avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  background: var(--primary-light); color: var(--primary);
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
 }
-.notice-icon-wrap i { font-size: 15px; color: #7a5500; }
-.notice-text { flex: 1; overflow: hidden; white-space: nowrap; font-size: 14px; font-weight: 500; color: #5a3e00; line-height: 1.6; }
-.notice-text-inner { display: inline-block; min-width: 100%; padding-left: 100%; animation: noticeScroll 16s linear infinite; }
-.notice-card:hover .notice-text-inner { animation-play-state: paused; }
-@keyframes noticeScroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
+.leader-info { flex: 1; min-width: 0; }
+.leader-info-top { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.leader-crown { font-size: 13px; color: #F5A623; }
+.leader-info-label { font-size: 12px; color: var(--text-3); font-weight: 500; }
+.leader-name {
+  font-size: 16px; font-weight: 700; color: var(--text-1);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.leader-detail-btn {
+  flex-shrink: 0; background: var(--primary-light); color: var(--primary); border: none;
+  border-radius: 999px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  font-family: inherit; white-space: nowrap;
+}
+.leader-detail-btn:hover { background: var(--primary-mid); }
 
 /* Notice detail modal */
 .notice-detail {
@@ -712,15 +730,19 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 .top-cards-row .song-compact-card { margin-bottom: 0; height: 100%; padding: 14px 12px; }
 .top-cards-row .section-ttl { font-size: 13.5px; }
 .song-section-icon {
-  width: 30px; height: 30px; border-radius: 9px; background: var(--primary-light);
-  display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0;
-  font-size: 15px;
+  width: 32px; height: 32px; border-radius: 10px; background: var(--primary);
+  display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0;
+  font-size: 15px; box-shadow: 0 4px 10px rgba(29,158,117,0.25);
 }
 .section-view-all-link {
   display: inline-flex; align-items: center; gap: 2px;
   color: var(--primary); font-size: 12px; font-weight: 500;
   background: none; border: none; cursor: pointer; font-family: inherit; padding: 0;
   white-space: nowrap;
+}
+.section-view-all-link.bottom-link {
+  width: 100%; justify-content: center; margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
 }
 .section-view-all-link i { font-size: 14px; }
 @media (max-width: 400px) {
@@ -734,7 +756,7 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 
 /* ── Song cards: compact numbered list ───────────────── */
 .song-compact-card {
-  background: #fff; border-radius: 18px; padding: 16px;
+  background: #fff; border-radius: 20px; padding: 16px;
   box-shadow: var(--shadow-sm);
 }
 .song-compact-header-actions { display: flex; align-items: center; gap: 8px; }
@@ -776,13 +798,14 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 
 /* ── Weekly sermon passages ───────────────────────── */
 .sermon-passage-card {
-  background: #fff; border-radius: 18px; padding: 16px;
+  background: #fff; border-radius: 20px; padding: 16px;
   box-shadow: var(--shadow-sm); margin-bottom: 1rem;
 }
 .sermon-section-head-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .sermon-section-icon {
-  width: 30px; height: 30px; border-radius: 9px; background: #EEF2FF;
-  display: flex; align-items: center; justify-content: center; color: #3B5BDB; flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 10px; background: #6C5CE7;
+  display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(108,92,231,0.25);
 }
 .sermon-section-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .sermon-collapse-btn,
@@ -827,11 +850,11 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 .sermon-more-toggle i { font-size: 13px; transition: transform 0.2s; }
 .sermon-more-toggle.open i { transform: rotate(180deg); }
 .sermon-detail-btn {
-  width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;
-  background: var(--bg-subtle); color: var(--text-2); border: none; border-radius: 12px;
-  padding: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;
+  background: none; color: #6C5CE7; border: none; border-top: 1px solid var(--border-soft);
+  padding: 10px 0 0; margin-top: 2px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
-.sermon-detail-btn:hover { background: var(--bg-subtle-2); }
+.sermon-detail-btn:hover { color: #5445d4; }
 .sermon-detail-btn i { font-size: 14px; }
 .sermon-meta-row {
   display: grid; grid-template-columns: minmax(110px,0.9fr) minmax(0,1.4fr);
@@ -1112,7 +1135,7 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
   .header-card {
     border-radius: 28px;
     padding: 28px 30px 0;
-    margin-bottom: 22px;
+    margin: 0 0 22px;
     box-shadow: 0 16px 34px rgba(0,0,0,0.05);
   }
   .header-top { align-items: center; }
@@ -1121,7 +1144,7 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
   .header-date-hint { margin-top: 8px; }
   .header-right { flex-direction: row-reverse; align-items: center; gap: 14px; }
   .header-actions-row { gap: 8px; }
-  .login-entry-btn, .songlib-entry-btn, .settings-entry-btn, .logout-btn { min-width: 50px; padding: 9px 8px 7px; }
+  .login-entry-btn, .songlib-entry-btn, .settings-entry-btn, .logout-btn, .search-entry-btn { min-width: 50px; padding: 9px 8px 7px; }
   .today-btn { padding: 9px 20px; font-size: 15px; }
   .week-nav-wrap { gap: 8px; }
   .week-nav {
@@ -1173,7 +1196,7 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
   #nameReminderBanner.name-reminder-banner { margin-bottom: 22px; }
   #mainScheduleInner { margin-bottom: 0; }
   .main-card,
-  .notice-card,
+  .leader-card,
   .sermon-passage-card,
   .song-compact-card,
   .bible-search-card {
@@ -1574,6 +1597,51 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 .music-link-add-hint { font-size: 11px; color: var(--text-4); margin: -4px 0 8px; }
 .music-link-add-form-actions { display: flex; gap: 8px; margin-top: 4px; }
 .music-link-add-form-actions button { flex: 1; }
+
+/* ── Audio tools: loop / playlist toggles + prev/next ──── */
+.music-player-audio-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin: 10px 0 4px; }
+.audio-tool-btn {
+  display: flex; align-items: center; gap: 5px;
+  border: 1.5px solid var(--border-soft); background: var(--bg-subtle);
+  color: var(--text-3); border-radius: 20px; padding: 6px 12px; font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+}
+.audio-tool-btn i { font-size: 14px; }
+.audio-tool-btn.active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+
+/* ── Floating mini audio player (persists after closing the popup) ── */
+.floating-audio-bar {
+  position: fixed; left: 50%; bottom: 18px; z-index: 500;
+  transform: translateX(-50%) translateY(130%);
+  width: calc(100% - 32px); max-width: 388px;
+  background: #fff; border: 1px solid var(--border-soft); border-radius: 18px;
+  box-shadow: var(--shadow-lg); padding: 10px 14px 12px; display: flex; align-items: center; gap: 10px;
+  transition: transform 0.32s cubic-bezier(.2,.8,.2,1);
+}
+.floating-audio-bar.show { transform: translateX(-50%) translateY(0); }
+.floating-audio-bar-icon {
+  width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
+  background: var(--primary-light); color: var(--primary);
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.floating-audio-bar-icon.spin i { animation: floatingAudioSpin 3.2s linear infinite; }
+@keyframes floatingAudioSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.floating-audio-bar-info { flex: 1; min-width: 0; cursor: pointer; }
+.floating-audio-bar-title { font-size: 13px; font-weight: 600; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.floating-audio-bar-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.floating-audio-bar-btns { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.floating-audio-bar-btns button {
+  border: none; background: none; color: var(--text-2); font-size: 17px; padding: 5px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: inherit;
+}
+.floating-audio-bar-btns button:hover { color: var(--primary); }
+.floating-audio-bar-btns .fab-play { font-size: 21px; color: var(--primary); }
+.floating-audio-bar-btns .fab-close { font-size: 14px; color: var(--text-4); margin-left: 2px; }
+.floating-audio-bar-progress { position: absolute; left: 14px; right: 14px; bottom: 3px; height: 2px; background: var(--border-soft); border-radius: 2px; overflow: hidden; }
+.floating-audio-bar-progress-fill { height: 100%; width: 0%; background: var(--primary); }
+body.a11y-mode .floating-audio-bar { max-width: 460px; padding: 12px 16px 14px; }
+body.a11y-mode .floating-audio-bar-title { font-size: 14px; }
+body.a11y-mode .floating-audio-bar-sub { font-size: 12px; }
 
 /* ── Upload drawer: library tab switcher ───────────── */
 .upload-source-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
@@ -2555,6 +2623,10 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
       <div class="guest-badge" id="topbarGuestBadge"><i class="ti ti-user"></i>游客模式</div>
     </div>
     <div class="app-topbar-icons">
+      <!-- Search moved up from the header card for quicker access -->
+      <button class="search-entry-btn" id="searchEntryBtn" onclick="openSearchModal()" title="搜索人员排班" aria-label="搜索排班">
+        <i class="ti ti-search"></i><span class="tb-btn-label">搜索</span>
+      </button>
       <!-- Logged-out state: guest can log in here; leave requests now live in Settings -->
       <button class="login-entry-btn" id="loginEntryBtn" onclick="openLogin()" title="管理员登录" aria-label="管理员登录">
         <i class="ti ti-lock"></i><span class="tb-btn-label">登录</span>
@@ -2599,9 +2671,11 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 <!-- ── Header ────────────────────────────────────────── -->
 <div class="header-card" id="headerCard">
   <div class="date-info-card">
+    <div class="header-card-deco" aria-hidden="true"><img src="https://raw.githubusercontent.com/duijiao/schedule/6491a5d0398a45434e4b0cbef066ec70df3dabe9/time.png" alt=""></div>
     <div class="date-info-top" onclick="openMonthPicker()" title="选择月份">
       <div class="date-info-icon"><i class="ti ti-calendar-event"></i></div>
       <div class="header-date">
+        <div class="today-label">今天</div>
         <div class="date-info-date-row">
           <div class="day-num" id="hdrDay"></div>
           <span class="date-info-weekday-tag" id="hdrWeekdayTag">主日</span>
@@ -2613,9 +2687,6 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
         <div class="header-mini" id="hdrMini"></div>
       </div>
     </div>
-    <button class="header-search-entry" id="searchEntryBtn" onclick="openSearchModal()" title="搜索人员排班" aria-label="搜索排班">
-      <i class="ti ti-search"></i><span>搜索排班</span>
-    </button>
   </div>
   <div class="header-collapsible">
     <div class="week-nav-wrap">
@@ -3298,6 +3369,22 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
   </div>
 </div>
 
+<!-- ── Floating mini audio player: keeps playing after the popup is closed ── -->
+<div class="floating-audio-bar" id="floatingAudioBar">
+  <div class="floating-audio-bar-icon" id="floatingAudioIcon"><i class="ti ti-music"></i></div>
+  <div class="floating-audio-bar-info" onclick="reopenFloatingAudio()">
+    <div class="floating-audio-bar-title" id="floatingAudioTitle">—</div>
+    <div class="floating-audio-bar-sub" id="floatingAudioSub">—</div>
+  </div>
+  <div class="floating-audio-bar-btns">
+    <button id="floatingAudioPrevBtn" onclick="floatingAudioPrev()" title="上一个"><i class="ti ti-player-skip-back"></i></button>
+    <button class="fab-play" id="floatingAudioPlayBtn" onclick="toggleFloatingAudioPlay()" title="播放/暂停"><i class="ti ti-player-pause"></i></button>
+    <button id="floatingAudioNextBtn" onclick="floatingAudioNext()" title="下一个"><i class="ti ti-player-skip-forward"></i></button>
+    <button class="fab-close" onclick="stopFloatingAudio()" title="停止并关闭"><i class="ti ti-x"></i></button>
+  </div>
+  <div class="floating-audio-bar-progress"><div class="floating-audio-bar-progress-fill" id="floatingAudioProgressFill"></div></div>
+</div>
+
 <div class="modal-overlay" id="sermonPassageOverlay" onclick="closeSermonPassageEditor(event)">
   <div class="upload-modal" onclick="event.stopPropagation()">
     <div class="picker-handle"></div>
@@ -3731,6 +3818,10 @@ function findSongLibEntryByTitle(title) {
 function getMusicLinksForTitle(title) {
   const s = findSongLibEntryByTitle(title);
   return s?.music || [];
+}
+// 仅取"音频文件"类型的链接（用于列表播放/上一个/下一个，跳过 YouTube、外部链接）
+function getAudioLinksForTitle(title) {
+  return getMusicLinksForTitle(title).filter(l => detectMusicPlatform(l.url) === 'audio');
 }
 function detectMusicPlatform(url) {
   const u = (url || '').toLowerCase();
@@ -4445,11 +4536,14 @@ function renderNotice(key){
   const sec=document.getElementById('noticeSection');
   const d=selectedSunday, dateStr=`${d.getMonth()+1}月${d.getDate()}日（周日）`;
   const data=getNoticeForKey(key);
-  const text=`本周主理：${data.leader} ｜ 证道：${data.sermon} ｜ 祷告：${data.prayer}`;
   sec.innerHTML=`
-    <div class="notice-card" onclick="openNoticeDetail('${key}','${dateStr}')">
-      <div class="notice-icon-wrap"><i class="ti ti-bell"></i></div>
-      <span class="notice-text"><span class="notice-text-inner">${text}</span></span>
+    <div class="leader-card" onclick="openNoticeDetail('${key}','${dateStr}')">
+      <div class="leader-avatar"><i class="ti ti-user"></i></div>
+      <div class="leader-info">
+        <div class="leader-info-top"><i class="ti ti-pray leader-crown"></i><span class="leader-info-label">本周祷告</span></div>
+        <div class="leader-name">${escapeHtml(data.prayer)}</div>
+      </div>
+      <button class="leader-detail-btn" onclick="event.stopPropagation();openNoticeDetail('${key}','${dateStr}')">查看详情</button>
     </div>`;
 }
 function openNoticeDetail(key,dateStr){
@@ -4480,21 +4574,19 @@ function renderSongs(key){
   const songs=songData[key]||[];
   const songTitle=getRelativeWeekSectionTitle(selectedSunday,'诗歌');
   const uploadBtn=`<button class="song-compact-icon-btn ${isAdmin?'show':''}" onclick="openUploadSong('${key}')" title="上传诗歌"><i class="ti ti-upload"></i></button>`;
-  const headerActions=`<div class="song-compact-header-actions">
-      <button class="section-view-all-link" onclick="openSongLibrary()"><span>查看全部</span><i class="ti ti-chevron-right"></i></button>
-      ${uploadBtn}
-    </div>`;
   const header=`<div class="section-title-row">
       <div class="sermon-section-head-left">
         <div class="song-section-icon"><i class="ti ti-music"></i></div>
         <span class="section-ttl">${songTitle}</span>
       </div>
-      ${headerActions}
+      ${uploadBtn}
     </div>`;
+  const viewAllLink='';
   if(!songs.length){
     sec.innerHTML=`<div class="song-compact-card">
       ${header}
       <div class="song-empty" style="margin-bottom:0"><i class="ti ti-music-off"></i>${songTitle}暂无上传</div>
+      ${viewAllLink}
     </div>`;
     return;
   }
@@ -4510,6 +4602,7 @@ function renderSongs(key){
   sec.innerHTML=`<div class="song-compact-card">
     ${header}
     <div class="song-compact-list">${rows}</div>
+    ${viewAllLink}
   </div>`;
 }
 
@@ -5248,19 +5341,145 @@ async function saveSourceEdit(){
 // ── 音乐播放弹窗：为某首诗歌挑选平台链接在线收听 ─────────
 let musicPlayerSongTitle = '';
 let musicPlayerActiveId = null;
+
+// ── 全局持久 <audio> 元素：支撑"单曲循环 / 列表播放 / 关闭弹窗后悬浮播放" ──
+let globalAudioEl = null;      // 唯一的音频播放实例，跨弹窗/悬浮条复用，移动 DOM 节点不会打断播放
+let loadedAudioLinkId = null;  // 当前已加载到 globalAudioEl 里的链接 id
+let audioRepeatOne = false;    // 单曲循环
+let audioPlaylistMode = false; // 列表循环播放（播完自动接播下一个音频，到末尾回到第一个）
+let floatingAudioVisible = false; // 悬浮播放条是否展示中
+
+function ensureGlobalAudioEl() {
+  if (globalAudioEl) return globalAudioEl;
+  const el = document.createElement('audio');
+  el.id = 'globalAudioEl';
+  el.style.width = '100%';
+  el.preload = 'auto';
+  el.addEventListener('ended', onGlobalAudioEnded);
+  el.addEventListener('play', updateFloatingAudioPlayState);
+  el.addEventListener('pause', updateFloatingAudioPlayState);
+  el.addEventListener('timeupdate', updateFloatingAudioProgress);
+  document.body.appendChild(el);
+  globalAudioEl = el;
+  return el;
+}
+function onGlobalAudioEnded() {
+  // 注意：当 loop=true（单曲循环）时浏览器不会触发 ended 事件，因此这里只处理列表播放的场景
+  if (audioPlaylistMode) playAdjacentAudioLink(1);
+}
+function toggleAudioRepeatOne() {
+  audioRepeatOne = !audioRepeatOne;
+  if (audioRepeatOne) audioPlaylistMode = false;
+  if (globalAudioEl) globalAudioEl.loop = audioRepeatOne;
+  renderMusicPlayerBody();
+}
+function toggleAudioPlaylistMode() {
+  audioPlaylistMode = !audioPlaylistMode;
+  if (audioPlaylistMode) { audioRepeatOne = false; if (globalAudioEl) globalAudioEl.loop = false; }
+  renderMusicPlayerBody();
+}
+// 在当前诗歌的"音频文件"链接间切换到上一个/下一个，到边界时循环回绕
+function playAdjacentAudioLink(dir) {
+  const audioLinks = getAudioLinksForTitle(musicPlayerSongTitle);
+  if (audioLinks.length < 2) return;
+  const curIdx = audioLinks.findIndex(l => l.id === loadedAudioLinkId);
+  let nextIdx = (curIdx === -1 ? 0 : curIdx + dir);
+  if (nextIdx < 0) nextIdx = audioLinks.length - 1;
+  if (nextIdx >= audioLinks.length) nextIdx = 0;
+  musicPlayerActiveId = audioLinks[nextIdx].id;
+  renderMusicPlayerBody();
+  if (floatingAudioVisible) showFloatingAudioBar();
+}
+function renderAudioToolsHtml() {
+  const audioLinks = getAudioLinksForTitle(musicPlayerSongTitle);
+  const hasMultiple = audioLinks.length > 1;
+  return `<div class="music-player-audio-tools">
+    <button class="audio-tool-btn${audioRepeatOne ? ' active' : ''}" onclick="toggleAudioRepeatOne()" title="单曲循环播放"><i class="ti ti-repeat-once"></i>循环播放</button>
+    ${hasMultiple ? `<button class="audio-tool-btn${audioPlaylistMode ? ' active' : ''}" onclick="toggleAudioPlaylistMode()" title="列表循环播放"><i class="ti ti-repeat"></i>列表播放</button>
+    <button class="audio-tool-btn" onclick="playAdjacentAudioLink(-1)" title="上一个音频"><i class="ti ti-player-skip-back"></i>上一个</button>
+    <button class="audio-tool-btn" onclick="playAdjacentAudioLink(1)" title="下一个音频"><i class="ti ti-player-skip-forward"></i>下一个</button>` : ''}
+  </div>`;
+}
+
+// ── 悬浮播放条：关闭音乐弹窗后，若音频仍在播放则不中断，改为悬浮显示 ──
+function showFloatingAudioBar() {
+  const bar = document.getElementById('floatingAudioBar');
+  if (!bar || !loadedAudioLinkId || !globalAudioEl) return;
+  globalAudioEl.style.display = 'none';
+  bar.appendChild(globalAudioEl); // 只是移动 DOM 节点，不会打断播放
+  document.getElementById('floatingAudioTitle').textContent = musicPlayerSongTitle || '未知诗歌';
+  const link = getMusicLinksForTitle(musicPlayerSongTitle).find(l => l.id === loadedAudioLinkId);
+  document.getElementById('floatingAudioSub').textContent = link?.label || '音频播放中';
+  const audioLinks = getAudioLinksForTitle(musicPlayerSongTitle);
+  const hasMultiple = audioLinks.length > 1;
+  document.getElementById('floatingAudioPrevBtn').style.display = hasMultiple ? '' : 'none';
+  document.getElementById('floatingAudioNextBtn').style.display = hasMultiple ? '' : 'none';
+  updateFloatingAudioPlayState();
+  updateFloatingAudioProgress();
+  bar.classList.add('show');
+  floatingAudioVisible = true;
+}
+function hideFloatingAudioBar() {
+  const bar = document.getElementById('floatingAudioBar');
+  if (bar) bar.classList.remove('show');
+  floatingAudioVisible = false;
+}
+function stopFloatingAudio() {
+  if (globalAudioEl) globalAudioEl.pause();
+  loadedAudioLinkId = null;
+  hideFloatingAudioBar();
+}
+function toggleFloatingAudioPlay() {
+  if (!globalAudioEl) return;
+  if (globalAudioEl.paused) globalAudioEl.play().catch(() => {}); else globalAudioEl.pause();
+}
+function updateFloatingAudioPlayState() {
+  const btn = document.getElementById('floatingAudioPlayBtn');
+  if (!btn) return;
+  const playing = globalAudioEl && !globalAudioEl.paused;
+  btn.innerHTML = playing ? '<i class="ti ti-player-pause"></i>' : '<i class="ti ti-player-play"></i>';
+  const icon = document.getElementById('floatingAudioIcon');
+  if (icon) icon.classList.toggle('spin', !!playing);
+}
+function updateFloatingAudioProgress() {
+  const fill = document.getElementById('floatingAudioProgressFill');
+  if (!fill) return;
+  if (!globalAudioEl || !globalAudioEl.duration) { fill.style.width = '0%'; return; }
+  fill.style.width = `${(globalAudioEl.currentTime / globalAudioEl.duration) * 100}%`;
+}
+function floatingAudioNext() { playAdjacentAudioLink(1); }
+function floatingAudioPrev() { playAdjacentAudioLink(-1); }
+// 点击悬浮条主体：重新打开该诗歌的音乐弹窗（继续播放，不会重新开始）
+function reopenFloatingAudio() {
+  if (musicPlayerSongTitle) openMusicPlayer(musicPlayerSongTitle);
+}
+
 function openMusicPlayer(title) {
+  // 若悬浮播放条正在播放"同一首诗歌"，重新打开弹窗时保持在当前播放的链接上，不从头重置
+  const resuming = floatingAudioVisible && musicPlayerSongTitle === title && loadedAudioLinkId;
   musicPlayerSongTitle = title;
   const links = getMusicLinksForTitle(title);
-  musicPlayerActiveId = links[0]?.id || null;
+  if (resuming && links.find(l => l.id === loadedAudioLinkId)) {
+    musicPlayerActiveId = loadedAudioLinkId;
+  } else {
+    musicPlayerActiveId = links[0]?.id || null;
+  }
   document.getElementById('musicPlayerTitle').textContent = title;
   closeMusicLinkAddForm();
+  hideFloatingAudioBar();
   renderMusicPlayerBody();
   document.getElementById('musicPlayerOverlay').classList.add('open');
 }
 function closeMusicPlayer(e) {
   if (e && e.target !== e.currentTarget) return;
   document.getElementById('musicPlayerOverlay').classList.remove('open');
-  document.getElementById('musicPlayerStage').innerHTML = '';
+  closeMusicLinkAddForm();
+  if (loadedAudioLinkId && globalAudioEl) {
+    // 音频还在播放：不销毁，转为悬浮显示继续收听
+    showFloatingAudioBar();
+  } else {
+    document.getElementById('musicPlayerStage').innerHTML = '';
+  }
 }
 function renderMusicPlayerBody() {
   const links = getMusicLinksForTitle(musicPlayerSongTitle);
@@ -5295,9 +5514,23 @@ function renderMusicStage() {
       ? `<div class="music-player-embed-wrap"><iframe src="${embed}" title="${escapeHtml(musicPlayerSongTitle)}" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
       : `<div class="music-player-empty"><i class="ti ti-alert-circle"></i>无法解析该 YouTube 链接${safeUrl ? `<br><a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">在新标签页打开</a>` : ''}</div>`;
   } else if (platform === 'audio') {
-    stage.innerHTML = safeUrl
-      ? `<audio controls autoplay style="width:100%" src="${escapeHtml(safeUrl)}"></audio>`
-      : `<div class="music-player-empty"><i class="ti ti-alert-circle"></i>音频链接无效</div>`;
+    if (safeUrl) {
+      const audioEl = ensureGlobalAudioEl();
+      audioEl.controls = true;
+      audioEl.style.display = '';
+      audioEl.loop = audioRepeatOne;
+      stage.innerHTML = '';
+      stage.appendChild(audioEl);
+      stage.insertAdjacentHTML('beforeend', renderAudioToolsHtml());
+      if (loadedAudioLinkId !== link.id) {
+        audioEl.src = safeUrl;
+        loadedAudioLinkId = link.id;
+        audioEl.play().catch(() => {});
+      }
+    } else {
+      loadedAudioLinkId = null;
+      stage.innerHTML = `<div class="music-player-empty"><i class="ti ti-alert-circle"></i>音频链接无效</div>`;
+    }
   } else {
     stage.innerHTML = `<div class="music-player-empty"><i class="ti ti-external-link"></i>该链接暂不支持内嵌播放${safeUrl ? `<br><a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">在新标签页打开收听</a>` : ''}</div>`;
   }
@@ -5348,6 +5581,11 @@ async function deleteMusicLink(id) {
   s.music = (s.music || []).filter(m => m.id !== id);
   persistSongLibrary();
   if (musicPlayerActiveId === id) musicPlayerActiveId = s.music[0]?.id || null;
+  if (loadedAudioLinkId === id) {
+    if (globalAudioEl) globalAudioEl.pause();
+    loadedAudioLinkId = null;
+    hideFloatingAudioBar();
+  }
   renderMusicPlayerBody();
   renderSongLibraryGrid();
   showToast('已删除音乐链接');
@@ -5813,7 +6051,7 @@ function render(){
   if(scheduleLabel) scheduleLabel.textContent=getRelativeWeekSectionTitle(d,'排班');
   // Sunday pills
   const nav=document.getElementById('sundayNav'); nav.innerHTML='';
-  sundays.forEach(s=>{ const a=s.toDateString()===d.toDateString(); const p=document.createElement('div'); p.className='sunday-pill'+(a?' active':''); p.innerHTML=`<span class="s-num">${s.getDate()}</span><span class="s-label">主日</span>`; p.onclick=()=>{selectedSunday=s;render();}; nav.appendChild(p); });
+  sundays.forEach(s=>{ const a=s.toDateString()===d.toDateString(); const p=document.createElement('div'); p.className='sunday-pill'+(a?' active':''); p.innerHTML=`<span class="s-num">${s.getDate()}</span><span class="s-label">主日</span>${a?'<span class="s-dot"></span>':''}`; p.onclick=()=>{selectedSunday=s;render();}; nav.appendChild(p); });
   const key=toKey(d);
   renderNotice(key);
   renderSermonPassages(key);
@@ -8156,6 +8394,7 @@ function showToast(msg, duration=2000) {
   }
   toast.textContent = msg;
   toast.style.opacity = '1';
+  toast.style.bottom = floatingAudioVisible ? '150px' : '80px';
   clearTimeout(toast._timer);
   toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, duration);
 }
