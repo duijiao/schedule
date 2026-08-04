@@ -3084,6 +3084,18 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
       </div>
     </div>
 
+    <!-- 诗歌库音乐存储（仅管理员） -->
+    <div class="settings-section admin-only-section" id="songLibStorageSection" style="display:none">
+      <div class="settings-section-title">🎵 诗歌库音乐存储（管理员）</div>
+      <div class="settings-card" style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:12px;color:#999;margin-bottom:2px">配置一个 Supabase 项目专门存放 mp3 文件，添加音乐链接时可直接上传，会自动使用这里配置的账号，不影响主排班数据</div>
+        <input type="text" id="songLibSbUrl" placeholder="Supabase Project URL，如 https://xxxx.supabase.co" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;font-family:inherit">
+        <input type="text" id="songLibSbAnonKey" placeholder="Supabase anon public key" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;font-family:inherit">
+        <input type="text" id="songLibSbBucket" placeholder="Storage bucket 名称（默认 songs）" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;font-family:inherit">
+        <button class="btn-save" style="align-self:flex-start;padding:6px 14px" onclick="saveSongLibStorageConfig()"><i class="ti ti-check" style="font-size:14px;margin-right:4px"></i>保存存储配置</button>
+      </div>
+    </div>
+
     <!-- 数据管理 -->
     <div class="settings-section">
       <div class="settings-section-title">⚠️ 数据管理</div>
@@ -3268,6 +3280,11 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
       <input type="text" id="musicLinkAddLabel" placeholder="链接说明（可选，如：YouTube 官方MV、伴奏mp3）">
       <input type="text" id="musicLinkAddUrl" placeholder="粘贴音乐链接（YouTube、mp3直链等）">
       <div class="music-link-add-hint">支持 YouTube 视频链接、mp3/m4a 等音频直链，或其他可在线播放的链接</div>
+      <label class="music-link-upload-row" style="display:flex;align-items:center;gap:8px;font-size:12px;color:#888;border:1px dashed #ddd;border-radius:8px;padding:8px 10px;cursor:pointer">
+        <i class="ti ti-upload"></i>
+        <span>或直接上传 mp3 文件（自动上传到诗歌库存储，上传后自动填入上方链接）</span>
+        <input type="file" id="musicLinkMp3File" accept="audio/mpeg,audio/mp4,audio/x-m4a,.mp3,.m4a" style="display:none" onchange="handleMusicLinkMp3Select(this)">
+      </label>
       <div class="leave-form-error" id="musicLinkAddError">请输入音乐链接</div>
       <div class="music-link-add-form-actions">
         <button class="btn-cancel" onclick="closeMusicLinkAddForm()">取消</button>
@@ -3510,6 +3527,96 @@ function loadSongLibrary() {
 }
 function persistSongLibrary() {
   try { localStorage.setItem(LS_SONG_LIBRARY, JSON.stringify(songLibrary)); } catch (e) {}
+}
+// ── 诗歌库专属 Supabase 存储配置（仅管理员可修改，用于 mp3 上传）──
+const LS_SONGLIB_SB_CONFIG = 'churchSongLibSbConfig';
+let songLibSupabaseConfig = { url: '', anonKey: '', bucket: 'songs' };
+let songLibSupabaseClient = null;
+let songLibSupabaseClientKey = '';
+function normalizeSongLibSbConfig(raw) {
+  const o = raw && typeof raw === 'object' ? raw : {};
+  return {
+    url: typeof o.url === 'string' ? o.url.trim() : '',
+    anonKey: typeof o.anonKey === 'string' ? o.anonKey.trim() : '',
+    bucket: (typeof o.bucket === 'string' && o.bucket.trim()) ? o.bucket.trim() : 'songs',
+  };
+}
+function loadSongLibSupabaseConfig() {
+  try {
+    const raw = localStorage.getItem(LS_SONGLIB_SB_CONFIG);
+    songLibSupabaseConfig = normalizeSongLibSbConfig(raw ? JSON.parse(raw) : {});
+  } catch (e) { songLibSupabaseConfig = normalizeSongLibSbConfig({}); }
+}
+function persistSongLibSupabaseConfig() {
+  try { localStorage.setItem(LS_SONGLIB_SB_CONFIG, JSON.stringify(songLibSupabaseConfig)); } catch (e) {}
+}
+function getSongLibSupabaseClient() {
+  const cfg = songLibSupabaseConfig;
+  if (!cfg.url || !cfg.anonKey || !window.supabase) return null;
+  const key = cfg.url + '|' + cfg.anonKey;
+  if (!songLibSupabaseClient || songLibSupabaseClientKey !== key) {
+    songLibSupabaseClient = window.supabase.createClient(cfg.url, cfg.anonKey);
+    songLibSupabaseClientKey = key;
+  }
+  return songLibSupabaseClient;
+}
+function fillSongLibStorageSettingsInputs() {
+  const u = document.getElementById('songLibSbUrl');
+  const k = document.getElementById('songLibSbAnonKey');
+  const b = document.getElementById('songLibSbBucket');
+  if (u) u.value = songLibSupabaseConfig.url || '';
+  if (k) k.value = songLibSupabaseConfig.anonKey || '';
+  if (b) b.value = songLibSupabaseConfig.bucket || 'songs';
+}
+async function saveSongLibStorageConfig() {
+  if (!isAdmin) return;
+  const url = (document.getElementById('songLibSbUrl').value || '').trim();
+  const anonKey = (document.getElementById('songLibSbAnonKey').value || '').trim();
+  const bucket = (document.getElementById('songLibSbBucket').value || '').trim() || 'songs';
+  songLibSupabaseConfig = normalizeSongLibSbConfig({ url, anonKey, bucket });
+  songLibSupabaseClient = null; // 强制用新配置重新建立连接
+  persistSongLibSupabaseConfig();
+  showToast('✅ 诗歌库存储配置已保存');
+  try { await syncRemoteField('song_lib_storage_config', songLibSupabaseConfig); } catch (e) {}
+}
+async function uploadMusicMp3File(file) {
+  const client = getSongLibSupabaseClient();
+  if (!client) throw new Error('尚未配置诗歌库 Supabase 存储，请联系管理员在"设置"中配置');
+  const bucket = songLibSupabaseConfig.bucket || 'songs';
+  const safeName = file.name.replace(/[^\w.\-\u4e00-\u9fa5]/g, '_');
+  const filePath = `${Date.now()}_${safeName}`;
+  const { error } = await client.storage.from(bucket).upload(filePath, file, {
+    contentType: file.type || 'audio/mpeg',
+    upsert: true,
+  });
+  if (error) throw new Error(error.message || '上传失败');
+  const { data } = client.storage.from(bucket).getPublicUrl(filePath);
+  return data.publicUrl;
+}
+async function handleMusicLinkMp3Select(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const errEl = document.getElementById('musicLinkAddError');
+  const urlInput = document.getElementById('musicLinkAddUrl');
+  const labelInput = document.getElementById('musicLinkAddLabel');
+  errEl.classList.remove('show');
+  urlInput.disabled = true;
+  const prevPlaceholder = urlInput.placeholder;
+  urlInput.value = '';
+  urlInput.placeholder = '⏳ 正在上传 mp3…';
+  try {
+    const publicUrl = await uploadMusicMp3File(file);
+    urlInput.value = publicUrl;
+    if (!labelInput.value.trim()) labelInput.value = file.name.replace(/\.[^.]+$/, '');
+    showToast('✅ mp3 上传成功');
+  } catch (e) {
+    errEl.textContent = e.message || '上传失败，请检查诗歌库存储设置';
+    errEl.classList.add('show');
+  } finally {
+    urlInput.disabled = false;
+    urlInput.placeholder = prevPlaceholder;
+    input.value = '';
+  }
 }
 function genSongLibId() {
   return Date.now() + '_' + Math.random().toString(36).slice(2, 8);
@@ -4392,12 +4499,10 @@ function renderSongs(key){
     return;
   }
   const rows=songs.map((s,i)=>{
-    const safeTitle=escapeHtml(s.title).replace(/'/g,"\\'");
     return `<div class="song-compact-row">
       <div class="song-compact-num">${i+1}</div>
       <div class="song-compact-title" title="${escapeHtml(s.title)}" onclick="${s.src?`openLightbox('${key}',${i})`:''}">${escapeHtml(s.title)}</div>
       <div class="song-compact-actions">
-        <button class="song-compact-btn" onclick="openMusicPlayer('${safeTitle}')" title="播放音乐"><i class="ti ti-player-play"></i><span>播放</span></button>
         <button class="song-compact-btn ghost" onclick="downloadSongDirect('${key}',${i})" ${s.src?'':'disabled'}><i class="ti ti-download"></i><span>下载</span></button>
       </div>
     </div>`;
@@ -6907,6 +7012,12 @@ function openSettings() {
   document.getElementById('a11yToggle').checked = settings.a11yMode;
   // sync color picker
   document.getElementById('customColorPicker').value = settings.primaryColor;
+  // 诗歌库存储配置：仅管理员可见
+  const songLibSec = document.getElementById('songLibStorageSection');
+  if (songLibSec) {
+    songLibSec.style.display = isAdmin ? '' : 'none';
+    if (isAdmin) fillSongLibStorageSettingsInputs();
+  }
   document.getElementById('settingsOverlay').classList.add('open');
 }
 
@@ -8211,6 +8322,7 @@ function getSharedAppStateSnapshot() {
     leave_requests: normalizeLeaveRequests(leaveRequests),
     song_library: normalizeSongLibrary(songLibrary),
     reminder_subscribers: normalizeReminderSubscribers(reminderSubscribers),
+    song_lib_storage_config: normalizeSongLibSbConfig(songLibSupabaseConfig),
   };
 }
 
@@ -8232,6 +8344,11 @@ function applyRemoteAppState(row) {
   }
   if (row && row.reminder_subscribers !== undefined) {
     reminderSubscribers = normalizeReminderSubscribers(row.reminder_subscribers);
+  }
+  if (row && row.song_lib_storage_config !== undefined) {
+    songLibSupabaseConfig = normalizeSongLibSbConfig(row.song_lib_storage_config);
+    songLibSupabaseClient = null;
+    persistSongLibSupabaseConfig();
   }
   updateLeaveBadge();
 }
@@ -8741,6 +8858,7 @@ async function bootstrapApp() {
   loadSermonCollapsed();
   loadLeaveRequests();
   loadSongLibrary();
+  loadSongLibSupabaseConfig();
   loadSettings();
   applySettingsToDOM();
   syncResponsiveLayout();
