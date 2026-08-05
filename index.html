@@ -1322,14 +1322,74 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
   cursor: pointer; font-family: inherit; white-space: nowrap;
 }
 .song-lib-entry-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
-.song-lib-modal {
-  width: 100%; max-width: 560px; background: #fff;
-  border-radius: 24px 24px 0 0; padding: 20px 20px 28px; animation: slideUp 0.25s ease;
-  max-height: 88vh; overflow: hidden; display: flex; flex-direction: column;
+.song-lib-page {
+  display: none; position: fixed; inset: 0; z-index: 350; background: #fff;
+  flex-direction: column;
 }
+.song-lib-page.open { display: flex; animation: songLibSlideIn 0.22s ease; }
+@keyframes songLibSlideIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.song-lib-page-top {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  padding: 14px 10px; padding-top: max(14px, env(safe-area-inset-top));
+  border-bottom: 1px solid var(--border-soft);
+  position: relative; justify-content: space-between;
+}
+.song-lib-back-btn, .song-lib-page-search-btn {
+  width: 34px; height: 34px; border-radius: 50%; border: none; background: none;
+  color: var(--text-2); display: flex; align-items: center; justify-content: center;
+  font-size: 19px; cursor: pointer; flex-shrink: 0; transition: background 0.15s;
+}
+.song-lib-back-btn:hover, .song-lib-page-search-btn:hover { background: var(--bg-subtle); }
+.song-lib-page-search-btn.active { background: var(--primary-light); color: var(--primary); }
+.song-lib-page-top-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.song-lib-page-title {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  text-align: center; font-size: 16px; font-weight: 700; color: var(--text-1);
+  pointer-events: none; white-space: nowrap;
+}
+/* Tabs: 全部 / 我的收藏 / 最近使用 */
+.song-lib-tabs { display: flex; gap: 4px; padding: 10px 16px 0; flex-shrink: 0; border-bottom: 1px solid var(--border-soft); }
+.song-lib-tab {
+  flex: 1; text-align: center; background: none; border: none; font-family: inherit;
+  font-size: 13.5px; font-weight: 600; color: var(--text-3); padding: 8px 4px 10px; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s;
+}
+.song-lib-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.song-lib-page-body { flex: 1; min-height: 0; display: flex; }
+.song-lib-sidebar {
+  width: 76px; flex-shrink: 0; overflow-y: auto; background: var(--bg-subtle);
+  border-right: 1px solid var(--border-soft); padding: 6px 0;
+}
+.song-lib-sidebar-item {
+  display: block; width: 100%; text-align: center; background: none; border: none;
+  border-left: 3px solid transparent; color: var(--text-3); font-family: inherit;
+  font-size: 12.5px; font-weight: 500; line-height: 1.4; padding: 13px 4px; cursor: pointer;
+  position: relative;
+}
+.song-lib-sidebar-item.active { border-left-color: var(--primary); color: var(--primary); font-weight: 700; background: #fff; }
+.song-lib-sidebar-item-del {
+  position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 50%;
+  border: none; background: rgba(0,0,0,0.08); color: var(--text-4); font-size: 9px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.song-lib-sidebar-item-del:hover { background: #f5d3d3; color: #a32d2d; }
+.song-lib-sidebar-add-btn {
+  display: flex; align-items: center; justify-content: center; gap: 3px; flex-wrap: wrap;
+  width: calc(100% - 8px); margin: 6px 4px 0; padding: 8px 2px;
+  border: 1px dashed rgba(0,0,0,0.18); border-radius: 8px; background: none;
+  color: var(--text-3); font-size: 11px; cursor: pointer; font-family: inherit;
+}
+.song-lib-sidebar-add-btn:hover { border-color: var(--primary); color: var(--primary); }
+.song-lib-sidebar-add-btn i { font-size: 13px; }
+.song-lib-main { flex: 1; min-width: 0; overflow-y: auto; padding: 14px 16px 24px; }
 .song-lib-title { font-size: 16px; font-weight: 600; color: var(--text-1); text-align: center; margin-bottom: 4px; flex-shrink: 0; }
 .song-lib-sub { font-size: 12px; color: var(--text-3); text-align: center; margin-bottom: 16px; flex-shrink: 0; }
-.song-lib-search-wrap { position: relative; margin-bottom: 14px; flex-shrink: 0; }
+.song-lib-search-wrap {
+  position: relative; flex-shrink: 0; overflow: hidden;
+  max-height: 0; opacity: 0; margin-bottom: 0;
+  transition: max-height 0.22s ease, opacity 0.18s ease, margin-bottom 0.22s ease;
+}
+.song-lib-search-wrap.open { max-height: 60px; opacity: 1; margin-bottom: 14px; }
 .song-lib-search-input {
   width: 100%; padding: 10px 36px; border: 1.5px solid rgba(0,0,0,0.1);
   border-radius: 12px; font-size: 13px; color: var(--text-1); outline: none;
@@ -1343,6 +1403,7 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
   color: var(--text-3); cursor: pointer; display: none; align-items: center; justify-content: center; font-size: 12px;
 }
 .song-lib-search-clear.visible { display: flex; }
+mark.song-lib-hl { background: var(--primary-light); color: var(--primary); font-weight: 700; border-radius: 3px; padding: 0 1px; }
 .song-lib-add-btn {
   display: flex; align-items: center; justify-content: center; gap: 6px;
   width: 100%; padding: 10px; margin-bottom: 12px; flex-shrink: 0;
@@ -1384,8 +1445,7 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 .song-lib-import-hint i:last-child { font-size: 14px; flex-shrink: 0; opacity: 0.7; }
 .song-lib-grid {
   display: flex; flex-direction: column; gap: 8px;
-  overflow-y: auto; padding: 2px 2px 10px;
-  flex: 1; min-height: 0;
+  padding: 2px 2px 10px;
 }
 .song-lib-card {
   display: flex; align-items: center; gap: 10px;
@@ -1542,16 +1602,35 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 .song-lib-usage-item i { color: var(--primary); font-size: 14px; }
 .song-lib-usage-empty { font-size: 12px; color: var(--text-4); text-align: center; padding: 1rem 0; }
 
-/* ── Song library card: inline play button ─────────── */
-.song-lib-card { position: relative; }
+/* ── Song library card: number badge + play/favorite actions ─────── */
+.song-lib-card-num {
+  width: 20px; flex-shrink: 0; text-align: center;
+  font-size: 13px; font-weight: 700; color: var(--text-3);
+}
+.song-lib-card-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .song-lib-card-play-btn {
-  position: absolute; top: 10px; right: 10px; z-index: 2;
   display: flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px; border-radius: 50%; border: none;
-  background: rgba(255,255,255,0.92); color: var(--primary); box-shadow: var(--shadow-sm);
+  width: 30px; height: 30px; border-radius: 50%; border: none; flex-shrink: 0;
+  background: #fff; color: var(--primary); box-shadow: var(--shadow-sm);
   cursor: pointer; font-size: 14px;
 }
 .song-lib-card-play-btn:hover { background: var(--primary); color: #fff; }
+.song-lib-card-fav-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%; border: none; flex-shrink: 0;
+  background: none; color: var(--text-4); cursor: pointer; font-size: 17px;
+}
+.song-lib-card-fav-btn:hover { color: #e0645f; }
+.song-lib-card-fav-btn.active { color: var(--primary); }
+
+/* ── Song library detail: title row + favorite toggle ────────────── */
+.song-lib-detail-title-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px; }
+.song-lib-detail-title-row .song-lib-detail-title { margin-bottom: 0; }
+.song-lib-detail-fav-btn {
+  background: none; border: none; color: var(--text-4); font-size: 20px;
+  cursor: pointer; padding: 2px; flex-shrink: 0; line-height: 1;
+}
+.song-lib-detail-fav-btn.active { color: var(--primary); }
 
 /* ── Music player modal ─────────────────────────────── */
 .music-player-modal {
@@ -1572,6 +1651,8 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 .music-link-chip.active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
 .music-link-chip-del { background: none; border: none; color: inherit; opacity: 0.55; padding: 0; font-size: 12px; cursor: pointer; flex-shrink: 0; }
 .music-link-chip-del:hover { opacity: 1; color: #e74c3c; }
+.music-link-chip-edit { background: none; border: none; color: inherit; opacity: 0.55; padding: 0; font-size: 12px; cursor: pointer; flex-shrink: 0; }
+.music-link-chip-edit:hover { opacity: 1; color: var(--primary); }
 .music-link-add-chip {
   display: flex; align-items: center; gap: 4px; border: 1.5px dashed var(--border-soft); background: none;
   color: var(--text-3); border-radius: 20px; padding: 6px 12px; font-size: 12px; font-weight: 500;
@@ -1615,10 +1696,11 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
   transform: translateX(-50%) translateY(130%);
   width: calc(100% - 32px); max-width: 388px;
   background: #fff; border: 1px solid var(--border-soft); border-radius: 18px;
-  box-shadow: var(--shadow-lg); padding: 10px 14px 12px; display: flex; align-items: center; gap: 10px;
+  box-shadow: var(--shadow-lg); padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 8px;
   transition: transform 0.32s cubic-bezier(.2,.8,.2,1);
 }
 .floating-audio-bar.show { transform: translateX(-50%) translateY(0); }
+.floating-audio-bar-main { display: flex; align-items: center; gap: 10px; }
 .floating-audio-bar-icon {
   width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
   background: var(--primary-light); color: var(--primary);
@@ -1637,7 +1719,15 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 .floating-audio-bar-btns button:hover { color: var(--primary); }
 .floating-audio-bar-btns .fab-play { font-size: 21px; color: var(--primary); }
 .floating-audio-bar-btns .fab-close { font-size: 14px; color: var(--text-4); margin-left: 2px; }
-.floating-audio-bar-progress { position: absolute; left: 14px; right: 14px; bottom: 3px; height: 2px; background: var(--border-soft); border-radius: 2px; overflow: hidden; }
+.floating-audio-bar-modes { display: flex; gap: 6px; padding-left: 46px; }
+.floating-audio-mode-btn {
+  display: flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 20px;
+  border: 1px solid rgba(0,0,0,0.1); background: #fff; color: var(--text-3);
+  font-size: 11px; cursor: pointer; font-family: inherit;
+}
+.floating-audio-mode-btn i { font-size: 12px; }
+.floating-audio-mode-btn.active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+.floating-audio-bar-progress { position: relative; height: 2px; background: var(--border-soft); border-radius: 2px; overflow: hidden; }
 .floating-audio-bar-progress-fill { height: 100%; width: 0%; background: var(--primary); }
 body.a11y-mode .floating-audio-bar { max-width: 460px; padding: 12px 16px 14px; }
 body.a11y-mode .floating-audio-bar-title { font-size: 14px; }
@@ -3234,28 +3324,32 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
 </div>
 
 <!-- ── Song library: browse & search ─────────────────────── -->
-<div class="modal-overlay" id="songLibraryOverlay" onclick="closeSongLibrary(event)">
-  <div class="song-lib-modal modal-has-close-btn" onclick="event.stopPropagation()">
-    <button class="modal-close-btn" onclick="closeSongLibrary()" aria-label="关闭"><i class="ti ti-x"></i></button>
-    <div class="picker-handle"></div>
-    <div class="song-lib-title">歌单库</div>
-    <div class="song-lib-sub">收录历史使用过的诗歌，点击可查看使用记录</div>
-    <div class="song-lib-import-hint" id="songLibImportHint" onclick="importHistoricalSongs()">
-      <i class="ti ti-download"></i>
-      <span id="songLibImportHintText">检测到 <strong id="songLibImportCount">0</strong> 首历史诗歌还未收录，点击一键导入</span>
-      <i class="ti ti-chevron-right"></i>
+<div class="song-lib-page" id="songLibraryOverlay">
+  <div class="song-lib-page-top">
+    <button class="song-lib-back-btn" onclick="closeSongLibrary()" aria-label="返回"><i class="ti ti-arrow-left"></i></button>
+    <div class="song-lib-page-title">诗歌库</div>
+    <div class="song-lib-page-top-right">
+      <button class="song-lib-page-search-btn" onclick="openSongLibAdd()" title="上传诗歌" aria-label="上传诗歌"><i class="ti ti-upload"></i></button>
+      <button class="song-lib-page-search-btn" id="songLibSearchToggleBtn" onclick="toggleSongLibSearch()" aria-label="搜索"><i class="ti ti-search"></i></button>
     </div>
-    <div class="song-lib-search-wrap">
-      <i class="ti ti-search song-lib-search-icon"></i>
-      <input class="song-lib-search-input" id="songLibSearchInput" type="text" placeholder="搜索歌名…" oninput="onSongLibrarySearch()" autocomplete="off">
-      <button class="song-lib-search-clear" id="songLibSearchClear" onclick="clearSongLibrarySearch()"><i class="ti ti-x"></i></button>
-    </div>
-    <button class="song-lib-add-btn" onclick="openSongLibAdd()"><i class="ti ti-plus"></i>上传新歌到歌单库</button>
-    <div class="song-lib-filter-bar" id="songLibFilterBar"></div>
-    <div class="song-lib-count" id="songLibCount"></div>
-    <div class="song-lib-grid" id="songLibGrid"></div>
-    <div class="drawer-actions">
-      <button class="btn-save" style="flex:1" onclick="closeSongLibrary()">关闭</button>
+  </div>
+  <div class="song-lib-tabs" id="songLibTabs"></div>
+  <div class="song-lib-page-body">
+    <div class="song-lib-sidebar" id="songLibFilterBar"></div>
+    <div class="song-lib-main">
+      <div class="song-lib-sub">收录历史使用过的诗歌，点击可查看使用记录</div>
+      <div class="song-lib-import-hint" id="songLibImportHint" onclick="importHistoricalSongs()">
+        <i class="ti ti-download"></i>
+        <span id="songLibImportHintText">检测到 <strong id="songLibImportCount">0</strong> 首历史诗歌还未收录，点击一键导入</span>
+        <i class="ti ti-chevron-right"></i>
+      </div>
+      <div class="song-lib-search-wrap" id="songLibSearchWrap">
+        <i class="ti ti-search song-lib-search-icon"></i>
+        <input class="song-lib-search-input" id="songLibSearchInput" type="text" placeholder="搜索歌名…" oninput="onSongLibrarySearch()" autocomplete="off">
+        <button class="song-lib-search-clear" id="songLibSearchClear" onclick="clearSongLibrarySearch()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="song-lib-count" id="songLibCount"></div>
+      <div class="song-lib-grid" id="songLibGrid"></div>
     </div>
   </div>
 </div>
@@ -3266,7 +3360,10 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
     <button class="modal-close-btn" onclick="closeSongLibDetail()" aria-label="关闭"><i class="ti ti-x"></i></button>
     <div class="picker-handle"></div>
     <div class="song-lib-detail-thumb" id="songLibDetailThumb"></div>
-    <div class="song-lib-detail-title" id="songLibDetailTitle"></div>
+    <div class="song-lib-detail-title-row">
+      <div class="song-lib-detail-title" id="songLibDetailTitle"></div>
+      <button class="song-lib-detail-fav-btn" id="songLibDetailFavBtn" onclick="toggleSongLibFavoriteFromDetail()" title="收藏"><i class="ti ti-heart"></i></button>
+    </div>
     <div class="song-lib-detail-category" id="songLibDetailCategory"></div>
     <div class="song-lib-detail-source" id="songLibDetailSource"></div>
     <div class="song-lib-detail-meta" id="songLibDetailMeta"></div>
@@ -3339,6 +3436,21 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
   </div>
 </div>
 
+<!-- ── Song library: admin adds a new category ───────────── -->
+<div class="modal-overlay" id="songLibCategoryAddOverlay" onclick="closeSongLibCategoryAdd(event)">
+  <div class="upload-modal modal-has-close-btn" onclick="event.stopPropagation()" style="max-width:320px">
+    <button class="modal-close-btn" onclick="closeSongLibCategoryAdd()" aria-label="关闭"><i class="ti ti-x"></i></button>
+    <div class="picker-handle"></div>
+    <div class="upload-modal-title">添加分类</div>
+    <input class="add-song-name-input" id="songLibCategoryAddInput" placeholder="分类名称（如：敬拜、回应诗歌）" style="margin-top:10px">
+    <div class="leave-form-error" id="songLibCategoryAddError">请输入分类名称</div>
+    <div class="drawer-actions">
+      <button class="btn-cancel" onclick="closeSongLibCategoryAdd()">取消</button>
+      <button class="btn-save" onclick="submitSongLibCategoryAdd()">添加</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Music player: pick a platform link and listen online ── -->
 <div class="modal-overlay" id="musicPlayerOverlay" onclick="closeMusicPlayer(event)">
   <div class="music-player-modal modal-has-close-btn" onclick="event.stopPropagation()">
@@ -3369,18 +3481,38 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
   </div>
 </div>
 
+<!-- ── Music link: edit an existing link's description ──── -->
+<div class="modal-overlay" id="musicLinkEditOverlay" onclick="closeMusicLinkEdit(event)">
+  <div class="upload-modal modal-has-close-btn" onclick="event.stopPropagation()" style="max-width:320px">
+    <button class="modal-close-btn" onclick="closeMusicLinkEdit()" aria-label="关闭"><i class="ti ti-x"></i></button>
+    <div class="picker-handle"></div>
+    <div class="upload-modal-title">修改链接说明</div>
+    <input class="add-song-name-input" id="musicLinkEditLabelInput" placeholder="链接说明（如：YouTube 官方MV、伴奏mp3）" style="margin-top:10px">
+    <div class="drawer-actions">
+      <button class="btn-cancel" onclick="closeMusicLinkEdit()">取消</button>
+      <button class="btn-save" onclick="submitMusicLinkEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Floating mini audio player: keeps playing after the popup is closed ── -->
 <div class="floating-audio-bar" id="floatingAudioBar">
-  <div class="floating-audio-bar-icon" id="floatingAudioIcon"><i class="ti ti-music"></i></div>
-  <div class="floating-audio-bar-info" onclick="reopenFloatingAudio()">
-    <div class="floating-audio-bar-title" id="floatingAudioTitle">—</div>
-    <div class="floating-audio-bar-sub" id="floatingAudioSub">—</div>
+  <div class="floating-audio-bar-main">
+    <div class="floating-audio-bar-icon" id="floatingAudioIcon"><i class="ti ti-music"></i></div>
+    <div class="floating-audio-bar-info" onclick="reopenFloatingAudio()">
+      <div class="floating-audio-bar-title" id="floatingAudioTitle">—</div>
+      <div class="floating-audio-bar-sub" id="floatingAudioSub">—</div>
+    </div>
+    <div class="floating-audio-bar-btns">
+      <button id="floatingAudioPrevBtn" onclick="floatingAudioPrev()" title="上一个"><i class="ti ti-player-skip-back"></i></button>
+      <button class="fab-play" id="floatingAudioPlayBtn" onclick="toggleFloatingAudioPlay()" title="播放/暂停"><i class="ti ti-player-pause"></i></button>
+      <button id="floatingAudioNextBtn" onclick="floatingAudioNext()" title="下一个"><i class="ti ti-player-skip-forward"></i></button>
+      <button class="fab-close" onclick="stopFloatingAudio()" title="停止并关闭"><i class="ti ti-x"></i></button>
+    </div>
   </div>
-  <div class="floating-audio-bar-btns">
-    <button id="floatingAudioPrevBtn" onclick="floatingAudioPrev()" title="上一个"><i class="ti ti-player-skip-back"></i></button>
-    <button class="fab-play" id="floatingAudioPlayBtn" onclick="toggleFloatingAudioPlay()" title="播放/暂停"><i class="ti ti-player-pause"></i></button>
-    <button id="floatingAudioNextBtn" onclick="floatingAudioNext()" title="下一个"><i class="ti ti-player-skip-forward"></i></button>
-    <button class="fab-close" onclick="stopFloatingAudio()" title="停止并关闭"><i class="ti ti-x"></i></button>
+  <div class="floating-audio-bar-modes">
+    <button class="floating-audio-mode-btn" id="floatingAudioLoopBtn" onclick="toggleAudioRepeatOne()" title="单曲循环播放"><i class="ti ti-repeat-once"></i>循环播放</button>
+    <button class="floating-audio-mode-btn" id="floatingAudioListBtn" onclick="toggleAudioPlaylistMode()" title="列表循环播放"><i class="ti ti-repeat"></i>列表播放</button>
   </div>
   <div class="floating-audio-bar-progress"><div class="floating-audio-bar-progress-fill" id="floatingAudioProgressFill"></div></div>
 </div>
@@ -3615,6 +3747,31 @@ function loadSongLibrary() {
 function persistSongLibrary() {
   try { localStorage.setItem(LS_SONG_LIBRARY, JSON.stringify(songLibrary)); } catch (e) {}
 }
+// ── 管理员手动添加的分类（即使还没有歌曲用到，也会出现在侧边分类栏里）──
+const LS_SONG_LIB_CATEGORIES = 'churchSongLibCategories';
+let songLibCategories = [];
+function normalizeSongLibCategoryList(raw) {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set();
+  const out = [];
+  raw.forEach(c => {
+    const v = String(c || '').trim();
+    if (v && !seen.has(v.toLowerCase())) { seen.add(v.toLowerCase()); out.push(v); }
+  });
+  return out;
+}
+function loadSongLibCategories() {
+  try {
+    const raw = localStorage.getItem(LS_SONG_LIB_CATEGORIES);
+    songLibCategories = normalizeSongLibCategoryList(raw ? JSON.parse(raw) : []);
+  } catch (e) { songLibCategories = []; }
+}
+function persistSongLibCategories() {
+  try { localStorage.setItem(LS_SONG_LIB_CATEGORIES, JSON.stringify(songLibCategories)); } catch (e) {}
+}
+async function syncSongLibCategoriesToRemote() {
+  try { await syncRemoteField('song_lib_categories', songLibCategories); } catch (e) {}
+}
 // ── 诗歌库专属 Supabase 存储配置（仅管理员可修改，用于 mp3 上传）──
 const LS_SONGLIB_SB_CONFIG = 'churchSongLibSbConfig';
 let songLibSupabaseConfig = { url: '', anonKey: '', bucket: 'songs' };
@@ -3753,6 +3910,8 @@ function normalizeSongLibrary(raw) {
       lyrics: item?.lyrics || '',
       keys,
       music,
+      favorite: !!item?.favorite,
+      lastPlayedAt: item?.lastPlayedAt || null,
       createdAt: item?.createdAt || new Date().toISOString(),
     };
   }).filter(item => item.title);
@@ -3775,6 +3934,8 @@ function ensureSongInLibrary(title, src) {
     lyrics: '',
     keys: src ? [{ id: genSongLibId(), label: '', src }] : [],
     music: [],
+    favorite: false,
+    lastPlayedAt: null,
     createdAt: new Date().toISOString(),
   };
   songLibrary.unshift(entry);
@@ -3790,9 +3951,11 @@ function removeSongFromLibrary(id) {
   songLibrary = songLibrary.filter(s => s.id !== id);
 }
 // 歌单库里当前用过的所有分类/乐团/诗歌本（去重、去空），用于筛选栏和上传表单的建议列表
+// 分类还会并入管理员手动添加的"预设分类"（即使还没有歌曲用到，也会出现在列表里）
 function getSongLibCategories() {
   const set = new Set();
   songLibrary.forEach(s => { if (s.category) set.add(s.category); });
+  songLibCategories.forEach(c => { if (c) set.add(c); });
   return [...set].sort((a, b) => a.localeCompare(b, 'zh'));
 }
 function getSongLibBands() {
@@ -3814,6 +3977,29 @@ function findSongLibEntryByTitle(title) {
   const t = (title || '').trim().toLowerCase();
   if (!t) return null;
   return songLibrary.find(s => s.title.trim().toLowerCase() === t) || null;
+}
+// 转义正则特殊字符，供高亮搜索词使用
+function escapeRegExpChars(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+// 在文本中高亮所有匹配到的搜索关键词（忽略大小写），内部已做 HTML 转义
+function highlightKeyword(text, keyword){
+  const t = text || '';
+  const kw = (keyword || '').trim();
+  if (!kw) return escapeHtml(t);
+  const re = new RegExp(escapeRegExpChars(kw), 'ig');
+  let result = '', lastIndex = 0, m;
+  while ((m = re.exec(t)) !== null) {
+    result += escapeHtml(t.slice(lastIndex, m.index));
+    result += `<mark class="song-lib-hl">${escapeHtml(m[0])}</mark>`;
+    lastIndex = m.index + m[0].length;
+    if (m[0].length === 0) re.lastIndex++;
+  }
+  result += escapeHtml(t.slice(lastIndex));
+  return result;
+}
+// 通用：把一组字符串填充进某个 <datalist>，供多处输入建议列表复用
+function fillDatalist(id, values) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = (values || []).map(c => `<option value="${escapeHtml(c)}">`).join('');
 }
 function getMusicLinksForTitle(title) {
   const s = findSongLibEntryByTitle(title);
@@ -4813,15 +4999,38 @@ function saveUploadedSongs(){
 // ── Song library (歌单库) ──────────────────────────────
 let songLibSearchKeyword = '';
 let songLibCategoryFilter = '';
+let songLibTab = 'all'; // 'all' | 'favorite' | 'recent'
 function openSongLibrary(){
   document.getElementById('songLibSearchInput').value = '';
   songLibSearchKeyword = '';
   songLibCategoryFilter = '';
+  songLibTab = 'all';
+  songLibSearchOpen = false;
+  document.getElementById('songLibSearchWrap')?.classList.remove('open');
+  document.getElementById('songLibSearchToggleBtn')?.classList.remove('active');
   document.getElementById('songLibSearchClear').classList.remove('visible');
+  renderSongLibTabs();
   renderSongLibFilterBar();
   renderSongLibraryGrid();
   updateSongLibImportHint();
   document.getElementById('songLibraryOverlay').classList.add('open');
+}
+function renderSongLibTabs(){
+  const wrap = document.getElementById('songLibTabs');
+  if (!wrap) return;
+  const tabs = [
+    { id: 'all', label: '全部' },
+    { id: 'favorite', label: '我的收藏' },
+    { id: 'recent', label: '最近使用' },
+  ];
+  wrap.innerHTML = tabs.map(t =>
+    `<button class="song-lib-tab${songLibTab === t.id ? ' active' : ''}" onclick="setSongLibTab('${t.id}')">${t.label}</button>`
+  ).join('');
+}
+function setSongLibTab(tab){
+  songLibTab = tab;
+  renderSongLibTabs();
+  renderSongLibraryGrid();
 }
 // 扫描 songData 中所有周次，按标题去重，找出尚未收录进 songLibrary 的历史诗歌
 // 同名歌曲优先采用带图片链接的版本，便于一键导入时图片不缺失
@@ -5011,6 +5220,29 @@ function closeSongLibrary(e){
   if (e && e.target !== e.currentTarget) return;
   document.getElementById('songLibraryOverlay').classList.remove('open');
 }
+let songLibSearchOpen = false;
+// 点击顶部搜索按钮：展开/收起搜索框（再次点击即可关闭）
+function toggleSongLibSearch(){
+  const wrap = document.getElementById('songLibSearchWrap');
+  const btn = document.getElementById('songLibSearchToggleBtn');
+  if (!wrap || !btn) return;
+  songLibSearchOpen = !songLibSearchOpen;
+  if (songLibSearchOpen) {
+    wrap.classList.add('open');
+    btn.classList.add('active');
+    setTimeout(() => document.getElementById('songLibSearchInput')?.focus(), 200);
+  } else {
+    wrap.classList.remove('open');
+    btn.classList.remove('active');
+    document.getElementById('songLibSearchInput')?.blur();
+    if (songLibSearchKeyword) {
+      document.getElementById('songLibSearchInput').value = '';
+      songLibSearchKeyword = '';
+      document.getElementById('songLibSearchClear').classList.remove('visible');
+      renderSongLibraryGrid();
+    }
+  }
+}
 function onSongLibrarySearch(){
   songLibSearchKeyword = document.getElementById('songLibSearchInput').value.trim();
   document.getElementById('songLibSearchClear').classList.toggle('visible', songLibSearchKeyword.length > 0);
@@ -5027,11 +5259,51 @@ function renderSongLibFilterBar(){
   const bar = document.getElementById('songLibFilterBar');
   if (!bar) return;
   const categories = getSongLibCategories();
-  if (!categories.length) { bar.innerHTML = ''; return; }
   const chips = [{ label: '全部', value: '' }, ...categories.map(c => ({ label: c, value: c }))];
-  bar.innerHTML = chips.map(c =>
-    `<button class="song-lib-filter-chip${songLibCategoryFilter === c.value ? ' active' : ''}" onclick="setSongLibCategoryFilter('${escapeHtml(c.value).replace(/'/g,"\\'")}')">${escapeHtml(c.label)}</button>`
-  ).join('');
+  bar.innerHTML = chips.map(c => {
+    const safeVal = escapeHtml(c.value).replace(/'/g,"\\'");
+    const delBtn = (isAdmin && c.value) ? `<button class="song-lib-sidebar-item-del" onclick="event.stopPropagation();deleteSongLibCategory('${safeVal}')" title="删除分类"><i class="ti ti-x"></i></button>` : '';
+    return `<div class="song-lib-sidebar-item${songLibCategoryFilter === c.value ? ' active' : ''}" onclick="setSongLibCategoryFilter('${safeVal}')">${escapeHtml(c.label)}${delBtn}</div>`;
+  }).join('') + (isAdmin ? `<button class="song-lib-sidebar-add-btn" onclick="openSongLibCategoryAdd()"><i class="ti ti-plus"></i>分类</button>` : '');
+}
+function openSongLibCategoryAdd(){
+  document.getElementById('songLibCategoryAddInput').value = '';
+  document.getElementById('songLibCategoryAddError').classList.remove('show');
+  document.getElementById('songLibCategoryAddOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('songLibCategoryAddInput')?.focus(), 100);
+}
+function closeSongLibCategoryAdd(e){
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('songLibCategoryAddOverlay').classList.remove('open');
+}
+async function submitSongLibCategoryAdd(){
+  const val = document.getElementById('songLibCategoryAddInput').value.trim();
+  const errEl = document.getElementById('songLibCategoryAddError');
+  if (!val) { errEl.textContent = '请输入分类名称'; errEl.classList.add('show'); return; }
+  const exists = getSongLibCategories().some(c => c.toLowerCase() === val.toLowerCase());
+  if (exists) { errEl.textContent = '这个分类已经存在了'; errEl.classList.add('show'); return; }
+  errEl.classList.remove('show');
+  songLibCategories.push(val);
+  persistSongLibCategories();
+  closeSongLibCategoryAdd();
+  renderSongLibFilterBar();
+  fillDatalist('songLibCategoryDatalist', getSongLibCategories());
+  showToast(`✅ 已添加分类「${val}」`);
+  await syncSongLibCategoriesToRemote();
+}
+async function deleteSongLibCategory(cat){
+  const usageCount = songLibrary.filter(s => s.category === cat).length;
+  const msg = usageCount > 0
+    ? `有 ${usageCount} 首歌正在使用「${cat}」这个分类。删除后它仍会因为被这些歌曲使用而继续显示在列表里，只是不再作为预设分类保留。确定要删除吗？`
+    : `确定要删除分类「${cat}」吗？`;
+  if (!confirm(msg)) return;
+  songLibCategories = songLibCategories.filter(c => c.toLowerCase() !== cat.toLowerCase());
+  persistSongLibCategories();
+  if (songLibCategoryFilter === cat) songLibCategoryFilter = '';
+  renderSongLibFilterBar();
+  renderSongLibraryGrid();
+  fillDatalist('songLibCategoryDatalist', getSongLibCategories());
+  await syncSongLibCategoriesToRemote();
 }
 function setSongLibCategoryFilter(cat){
   songLibCategoryFilter = cat;
@@ -5039,7 +5311,16 @@ function setSongLibCategoryFilter(cat){
   renderSongLibraryGrid();
 }
 function getFilteredSongLibrary(){
-  let list = songLibrary.slice().sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
+  let list = songLibrary.slice();
+  if (songLibTab === 'favorite') {
+    list = list.filter(s => s.favorite);
+    list.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  } else if (songLibTab === 'recent') {
+    list = list.filter(s => s.lastPlayedAt);
+    list.sort((a,b) => new Date(b.lastPlayedAt) - new Date(a.lastPlayedAt));
+  } else {
+    list.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
   if (songLibCategoryFilter) list = list.filter(s => s.category === songLibCategoryFilter);
   if (!songLibSearchKeyword) return list;
   const kw = songLibSearchKeyword.toLowerCase();
@@ -5055,11 +5336,19 @@ function renderSongLibraryGrid(){
   const countEl = document.getElementById('songLibCount');
   const list = getFilteredSongLibrary();
   const filtered = !!(songLibSearchKeyword || songLibCategoryFilter);
-  countEl.textContent = filtered
-    ? `找到 ${list.length} 首`
-    : `共收录 ${songLibrary.length} 首诗歌`;
+  if (songLibTab === 'favorite') {
+    countEl.textContent = filtered ? `找到 ${list.length} 首` : `共收藏 ${list.length} 首`;
+  } else if (songLibTab === 'recent') {
+    countEl.textContent = filtered ? `找到 ${list.length} 首` : `最近使用 ${list.length} 首`;
+  } else {
+    countEl.textContent = filtered ? `找到 ${list.length} 首` : `共收录 ${songLibrary.length} 首诗歌`;
+  }
   if (!list.length) {
-    grid.innerHTML = `<div class="song-lib-empty"><i class="ti ${filtered?'ti-search-off':'ti-music-off'}"></i>${filtered?'没有找到匹配的诗歌':'歌单库还是空的，上传诗歌后会自动收录'}</div>`;
+    let emptyIcon = filtered ? 'ti-search-off' : 'ti-music-off';
+    let emptyMsg = filtered ? '没有找到匹配的诗歌' : '歌单库还是空的，上传诗歌后会自动收录';
+    if (!filtered && songLibTab === 'favorite') { emptyIcon = 'ti-heart'; emptyMsg = '还没有收藏任何诗歌，点击♡即可收藏'; }
+    if (!filtered && songLibTab === 'recent') { emptyIcon = 'ti-history'; emptyMsg = '还没有播放记录，播放过的诗歌会显示在这里'; }
+    grid.innerHTML = `<div class="song-lib-empty"><i class="ti ${emptyIcon}"></i>${emptyMsg}</div>`;
     return;
   }
   grid.innerHTML = list.map((s,i) => {
@@ -5087,15 +5376,48 @@ function renderSongLibraryGrid(){
       : '';
     const safeTitle=escapeHtml(s.title).replace(/'/g,"\\'");
     return `<div class="song-lib-card" onclick="openSongLibDetail('${s.id}')">
-      <button class="song-lib-card-play-btn" onclick="event.stopPropagation();openMusicPlayer('${safeTitle}')" title="播放音乐"><i class="ti ti-player-play"></i></button>
       <div class="song-lib-card-thumb${firstSrc?' has-img':''}">${thumb}</div>
       <div class="song-lib-card-info">
-        <div class="song-lib-card-title-row"><div class="song-lib-card-title">${escapeHtml(s.title)}</div>${badges.join('')}</div>
+        <div class="song-lib-card-title-row"><div class="song-lib-card-title">${highlightKeyword(s.title, songLibSearchKeyword)}</div>${badges.join('')}</div>
         ${sourceLine}
         <div class="song-lib-card-meta">${meta}</div>
       </div>
+      <div class="song-lib-card-actions">
+        <button class="song-lib-card-play-btn" onclick="event.stopPropagation();quickPlaySongAudio('${safeTitle}')" title="列表播放"><i class="ti ti-player-play"></i></button>
+        <button class="song-lib-card-fav-btn${s.favorite?' active':''}" onclick="event.stopPropagation();toggleSongLibFavorite('${s.id}')" title="${s.favorite?'取消收藏':'收藏'}"><i class="ti ${s.favorite?'ti-heart-filled':'ti-heart'}"></i></button>
+      </div>
     </div>`;
   }).join('');
+}
+// 收藏/取消收藏（网格里的心形按钮、详情页里的心形按钮共用）
+async function toggleSongLibFavorite(id){
+  const s = songLibrary.find(x => x.id === id);
+  if (!s) return;
+  s.favorite = !s.favorite;
+  persistSongLibrary();
+  renderSongLibraryGrid();
+  if (songLibDetailCurrent && songLibDetailCurrent.id === id) renderSongLibDetailFavBtn();
+  await syncSongLibraryToRemote();
+}
+async function toggleSongLibFavoriteFromDetail(){
+  if (!songLibDetailCurrent) return;
+  await toggleSongLibFavorite(songLibDetailCurrent.id);
+}
+function renderSongLibDetailFavBtn(){
+  const btn = document.getElementById('songLibDetailFavBtn');
+  const s = songLibDetailCurrent;
+  if (!btn || !s) return;
+  btn.classList.toggle('active', !!s.favorite);
+  btn.title = s.favorite ? '取消收藏' : '收藏';
+  btn.innerHTML = `<i class="ti ${s.favorite ? 'ti-heart-filled' : 'ti-heart'}"></i>`;
+}
+// 记录"最近使用"：每次打开某首歌的音乐播放器都算一次使用
+function markSongLibPlayed(title){
+  const s = findSongLibEntryByTitle(title);
+  if (!s) return;
+  s.lastPlayedAt = new Date().toISOString();
+  persistSongLibrary();
+  syncSongLibraryToRemote();
 }
 // 点击歌单库网格中的缩略图：以当前筛选结果为列表打开大图查看器（用每首歌的第一个调）
 function openLightboxFromLibraryGrid(index){
@@ -5114,6 +5436,7 @@ function openSongLibDetail(id){
   closeAddKeyPanel();
   cancelLyricsEdit();
   document.getElementById('songLibDetailTitle').textContent = s.title;
+  renderSongLibDetailFavBtn();
   document.getElementById('songLibDetailCategory').innerHTML = s.category
     ? `<span class="song-lib-category-badge">${escapeHtml(s.category)}</span>`
     : '';
@@ -5365,18 +5688,84 @@ function ensureGlobalAudioEl() {
 }
 function onGlobalAudioEnded() {
   // 注意：当 loop=true（单曲循环）时浏览器不会触发 ended 事件，因此这里只处理列表播放的场景
-  if (audioPlaylistMode) playAdjacentAudioLink(1);
+  if (!audioPlaylistMode) return;
+  const audioLinks = getAudioLinksForTitle(musicPlayerSongTitle);
+  const curIdx = audioLinks.findIndex(l => l.id === loadedAudioLinkId);
+  if (curIdx !== -1 && curIdx < audioLinks.length - 1) {
+    // 当前这首歌还有其他版本没播完，先接着播完这首歌的所有版本
+    playAdjacentAudioLink(1);
+  } else {
+    // 这首歌的音频都播完了，自动切到歌单库列表中的下一首歌
+    playNextSongInLibrary();
+  }
+}
+// 按当前筛选/排序顺序（与歌单库网格显示一致）自动播放下一首含有音频链接的歌曲，到末尾会回到第一首循环
+function playNextSongInLibrary() {
+  const list = getFilteredSongLibrary();
+  const curTitle = (musicPlayerSongTitle || '').trim().toLowerCase();
+  const curIndex = list.findIndex(s => s.title.trim().toLowerCase() === curTitle);
+  const n = list.length;
+  if (n > 0 && curIndex !== -1) {
+    for (let step = 1; step <= n; step++) {
+      const candidate = list[(curIndex + step) % n];
+      const audioLinks = getAudioLinksForTitle(candidate.title);
+      if (audioLinks.length) { startPlaylistSong(candidate.title, audioLinks[0]); return; }
+    }
+  }
+  // 当前歌曲不在筛选列表里，或找不到其他可播放的歌：从头重新播放当前这首
+  const audioLinks = getAudioLinksForTitle(musicPlayerSongTitle);
+  if (audioLinks.length) startPlaylistSong(musicPlayerSongTitle, audioLinks[0]);
+}
+// 与 playNextSongInLibrary 相同的顺序，反向切到歌单库列表中的上一首（用于悬浮播放条的"上一个"按钮）
+function playPrevSongInLibrary() {
+  const list = getFilteredSongLibrary();
+  const curTitle = (musicPlayerSongTitle || '').trim().toLowerCase();
+  const curIndex = list.findIndex(s => s.title.trim().toLowerCase() === curTitle);
+  const n = list.length;
+  if (n > 0 && curIndex !== -1) {
+    for (let step = 1; step <= n; step++) {
+      const candidate = list[((curIndex - step) % n + n) % n];
+      const audioLinks = getAudioLinksForTitle(candidate.title);
+      if (audioLinks.length) { startPlaylistSong(candidate.title, audioLinks[0]); return; }
+    }
+  }
+  const audioLinks = getAudioLinksForTitle(musicPlayerSongTitle);
+  if (audioLinks.length) startPlaylistSong(musicPlayerSongTitle, audioLinks[0]);
+}
+// 列表播放模式下切歌的公共逻辑：加载并播放某首歌的指定音频链接
+function startPlaylistSong(title, link) {
+  musicPlayerSongTitle = title;
+  musicPlayerActiveId = link.id;
+  markSongLibPlayed(title);
+  const audioEl = ensureGlobalAudioEl();
+  const safeUrl = getSafeExternalUrl(link.url);
+  if (!safeUrl) return;
+  audioEl.loop = false;
+  audioEl.src = safeUrl;
+  loadedAudioLinkId = link.id;
+  audioEl.play().catch(() => {});
+  renderMusicPlayerBody();
+  if (floatingAudioVisible) showFloatingAudioBar();
 }
 function toggleAudioRepeatOne() {
   audioRepeatOne = !audioRepeatOne;
   if (audioRepeatOne) audioPlaylistMode = false;
   if (globalAudioEl) globalAudioEl.loop = audioRepeatOne;
   renderMusicPlayerBody();
+  if (floatingAudioVisible) showFloatingAudioBar();
 }
 function toggleAudioPlaylistMode() {
   audioPlaylistMode = !audioPlaylistMode;
   if (audioPlaylistMode) { audioRepeatOne = false; if (globalAudioEl) globalAudioEl.loop = false; }
   renderMusicPlayerBody();
+  if (floatingAudioVisible) showFloatingAudioBar();
+}
+// 悬浮播放条上的"循环播放/列表播放"两个模式按钮，与弹窗内的模式共用同一份状态
+function updateFloatingAudioModeButtons() {
+  const loopBtn = document.getElementById('floatingAudioLoopBtn');
+  const listBtn = document.getElementById('floatingAudioListBtn');
+  if (loopBtn) loopBtn.classList.toggle('active', audioRepeatOne);
+  if (listBtn) listBtn.classList.toggle('active', audioPlaylistMode);
 }
 // 在当前诗歌的"音频文件"链接间切换到上一个/下一个，到边界时循环回绕
 function playAdjacentAudioLink(dir) {
@@ -5410,12 +5799,13 @@ function showFloatingAudioBar() {
   document.getElementById('floatingAudioTitle').textContent = musicPlayerSongTitle || '未知诗歌';
   const link = getMusicLinksForTitle(musicPlayerSongTitle).find(l => l.id === loadedAudioLinkId);
   document.getElementById('floatingAudioSub').textContent = link?.label || '音频播放中';
-  const audioLinks = getAudioLinksForTitle(musicPlayerSongTitle);
-  const hasMultiple = audioLinks.length > 1;
+  const playableSongs = getFilteredSongLibrary().filter(s => getAudioLinksForTitle(s.title).length > 0);
+  const hasMultiple = playableSongs.length > 1;
   document.getElementById('floatingAudioPrevBtn').style.display = hasMultiple ? '' : 'none';
   document.getElementById('floatingAudioNextBtn').style.display = hasMultiple ? '' : 'none';
   updateFloatingAudioPlayState();
   updateFloatingAudioProgress();
+  updateFloatingAudioModeButtons();
   bar.classList.add('show');
   floatingAudioVisible = true;
 }
@@ -5447,14 +5837,37 @@ function updateFloatingAudioProgress() {
   if (!globalAudioEl || !globalAudioEl.duration) { fill.style.width = '0%'; return; }
   fill.style.width = `${(globalAudioEl.currentTime / globalAudioEl.duration) * 100}%`;
 }
-function floatingAudioNext() { playAdjacentAudioLink(1); }
-function floatingAudioPrev() { playAdjacentAudioLink(-1); }
+function floatingAudioNext() { playNextSongInLibrary(); }
+function floatingAudioPrev() { playPrevSongInLibrary(); }
 // 点击悬浮条主体：重新打开该诗歌的音乐弹窗（继续播放，不会重新开始）
 function reopenFloatingAudio() {
   if (musicPlayerSongTitle) openMusicPlayer(musicPlayerSongTitle);
 }
 
+// 歌单库网格里点击"列表播放"按钮：不打开弹窗，直接播放并以悬浮条展示，默认开启列表播放模式
+function quickPlaySongAudio(title) {
+  const audioLinks = getAudioLinksForTitle(title);
+  if (!audioLinks.length) {
+    // 没有可直接播放的音频文件链接（可能只有 YouTube/外部链接），退回打开音乐弹窗手动选择
+    openMusicPlayer(title);
+    return;
+  }
+  markSongLibPlayed(title);
+  musicPlayerSongTitle = title;
+  musicPlayerActiveId = audioLinks[0].id;
+  audioRepeatOne = false;
+  audioPlaylistMode = true; // 默认按列表播放
+  const audioEl = ensureGlobalAudioEl();
+  audioEl.loop = false;
+  const safeUrl = getSafeExternalUrl(audioLinks[0].url);
+  if (!safeUrl) { showToast('音频链接无效'); return; }
+  audioEl.src = safeUrl;
+  loadedAudioLinkId = audioLinks[0].id;
+  audioEl.play().catch(() => {});
+  showFloatingAudioBar();
+}
 function openMusicPlayer(title) {
+  markSongLibPlayed(title);
   // 若悬浮播放条正在播放"同一首诗歌"，重新打开弹窗时保持在当前播放的链接上，不从头重置
   const resuming = floatingAudioVisible && musicPlayerSongTitle === title && loadedAudioLinkId;
   musicPlayerSongTitle = title;
@@ -5494,9 +5907,10 @@ function renderMusicPlayerBody() {
   if (!links.find(l => l.id === musicPlayerActiveId)) musicPlayerActiveId = links[0].id;
   listWrap.innerHTML = links.map(l => {
     const platform = detectMusicPlatform(l.url);
+    const editBtn = isAdmin ? `<button class="music-link-chip-edit" onclick="event.stopPropagation();openMusicLinkEdit('${l.id}')" title="修改说明"><i class="ti ti-edit"></i></button>` : '';
     const delBtn = isAdmin ? `<button class="music-link-chip-del" onclick="event.stopPropagation();deleteMusicLink('${l.id}')" title="删除"><i class="ti ti-x"></i></button>` : '';
     return `<button class="music-link-chip${l.id === musicPlayerActiveId ? ' active' : ''}" onclick="selectMusicLink('${l.id}')">
-      <i class="ti ${getMusicPlatformIcon(platform)}"></i><span>${escapeHtml(l.label || getMusicPlatformLabel(platform))}</span>${delBtn}
+      <i class="ti ${getMusicPlatformIcon(platform)}"></i><span>${escapeHtml(l.label || getMusicPlatformLabel(platform))}</span>${editBtn}${delBtn}
     </button>`;
   }).join('') + (isAdmin ? addChip : '');
   renderMusicStage();
@@ -5589,6 +6003,35 @@ async function deleteMusicLink(id) {
   renderMusicPlayerBody();
   renderSongLibraryGrid();
   showToast('已删除音乐链接');
+  await syncSongLibraryToRemote();
+}
+// 修改某个音乐链接的说明文字（不改链接地址本身）
+let musicLinkEditingId = null;
+function openMusicLinkEdit(id) {
+  const s = findSongLibEntryByTitle(musicPlayerSongTitle);
+  const link = s?.music?.find(m => m.id === id);
+  if (!link) return;
+  musicLinkEditingId = id;
+  document.getElementById('musicLinkEditLabelInput').value = link.label || '';
+  document.getElementById('musicLinkEditOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('musicLinkEditLabelInput')?.focus(), 100);
+}
+function closeMusicLinkEdit(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('musicLinkEditOverlay').classList.remove('open');
+  musicLinkEditingId = null;
+}
+async function submitMusicLinkEdit() {
+  if (!musicLinkEditingId) return;
+  const s = findSongLibEntryByTitle(musicPlayerSongTitle);
+  const link = s?.music?.find(m => m.id === musicLinkEditingId);
+  if (!link) return;
+  link.label = document.getElementById('musicLinkEditLabelInput').value.trim();
+  persistSongLibrary();
+  closeMusicLinkEdit();
+  renderMusicPlayerBody();
+  if (floatingAudioVisible) showFloatingAudioBar(); // 悬浮条上的说明文字同步刷新
+  showToast('✅ 已更新链接说明');
   await syncSongLibraryToRemote();
 }
 
@@ -8562,6 +9005,7 @@ function getSharedAppStateSnapshot() {
     song_library: normalizeSongLibrary(songLibrary),
     reminder_subscribers: normalizeReminderSubscribers(reminderSubscribers),
     song_lib_storage_config: normalizeSongLibSbConfig(songLibSupabaseConfig),
+    song_lib_categories: normalizeSongLibCategoryList(songLibCategories),
   };
 }
 
@@ -8588,6 +9032,10 @@ function applyRemoteAppState(row) {
     songLibSupabaseConfig = normalizeSongLibSbConfig(row.song_lib_storage_config);
     songLibSupabaseClient = null;
     persistSongLibSupabaseConfig();
+  }
+  if (row && row.song_lib_categories !== undefined) {
+    songLibCategories = normalizeSongLibCategoryList(row.song_lib_categories);
+    persistSongLibCategories();
   }
   updateLeaveBadge();
 }
@@ -9097,6 +9545,7 @@ async function bootstrapApp() {
   loadSermonCollapsed();
   loadLeaveRequests();
   loadSongLibrary();
+  loadSongLibCategories();
   loadSongLibSupabaseConfig();
   loadSettings();
   applySettingsToDOM();
