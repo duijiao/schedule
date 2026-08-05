@@ -1387,6 +1387,27 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
 }
 .song-lib-sidebar-add-btn:hover { border-color: var(--primary); color: var(--primary); }
 .song-lib-sidebar-add-btn i { font-size: 13px; }
+/* ── 诗歌本筛选栏：与左侧分类联动，横向滚动的 chip 列表 ── */
+.song-lib-songbook-bar {
+  display: none; gap: 6px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 4px;
+  flex-shrink: 0; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.song-lib-songbook-bar::-webkit-scrollbar { display: none; }
+.song-lib-songbook-chip {
+  position: relative; flex-shrink: 0; display: flex; align-items: center; gap: 4px;
+  border: 1.5px solid var(--border-soft); background: var(--bg-subtle); color: var(--text-2);
+  border-radius: 16px; padding: 6px 12px; font-size: 12px; font-weight: 500; cursor: pointer;
+  font-family: inherit; white-space: nowrap;
+}
+.song-lib-songbook-chip.active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); font-weight: 700; }
+.song-lib-songbook-chip-add { color: var(--text-3); border-style: dashed; padding: 6px 10px; }
+.song-lib-songbook-chip-add:hover { border-color: var(--primary); color: var(--primary); }
+.song-lib-songbook-chip-edit, .song-lib-songbook-chip-del {
+  display: flex; align-items: center; justify-content: center; width: 13px; height: 13px;
+  border-radius: 50%; border: none; background: rgba(0,0,0,0.08); color: var(--text-4); font-size: 8px; cursor: pointer;
+}
+.song-lib-songbook-chip-del:hover { background: #f5d3d3; color: #a32d2d; }
+.song-lib-songbook-chip-edit:hover { background: rgba(0,0,0,0.16); color: var(--text-2); }
 .song-lib-main { flex: 1; min-width: 0; overflow-y: auto; padding: 14px 16px 24px; }
 .song-lib-title { font-size: 16px; font-weight: 600; color: var(--text-1); text-align: center; margin-bottom: 4px; flex-shrink: 0; }
 .song-lib-sub { font-size: 12px; color: var(--text-3); text-align: center; margin-bottom: 16px; flex-shrink: 0; }
@@ -3349,6 +3370,7 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
         <span id="songLibImportHintText">检测到 <strong id="songLibImportCount">0</strong> 首历史诗歌还未收录，点击一键导入</span>
         <i class="ti ti-chevron-right"></i>
       </div>
+      <div class="song-lib-songbook-bar" id="songLibSongbookBar"></div>
       <div class="song-lib-search-wrap" id="songLibSearchWrap">
         <i class="ti ti-search song-lib-search-icon"></i>
         <input class="song-lib-search-input" id="songLibSearchInput" type="text" placeholder="搜索歌名…" oninput="onSongLibrarySearch()" autocomplete="off">
@@ -3794,6 +3816,31 @@ function persistSongLibCategories() {
 async function syncSongLibCategoriesToRemote() {
   try { await syncRemoteField('song_lib_categories', songLibCategories); } catch (e) {}
 }
+// ── 管理员手动添加的诗歌本（与分类联动：选中某个分类后，诗歌本栏只显示该分类下用到的诗歌本）──
+const LS_SONG_LIB_SONGBOOKS = 'churchSongLibSongbooks';
+let songLibSongbooks = [];
+function normalizeSongLibSongbookList(raw) {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set();
+  const out = [];
+  raw.forEach(c => {
+    const v = String(c || '').trim();
+    if (v && !seen.has(v.toLowerCase())) { seen.add(v.toLowerCase()); out.push(v); }
+  });
+  return out;
+}
+function loadSongLibSongbooks() {
+  try {
+    const raw = localStorage.getItem(LS_SONG_LIB_SONGBOOKS);
+    songLibSongbooks = normalizeSongLibSongbookList(raw ? JSON.parse(raw) : []);
+  } catch (e) { songLibSongbooks = []; }
+}
+function persistSongLibSongbooks() {
+  try { localStorage.setItem(LS_SONG_LIB_SONGBOOKS, JSON.stringify(songLibSongbooks)); } catch (e) {}
+}
+async function syncSongLibSongbooksToRemote() {
+  try { await syncRemoteField('song_lib_songbooks', songLibSongbooks); } catch (e) {}
+}
 // ── 诗歌库专属 Supabase 存储配置（仅管理员可修改，用于 mp3 上传）──
 const LS_SONGLIB_SB_CONFIG = 'churchSongLibSbConfig';
 let songLibSupabaseConfig = { url: '', anonKey: '', bucket: 'songs' };
@@ -3986,6 +4033,17 @@ function getSongLibBands() {
 function getSongLibSongbooks() {
   const set = new Set();
   songLibrary.forEach(s => { if (s.songbook) set.add(s.songbook); });
+  songLibSongbooks.forEach(sb => { if (sb) set.add(sb); });
+  return [...set].sort((a, b) => a.localeCompare(b, 'zh'));
+}
+// 诗歌本筛选栏专用：与当前选中的分类联动——只列出"预设诗歌本" + "该分类下歌曲实际用到的诗歌本"
+function getSongLibSongbookChipOptions() {
+  const set = new Set();
+  songLibrary.forEach(s => {
+    if (songLibCategoryFilter && s.category !== songLibCategoryFilter) return;
+    if (s.songbook) set.add(s.songbook);
+  });
+  songLibSongbooks.forEach(sb => { if (sb) set.add(sb); });
   return [...set].sort((a, b) => a.localeCompare(b, 'zh'));
 }
 function getSongLibKeyDisplayLabel(key) {
@@ -5019,6 +5077,7 @@ function saveUploadedSongs(){
 // ── Song library (歌单库) ──────────────────────────────
 let songLibSearchKeyword = '';
 let songLibCategoryFilter = '';
+let songLibSongbookFilter = '';
 let songLibTab = 'all'; // 'all' | 'favorite' | 'recent'
 function openSongLibrary(){
   document.getElementById('songLibSearchInput').value = '';
@@ -5286,6 +5345,7 @@ function renderSongLibFilterBar(){
     const delBtn = (isAdmin && c.value) ? `<button class="song-lib-sidebar-item-del" onclick="event.stopPropagation();deleteSongLibCategory('${safeVal}')" title="删除分类"><i class="ti ti-x"></i></button>` : '';
     return `<div class="song-lib-sidebar-item${songLibCategoryFilter === c.value ? ' active' : ''}" onclick="setSongLibCategoryFilter('${safeVal}')">${escapeHtml(c.label)}${editBtn}${delBtn}</div>`;
   }).join('') + (isAdmin ? `<button class="song-lib-sidebar-add-btn" onclick="openSongLibCategoryAdd()"><i class="ti ti-plus"></i>分类</button>` : '');
+  renderSongLibSongbookBar();
 }
 function openSongLibCategoryAdd(){
   document.getElementById('songLibCategoryAddInput').value = '';
@@ -5350,15 +5410,94 @@ async function deleteSongLibCategory(cat){
   if (changed) persistSongLibrary();
   if (songLibCategoryFilter === cat) songLibCategoryFilter = '';
   renderSongLibFilterBar();
+  renderSongLibSongbookBar();
   renderSongLibraryGrid();
   fillDatalist('songLibCategoryDatalist', getSongLibCategories());
   showToast(`✅ 已删除分类「${cat}」${changed ? `，${changed} 首歌曲的分类已清空` : ''}`);
   await syncSongLibCategoriesToRemote();
   if (changed) await syncSongLibraryToRemote();
 }
+
+// ── 诗歌本筛选栏：与分类联动，只显示"预设诗歌本" + "当前选中分类下用到的诗歌本" ──
+function renderSongLibSongbookBar(){
+  const bar = document.getElementById('songLibSongbookBar');
+  if (!bar) return;
+  const options = getSongLibSongbookChipOptions();
+  if (!options.length && !isAdmin) { bar.innerHTML = ''; bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const chips = [{ label: '全部诗歌本', value: '' }, ...options.map(sb => ({ label: sb, value: sb }))];
+  bar.innerHTML = chips.map(c => {
+    const safeVal = escapeHtml(c.value).replace(/'/g,"\\'");
+    const editBtn = (isAdmin && c.value) ? `<button class="song-lib-songbook-chip-edit" onclick="event.stopPropagation();renameSongLibSongbook('${safeVal}')" title="重命名诗歌本"><i class="ti ti-pencil"></i></button>` : '';
+    const delBtn = (isAdmin && c.value) ? `<button class="song-lib-songbook-chip-del" onclick="event.stopPropagation();deleteSongLibSongbook('${safeVal}')" title="删除诗歌本"><i class="ti ti-x"></i></button>` : '';
+    return `<button type="button" class="song-lib-songbook-chip${songLibSongbookFilter === c.value ? ' active' : ''}" onclick="setSongLibSongbookFilter('${safeVal}')">${escapeHtml(c.label)}${editBtn}${delBtn}</button>`;
+  }).join('') + (isAdmin ? `<button type="button" class="song-lib-songbook-chip song-lib-songbook-chip-add" onclick="addSongLibSongbookPrompt()" title="添加诗歌本"><i class="ti ti-plus"></i></button>` : '');
+}
+async function addSongLibSongbookPrompt(){
+  const val = (prompt('新增诗歌本名称（如：生命圣诗、赞美之泉）：') || '').trim();
+  if (!val) return;
+  if (getSongLibSongbooks().some(sb => sb.toLowerCase() === val.toLowerCase())) { showToast('这个诗歌本已经存在了'); return; }
+  songLibSongbooks.push(val);
+  persistSongLibSongbooks();
+  renderSongLibSongbookBar();
+  fillDatalist('songLibSongbookDatalist', getSongLibSongbooks());
+  showToast(`✅ 已添加诗歌本「${val}」`);
+  await syncSongLibSongbooksToRemote();
+}
+// 重命名诗歌本：预设列表 + 所有正在用这个诗歌本的歌曲，一起改名（联动），改完同步到云端
+async function renameSongLibSongbook(oldSb){
+  const val = prompt(`将诗歌本「${oldSb}」重命名为：`, oldSb);
+  if (val === null) return;
+  const newSb = val.trim();
+  if (!newSb) { showToast('诗歌本名称不能为空'); return; }
+  if (newSb.toLowerCase() === oldSb.toLowerCase() && newSb === oldSb) return; // 没有变化
+  if (newSb.toLowerCase() !== oldSb.toLowerCase() && getSongLibSongbooks().some(sb => sb.toLowerCase() === newSb.toLowerCase())) {
+    showToast(`诗歌本「${newSb}」已经存在，不能重复`);
+    return;
+  }
+  const idx = songLibSongbooks.findIndex(sb => sb.toLowerCase() === oldSb.toLowerCase());
+  if (idx !== -1) songLibSongbooks[idx] = newSb; else songLibSongbooks.push(newSb);
+  persistSongLibSongbooks();
+  let changed = 0;
+  songLibrary.forEach(s => { if (s.songbook && s.songbook.toLowerCase() === oldSb.toLowerCase()) { s.songbook = newSb; changed++; } });
+  if (changed) persistSongLibrary();
+  if (songLibSongbookFilter.toLowerCase() === oldSb.toLowerCase()) songLibSongbookFilter = newSb;
+  renderSongLibSongbookBar();
+  renderSongLibraryGrid();
+  fillDatalist('songLibSongbookDatalist', getSongLibSongbooks());
+  showToast(`✅ 已重命名为「${newSb}」${changed ? `，同步更新了 ${changed} 首歌曲` : ''}`);
+  await syncSongLibSongbooksToRemote();
+  if (changed) await syncSongLibraryToRemote();
+}
+async function deleteSongLibSongbook(sb){
+  const usageCount = songLibrary.filter(s => s.songbook === sb).length;
+  const msg = usageCount > 0
+    ? `有 ${usageCount} 首歌正在使用「${sb}」这个诗歌本，删除后这些歌曲的诗歌本会一并清空。确定要删除吗？`
+    : `确定要删除诗歌本「${sb}」吗？`;
+  if (!confirm(msg)) return;
+  songLibSongbooks = songLibSongbooks.filter(x => x.toLowerCase() !== sb.toLowerCase());
+  persistSongLibSongbooks();
+  let changed = 0;
+  songLibrary.forEach(s => { if (s.songbook === sb) { s.songbook = ''; changed++; } });
+  if (changed) persistSongLibrary();
+  if (songLibSongbookFilter === sb) songLibSongbookFilter = '';
+  renderSongLibSongbookBar();
+  renderSongLibraryGrid();
+  fillDatalist('songLibSongbookDatalist', getSongLibSongbooks());
+  showToast(`✅ 已删除诗歌本「${sb}」${changed ? `，${changed} 首歌曲的诗歌本已清空` : ''}`);
+  await syncSongLibSongbooksToRemote();
+  if (changed) await syncSongLibraryToRemote();
+}
 function setSongLibCategoryFilter(cat){
   songLibCategoryFilter = cat;
+  songLibSongbookFilter = ''; // 联动：切换分类后，诗歌本可选项会变，之前选的诗歌本筛选先清空
   renderSongLibFilterBar();
+  renderSongLibSongbookBar();
+  renderSongLibraryGrid();
+}
+function setSongLibSongbookFilter(sb){
+  songLibSongbookFilter = sb;
+  renderSongLibSongbookBar();
   renderSongLibraryGrid();
 }
 function getFilteredSongLibrary(){
@@ -5373,6 +5512,7 @@ function getFilteredSongLibrary(){
     list.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
   if (songLibCategoryFilter) list = list.filter(s => s.category === songLibCategoryFilter);
+  if (songLibSongbookFilter) list = list.filter(s => s.songbook === songLibSongbookFilter);
   if (!songLibSearchKeyword) return list;
   const kw = songLibSearchKeyword.toLowerCase();
   return list.filter(s =>
@@ -5386,7 +5526,7 @@ function renderSongLibraryGrid(){
   const grid = document.getElementById('songLibGrid');
   const countEl = document.getElementById('songLibCount');
   const list = getFilteredSongLibrary();
-  const filtered = !!(songLibSearchKeyword || songLibCategoryFilter);
+  const filtered = !!(songLibSearchKeyword || songLibCategoryFilter || songLibSongbookFilter);
   if (songLibTab === 'favorite') {
     countEl.textContent = filtered ? `找到 ${list.length} 首` : `共收藏 ${list.length} 首`;
   } else if (songLibTab === 'recent') {
@@ -5708,6 +5848,7 @@ async function saveSourceEdit(){
   persistSongLibrary();
   songLibSourceEditing = false;
   renderSongLibDetailSource();
+  renderSongLibSongbookBar();
   renderSongLibraryGrid();
   showToast('✅ 已保存来源信息');
   await syncSongLibraryToRemote();
@@ -9058,6 +9199,7 @@ function getSharedAppStateSnapshot() {
     reminder_subscribers: normalizeReminderSubscribers(reminderSubscribers),
     song_lib_storage_config: normalizeSongLibSbConfig(songLibSupabaseConfig),
     song_lib_categories: normalizeSongLibCategoryList(songLibCategories),
+    song_lib_songbooks: normalizeSongLibSongbookList(songLibSongbooks),
   };
 }
 
@@ -9088,6 +9230,10 @@ function applyRemoteAppState(row) {
   if (row && row.song_lib_categories !== undefined) {
     songLibCategories = normalizeSongLibCategoryList(row.song_lib_categories);
     persistSongLibCategories();
+  }
+  if (row && row.song_lib_songbooks !== undefined) {
+    songLibSongbooks = normalizeSongLibSongbookList(row.song_lib_songbooks);
+    persistSongLibSongbooks();
   }
   updateLeaveBadge();
 }
@@ -9599,6 +9745,7 @@ async function bootstrapApp() {
   loadSongLibrary();
   loadSongLibFavorites();
   loadSongLibCategories();
+  loadSongLibSongbooks();
   loadSongLibSupabaseConfig();
   loadSettings();
   applySettingsToDOM();
