@@ -1373,6 +1373,12 @@ body.a11y-mode .bible-entry-fab i { font-size: 18px; }
   display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 .song-lib-sidebar-item-del:hover { background: #f5d3d3; color: #a32d2d; }
+.song-lib-sidebar-item-edit {
+  position: absolute; top: 2px; right: 18px; width: 14px; height: 14px; border-radius: 50%;
+  border: none; background: rgba(0,0,0,0.08); color: var(--text-4); font-size: 8px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.song-lib-sidebar-item-edit:hover { background: var(--primary-light); color: var(--primary); }
 .song-lib-sidebar-add-btn {
   display: flex; align-items: center; justify-content: center; gap: 3px; flex-wrap: wrap;
   width: calc(100% - 8px); margin: 6px 4px 0; padding: 8px 2px;
@@ -5276,8 +5282,9 @@ function renderSongLibFilterBar(){
   const chips = [{ label: '全部', value: '' }, ...categories.map(c => ({ label: c, value: c }))];
   bar.innerHTML = chips.map(c => {
     const safeVal = escapeHtml(c.value).replace(/'/g,"\\'");
+    const editBtn = (isAdmin && c.value) ? `<button class="song-lib-sidebar-item-edit" onclick="event.stopPropagation();renameSongLibCategory('${safeVal}')" title="重命名分类"><i class="ti ti-pencil"></i></button>` : '';
     const delBtn = (isAdmin && c.value) ? `<button class="song-lib-sidebar-item-del" onclick="event.stopPropagation();deleteSongLibCategory('${safeVal}')" title="删除分类"><i class="ti ti-x"></i></button>` : '';
-    return `<div class="song-lib-sidebar-item${songLibCategoryFilter === c.value ? ' active' : ''}" onclick="setSongLibCategoryFilter('${safeVal}')">${escapeHtml(c.label)}${delBtn}</div>`;
+    return `<div class="song-lib-sidebar-item${songLibCategoryFilter === c.value ? ' active' : ''}" onclick="setSongLibCategoryFilter('${safeVal}')">${escapeHtml(c.label)}${editBtn}${delBtn}</div>`;
   }).join('') + (isAdmin ? `<button class="song-lib-sidebar-add-btn" onclick="openSongLibCategoryAdd()"><i class="ti ti-plus"></i>分类</button>` : '');
 }
 function openSongLibCategoryAdd(){
@@ -5305,19 +5312,49 @@ async function submitSongLibCategoryAdd(){
   showToast(`✅ 已添加分类「${val}」`);
   await syncSongLibCategoriesToRemote();
 }
+// 重命名分类：预设分类列表 + 所有正在用这个分类的歌曲，一起改名（联动），改完同步到云端
+async function renameSongLibCategory(oldCat){
+  const val = prompt(`将分类「${oldCat}」重命名为：`, oldCat);
+  if (val === null) return;
+  const newCat = val.trim();
+  if (!newCat) { showToast('分类名称不能为空'); return; }
+  if (newCat.toLowerCase() === oldCat.toLowerCase() && newCat === oldCat) return; // 没有变化
+  if (newCat.toLowerCase() !== oldCat.toLowerCase() && getSongLibCategories().some(c => c.toLowerCase() === newCat.toLowerCase())) {
+    showToast(`分类「${newCat}」已经存在，不能重复`);
+    return;
+  }
+  const idx = songLibCategories.findIndex(c => c.toLowerCase() === oldCat.toLowerCase());
+  if (idx !== -1) songLibCategories[idx] = newCat; else songLibCategories.push(newCat);
+  persistSongLibCategories();
+  let changed = 0;
+  songLibrary.forEach(s => { if (s.category && s.category.toLowerCase() === oldCat.toLowerCase()) { s.category = newCat; changed++; } });
+  if (changed) persistSongLibrary();
+  if (songLibCategoryFilter.toLowerCase() === oldCat.toLowerCase()) songLibCategoryFilter = newCat;
+  renderSongLibFilterBar();
+  renderSongLibraryGrid();
+  fillDatalist('songLibCategoryDatalist', getSongLibCategories());
+  showToast(`✅ 已重命名为「${newCat}」${changed ? `，同步更新了 ${changed} 首歌曲` : ''}`);
+  await syncSongLibCategoriesToRemote();
+  if (changed) await syncSongLibraryToRemote();
+}
 async function deleteSongLibCategory(cat){
   const usageCount = songLibrary.filter(s => s.category === cat).length;
   const msg = usageCount > 0
-    ? `有 ${usageCount} 首歌正在使用「${cat}」这个分类。删除后它仍会因为被这些歌曲使用而继续显示在列表里，只是不再作为预设分类保留。确定要删除吗？`
+    ? `有 ${usageCount} 首歌正在使用「${cat}」这个分类，删除后这些歌曲的分类会一并清空。确定要删除吗？`
     : `确定要删除分类「${cat}」吗？`;
   if (!confirm(msg)) return;
   songLibCategories = songLibCategories.filter(c => c.toLowerCase() !== cat.toLowerCase());
   persistSongLibCategories();
+  let changed = 0;
+  songLibrary.forEach(s => { if (s.category === cat) { s.category = ''; changed++; } });
+  if (changed) persistSongLibrary();
   if (songLibCategoryFilter === cat) songLibCategoryFilter = '';
   renderSongLibFilterBar();
   renderSongLibraryGrid();
   fillDatalist('songLibCategoryDatalist', getSongLibCategories());
+  showToast(`✅ 已删除分类「${cat}」${changed ? `，${changed} 首歌曲的分类已清空` : ''}`);
   await syncSongLibCategoriesToRemote();
+  if (changed) await syncSongLibraryToRemote();
 }
 function setSongLibCategoryFilter(cat){
   songLibCategoryFilter = cat;
