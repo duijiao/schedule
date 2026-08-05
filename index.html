@@ -3747,6 +3747,22 @@ function loadSongLibrary() {
 function persistSongLibrary() {
   try { localStorage.setItem(LS_SONG_LIBRARY, JSON.stringify(songLibrary)); } catch (e) {}
 }
+// ── "我的收藏"只存在本机 localStorage，不随歌单库同步到云端 ──
+// （收藏是个人偏好，换设备/换人登录不应该互相影响，所以刻意不放进 song_library 的同步字段里）
+const LS_SONG_LIB_FAVORITES = 'churchSongLibFavoritesLocal';
+let songLibFavoriteIds = new Set();
+function loadSongLibFavorites() {
+  try {
+    const raw = localStorage.getItem(LS_SONG_LIB_FAVORITES);
+    songLibFavoriteIds = new Set(raw ? JSON.parse(raw) : []);
+  } catch (e) { songLibFavoriteIds = new Set(); }
+}
+function persistSongLibFavorites() {
+  try { localStorage.setItem(LS_SONG_LIB_FAVORITES, JSON.stringify([...songLibFavoriteIds])); } catch (e) {}
+}
+function isSongLibFavorite(id) {
+  return songLibFavoriteIds.has(id);
+}
 // ── 管理员手动添加的分类（即使还没有歌曲用到，也会出现在侧边分类栏里）──
 const LS_SONG_LIB_CATEGORIES = 'churchSongLibCategories';
 let songLibCategories = [];
@@ -3910,7 +3926,6 @@ function normalizeSongLibrary(raw) {
       lyrics: item?.lyrics || '',
       keys,
       music,
-      favorite: !!item?.favorite,
       lastPlayedAt: item?.lastPlayedAt || null,
       createdAt: item?.createdAt || new Date().toISOString(),
     };
@@ -3934,7 +3949,6 @@ function ensureSongInLibrary(title, src) {
     lyrics: '',
     keys: src ? [{ id: genSongLibId(), label: '', src }] : [],
     music: [],
-    favorite: false,
     lastPlayedAt: null,
     createdAt: new Date().toISOString(),
   };
@@ -5313,7 +5327,7 @@ function setSongLibCategoryFilter(cat){
 function getFilteredSongLibrary(){
   let list = songLibrary.slice();
   if (songLibTab === 'favorite') {
-    list = list.filter(s => s.favorite);
+    list = list.filter(s => isSongLibFavorite(s.id));
     list.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
   } else if (songLibTab === 'recent') {
     list = list.filter(s => s.lastPlayedAt);
@@ -5375,6 +5389,7 @@ function renderSongLibraryGrid(){
       ? `<div class="song-lib-card-source">${sourceParts.join('<span class="ulib-dot"> · </span>')}</div>`
       : '';
     const safeTitle=escapeHtml(s.title).replace(/'/g,"\\'");
+    const isFav = isSongLibFavorite(s.id);
     return `<div class="song-lib-card" onclick="openSongLibDetail('${s.id}')">
       <div class="song-lib-card-thumb${firstSrc?' has-img':''}">${thumb}</div>
       <div class="song-lib-card-info">
@@ -5384,32 +5399,32 @@ function renderSongLibraryGrid(){
       </div>
       <div class="song-lib-card-actions">
         <button class="song-lib-card-play-btn" onclick="event.stopPropagation();quickPlaySongAudio('${safeTitle}')" title="列表播放"><i class="ti ti-player-play"></i></button>
-        <button class="song-lib-card-fav-btn${s.favorite?' active':''}" onclick="event.stopPropagation();toggleSongLibFavorite('${s.id}')" title="${s.favorite?'取消收藏':'收藏'}"><i class="ti ${s.favorite?'ti-heart-filled':'ti-heart'}"></i></button>
+        <button class="song-lib-card-fav-btn${isFav?' active':''}" onclick="event.stopPropagation();toggleSongLibFavorite('${s.id}')" title="${isFav?'取消收藏':'收藏'}"><i class="ti ${isFav?'ti-heart-filled':'ti-heart'}"></i></button>
       </div>
     </div>`;
   }).join('');
 }
-// 收藏/取消收藏（网格里的心形按钮、详情页里的心形按钮共用）
-async function toggleSongLibFavorite(id){
+// 收藏/取消收藏（网格里的心形按钮、详情页里的心形按钮共用）—— 只存本机 localStorage，不同步云端
+function toggleSongLibFavorite(id){
   const s = songLibrary.find(x => x.id === id);
   if (!s) return;
-  s.favorite = !s.favorite;
-  persistSongLibrary();
+  if (songLibFavoriteIds.has(id)) songLibFavoriteIds.delete(id); else songLibFavoriteIds.add(id);
+  persistSongLibFavorites();
   renderSongLibraryGrid();
   if (songLibDetailCurrent && songLibDetailCurrent.id === id) renderSongLibDetailFavBtn();
-  await syncSongLibraryToRemote();
 }
-async function toggleSongLibFavoriteFromDetail(){
+function toggleSongLibFavoriteFromDetail(){
   if (!songLibDetailCurrent) return;
-  await toggleSongLibFavorite(songLibDetailCurrent.id);
+  toggleSongLibFavorite(songLibDetailCurrent.id);
 }
 function renderSongLibDetailFavBtn(){
   const btn = document.getElementById('songLibDetailFavBtn');
   const s = songLibDetailCurrent;
   if (!btn || !s) return;
-  btn.classList.toggle('active', !!s.favorite);
-  btn.title = s.favorite ? '取消收藏' : '收藏';
-  btn.innerHTML = `<i class="ti ${s.favorite ? 'ti-heart-filled' : 'ti-heart'}"></i>`;
+  const isFav = isSongLibFavorite(s.id);
+  btn.classList.toggle('active', isFav);
+  btn.title = isFav ? '取消收藏' : '收藏';
+  btn.innerHTML = `<i class="ti ${isFav ? 'ti-heart-filled' : 'ti-heart'}"></i>`;
 }
 // 记录"最近使用"：每次打开某首歌的音乐播放器都算一次使用
 function markSongLibPlayed(title){
@@ -9545,6 +9560,7 @@ async function bootstrapApp() {
   loadSermonCollapsed();
   loadLeaveRequests();
   loadSongLibrary();
+  loadSongLibFavorites();
   loadSongLibCategories();
   loadSongLibSupabaseConfig();
   loadSettings();
