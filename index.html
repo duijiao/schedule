@@ -5523,7 +5523,6 @@ function renderSongLibraryGrid(){
     if (s.keys.length > 1) badges.push(`<span class="song-lib-key-count-badge">${s.keys.length}个调</span>`);
     const sourceParts = [];
     if (s.band) sourceParts.push(`<i class="ti ti-users"></i>${escapeHtml(s.band)}`);
-    if (s.songbook) sourceParts.push(`<i class="ti ti-book-2"></i>${escapeHtml(s.songbook)}`);
     const sourceLine = sourceParts.length
       ? `<div class="song-lib-card-source">${sourceParts.join('<span class="ulib-dot"> · </span>')}</div>`
       : '';
@@ -5953,7 +5952,9 @@ function showFloatingAudioBar() {
   bar.appendChild(globalAudioEl); // 只是移动 DOM 节点，不会打断播放
   document.getElementById('floatingAudioTitle').textContent = musicPlayerSongTitle || '未知诗歌';
   const link = getMusicLinksForTitle(musicPlayerSongTitle).find(l => l.id === loadedAudioLinkId);
-  document.getElementById('floatingAudioSub').textContent = link?.label || '音频播放中';
+  const songEntry = songLibrary.find(s => s.title.trim().toLowerCase() === (musicPlayerSongTitle || '').trim().toLowerCase());
+  const sourceLabel = link?.label || '音频播放中';
+  document.getElementById('floatingAudioSub').textContent = songEntry?.band ? `${songEntry.band} · ${sourceLabel}` : sourceLabel;
   const playableSongs = getFilteredSongLibrary().filter(s => getAudioLinksForTitle(s.title).length > 0);
   const hasMultiple = playableSongs.length > 1;
   document.getElementById('floatingAudioPrevBtn').style.display = hasMultiple ? '' : 'none';
