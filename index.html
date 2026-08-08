@@ -3262,6 +3262,14 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
           <button class="btn-cancel" style="flex:none;padding:6px 14px" onclick="triggerBatchWelcomeEmails()"><i class="ti ti-send" style="font-size:14px;margin-right:4px"></i>批量发送订阅成功提醒</button>
         </div>
         <div id="bulkReminderList" style="font-size:12px;color:#999;line-height:1.6"></div>
+
+        <div style="border-top:1px solid #eee;margin-top:4px;padding-top:10px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-size:13px;font-weight:600;color:#333">已导入的邮箱（<span id="reminderSubscriberCount">0</span>）</div>
+            <button class="reminder-email-edit-btn" onclick="loadReminderSubscribersList()"><i class="ti ti-refresh" style="font-size:13px;margin-right:2px"></i>刷新</button>
+          </div>
+          <div id="reminderSubscribersListWrap" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto"></div>
+        </div>
       </div>
     </div>
 
@@ -7869,7 +7877,10 @@ function openSettings() {
   }
   // 批量导入邮箱提醒：仅管理员可见
   const bulkReminderSec = document.getElementById('bulkReminderSection');
-  if (bulkReminderSec) bulkReminderSec.style.display = isAdmin ? '' : 'none';
+  if (bulkReminderSec) {
+    bulkReminderSec.style.display = isAdmin ? '' : 'none';
+    if (isAdmin) loadReminderSubscribersList();
+  }
   document.getElementById('settingsOverlay').classList.add('open');
 }
 
@@ -8253,6 +8264,74 @@ function parseBulkReminderLine(line) {
   return { email: email.trim().toLowerCase(), name };
 }
 
+// ── 已导入邮箱列表展示 + 按条发送 ─────────────────────
+// 拼出"修改绑定信息"的专属链接：当前页面地址 + ?manage=token。
+function buildManageLink(token) {
+  return `${location.origin}${location.pathname}?manage=${encodeURIComponent(token)}`;
+}
+
+// 从远端重新拉一次订阅名单并刷新列表显示（打开设置页/点"刷新"按钮时调用）
+async function loadReminderSubscribersList() {
+  try {
+    await fetchReminderSubscribersFromRemote();
+    renderReminderSubscribersListUI();
+  } catch (e) {
+    console.error('加载订阅列表失败', e);
+    showToast('加载订阅列表失败，请检查网络后重试');
+  }
+}
+
+// 把当前内存里的 reminderSubscribers 渲染成列表，每条带一个"发送"按钮
+function renderReminderSubscribersListUI() {
+  const wrap = document.getElementById('reminderSubscribersListWrap');
+  const countEl = document.getElementById('reminderSubscriberCount');
+  if (!wrap) return;
+  if (countEl) countEl.textContent = reminderSubscribers.length;
+  if (!reminderSubscribers.length) {
+    wrap.innerHTML = '<div style="font-size:12px;color:#bbb;padding:8px 0">暂无已导入的邮箱</div>';
+    return;
+  }
+  wrap.innerHTML = reminderSubscribers.map(s => `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#fff;border:1px solid #eee;border-radius:8px">
+      <div style="min-width:0;flex:1;overflow:hidden">
+        <div style="font-size:13px;font-weight:600;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(s.name || '（未填姓名）')}</div>
+        <div style="font-size:12px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(s.email)}</div>
+      </div>
+      <button class="name-add-btn" style="flex:none;padding:5px 10px;font-size:12px" data-token="${escapeHtml(s.token)}" onclick="sendSingleWelcomeEmail(this.dataset.token, this)">发送</button>
+    </div>
+  `).join('');
+}
+
+// 按条发送：只给这一个订阅者发一封"订阅成功"提醒（跟批量发送用同一个 Edge
+// Function，只是走单个模式，不带 mode:"batchAll"）
+async function sendSingleWelcomeEmail(token, btnEl) {
+  const sub = reminderSubscribers.find(s => s.token === token);
+  if (!sub) { showToast('没有找到这条订阅记录，请先点"刷新"'); return; }
+  if (!isSupabaseEnabled()) { showToast('未配置 Supabase，无法发送'); return; }
+  const originalText = btnEl ? btnEl.textContent : '';
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = '发送中…'; }
+  try {
+    const manageUrl = sub.token ? buildManageLink(sub.token) : '';
+    const resp = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-welcome-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+        'apikey': SUPABASE_CONFIG.anonKey,
+      },
+      body: JSON.stringify({ email: sub.email, name: sub.name || '', manageUrl }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
+    showToast(`✅ 已发送给 ${sub.email}`);
+  } catch (e) {
+    console.error('发送单条订阅成功提醒失败', e);
+    showToast(`发送失败：${sub.email}，请检查 Edge Function 是否已部署`);
+  } finally {
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText || '发送'; }
+  }
+}
+
 async function bulkImportReminderSubscribers() {
   const input = document.getElementById('bulkReminderInput');
   const errEl = document.getElementById('bulkReminderError');
@@ -8295,6 +8374,7 @@ async function bulkImportReminderSubscribers() {
     if (input) input.value = '';
     showToast(`✅ 导入完成：新增 ${added} 个，更新 ${updated} 个${invalidLines.length ? `，${invalidLines.length} 行未能识别` : ''}`);
     if (listEl) listEl.textContent = invalidLines.length ? `未能识别的行（姓名或邮箱缺失）：${invalidLines.join(' ／ ')}` : '';
+    renderReminderSubscribersListUI();
   } catch (e) {
     console.error('批量导入邮箱提醒失败', e);
     if (isMissingRemoteColumnError(e, 'reminder_subscribers')) {
@@ -8330,6 +8410,7 @@ async function triggerBatchWelcomeEmails() {
     if (listEl && failCount) {
       listEl.textContent = `发送失败：${data.failed.map(f => f.email).join(' ／ ')}`;
     }
+    loadReminderSubscribersList();
   } catch (e) {
     console.error('批量发送订阅成功提醒失败', e);
     showToast('批量发送失败，请检查 Edge Function 是否已部署');
