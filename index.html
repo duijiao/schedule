@@ -2994,6 +2994,30 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
   </div>
 </div>
 
+<!-- ── 邮箱绑定信息修改（通过专属链接 ?manage=token 打开）────── -->
+<div class="modal-overlay" id="manageSubOverlay" onclick="closeManageSubModal(event)">
+  <div class="leave-modal" onclick="event.stopPropagation()">
+    <div class="picker-handle"></div>
+    <div class="leave-modal-title">邮箱提醒设置</div>
+    <div class="leave-modal-sub">可以直接修改邮箱、姓名，也可以取消订阅</div>
+
+    <div class="form-field">
+      <label class="form-label">接收提醒的邮箱</label>
+      <input class="form-input" id="manageSubEmailInput" type="email" placeholder="邮箱地址">
+    </div>
+    <div class="form-field">
+      <label class="form-label">姓名</label>
+      <input class="form-input" id="manageSubNameInput" type="text" placeholder="用于匹配本周排班">
+    </div>
+
+    <div class="leave-form-error" id="manageSubError">请输入有效的邮箱地址</div>
+    <div class="drawer-actions">
+      <button class="btn-cancel" onclick="unsubscribeFromManageModal()">取消订阅</button>
+      <button class="btn-save" onclick="saveManageSubModal()">保存修改</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Leave request: admin review list modal ────────────── -->
 <div class="modal-overlay" id="leaveListOverlay" onclick="closeLeaveList(event)">
   <div class="edit-drawer modal-has-close-btn" onclick="event.stopPropagation()" style="max-height:88vh">
@@ -3219,35 +3243,25 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
             <button class="name-add-btn" onclick="addWatchName()">添加</button>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- 邮箱提醒：与上方"关注人名"联动 -->
-        <div class="reminder-email-block">
-          <div class="settings-row">
-            <div class="settings-row-icon" style="background:#eef2ff"><i class="ti ti-mail" style="color:#3B5BDB"></i></div>
-            <div class="settings-row-body">
-              <div class="settings-row-label">邮箱提醒订阅</div>
-              <div class="settings-row-desc">每周三、五、六、日提醒本周祷告、证道人及相关服侍安排</div>
-            </div>
-          </div>
-          <div class="reminder-email-content">
-            <div class="reminder-email-status" id="reminderEmailStatus">
-              <div class="reminder-email-status-top">
-                <span class="reminder-email-status-email"><i class="ti ti-mail-check"></i>当前订阅：<strong id="reminderEmailStatusText"></strong></span>
-                <span class="reminder-email-status-actions">
-                  <button class="reminder-email-edit-btn" onclick="startEditReminderEmail()">更改</button>
-                  <button class="reminder-email-unsub-btn" onclick="unsubscribeReminderEmail()">取消订阅</button>
-                </span>
-              </div>
-              <div class="reminder-email-sync-note" id="reminderEmailWatchSync"></div>
-            </div>
-            <div class="name-add-row reminder-email-form" id="reminderEmailForm">
-              <input class="name-add-input" id="reminderEmailInput" type="email" placeholder="输入邮箱地址接收提醒" onkeydown="if(event.key==='Enter')subscribeReminderEmail()">
-              <button class="name-add-btn" id="reminderEmailSubmitBtn" onclick="subscribeReminderEmail()">订阅</button>
-            </div>
-            <button class="reminder-email-cancel-edit" id="reminderEmailCancelEdit" onclick="cancelEditReminderEmail()">取消更改</button>
-            <div class="leave-form-error" id="reminderEmailError">请输入有效的邮箱地址</div>
-          </div>
+    <!-- 批量导入邮箱提醒（仅管理员） -->
+    <div class="settings-section admin-only-section" id="bulkReminderSection" style="display:none">
+      <div class="settings-section-title">📮 批量导入邮箱提醒（管理员）</div>
+      <div class="settings-card" style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;color:#999;line-height:1.6">
+          每行一条，格式：<strong>姓名 邮箱</strong>（姓名和邮箱之间用空格或逗号隔开都可以）。姓名会自动与排班联动——
+          只有这个人本周确实有排班（含主领）时，才会在本周的提醒邮件发送对象里；没有排班就不会打扰。
         </div>
+        <textarea id="bulkReminderInput" placeholder="刘根英 liugenying@qq.com
+张三,zhangsan@163.com" style="width:100%;box-sizing:border-box;min-height:110px;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+        <div class="leave-form-error" id="bulkReminderError"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-save" style="flex:none;padding:6px 14px" onclick="bulkImportReminderSubscribers()"><i class="ti ti-upload" style="font-size:14px;margin-right:4px"></i>批量导入</button>
+          <button class="btn-cancel" style="flex:none;padding:6px 14px" onclick="triggerBatchWelcomeEmails()"><i class="ti ti-send" style="font-size:14px;margin-right:4px"></i>批量发送订阅成功提醒</button>
+        </div>
+        <div id="bulkReminderList" style="font-size:12px;color:#999;line-height:1.6"></div>
       </div>
     </div>
 
@@ -7843,8 +7857,6 @@ function openSettings() {
   renderSectionOrderList();
   renderNameTags();
   updateNotifStatus();
-  reminderEmailEditing = false;
-  renderReminderEmailUI();
   // sync a11y toggle
   document.getElementById('a11yToggle').checked = settings.a11yMode;
   // sync color picker
@@ -7855,6 +7867,9 @@ function openSettings() {
     songLibSec.style.display = isAdmin ? '' : 'none';
     if (isAdmin) fillSongLibStorageSettingsInputs();
   }
+  // 批量导入邮箱提醒：仅管理员可见
+  const bulkReminderSec = document.getElementById('bulkReminderSection');
+  if (bulkReminderSec) bulkReminderSec.style.display = isAdmin ? '' : 'none';
   document.getElementById('settingsOverlay').classList.add('open');
 }
 
@@ -8180,17 +8195,27 @@ function pendingLeaveCount() {
 }
 
 // ── Email reminder subscribers (每周三/五/六/日 提醒本周祷告/证道/服侍) ──
-const LS_REMINDER_EMAIL = 'churchReminderEmail';
-let reminderSubscribers = []; // { email, addedAt }
+const LS_REMINDER_EMAIL = 'churchReminderEmail'; // 仅历史遗留：旧版本自助订阅用过，保留常量避免报错，现已不再写入
+let reminderSubscribers = []; // { email, name, token, addedAt }—— 现在完全由管理员统一添加，不再和"关注人名"联动
 
+// 每条订阅记录的专属 token，用于生成"修改绑定信息"的链接（?manage=token）。
+// 只在新建 / 编辑保存时生成一次，normalize 时不会重新生成——否则每次从云端
+// 拉取数据都会换一个新 token，之前发出去的修改链接就全部失效了。
+function genSubscriberToken() {
+  return 'sub' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
+
+// 数据结构：每条订阅记录只有一个 name（管理员添加时指定的人名），不再是
+// watchNames 数组，也不再跟"人名排班提醒"（settings.watchNames）联动。
+// 匹配规则：本周排班（主领/证道/祷告/服侍）里出现了这个 name，就发提醒；
+// 没出现就不发。name 留空的（极少数老数据）视为"通用订阅"，始终发送。
 function normalizeReminderSubscribers(raw) {
   if (!Array.isArray(raw)) return [];
   const seen = new Set();
   return raw.map(item => ({
     email: String(item?.email || '').trim().toLowerCase(),
-    watchNames: Array.isArray(item?.watchNames)
-      ? [...new Set(item.watchNames.map(n => String(n || '').trim()).filter(Boolean))]
-      : [],
+    name: String(item?.name || (Array.isArray(item?.watchNames) ? item.watchNames[0] : '') || '').trim(),
+    token: String(item?.token || '').trim(),
     addedAt: item?.addedAt || new Date().toISOString(),
   })).filter(item => {
     if (!item.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item.email)) return false;
@@ -8198,13 +8223,6 @@ function normalizeReminderSubscribers(raw) {
     seen.add(item.email);
     return true;
   });
-}
-function getMyReminderEmail() {
-  try { return localStorage.getItem(LS_REMINDER_EMAIL) || ''; } catch (e) { return ''; }
-}
-function isReminderEmailSubscribed(email) {
-  const e = String(email || '').trim().toLowerCase();
-  return !!e && reminderSubscribers.some(s => s.email === e);
 }
 async function fetchReminderSubscribersFromRemote() {
   if (!initSupabaseClient()) return reminderSubscribers;
@@ -8217,144 +8235,196 @@ async function fetchReminderSubscribersFromRemote() {
   reminderSubscribers = normalizeReminderSubscribers(data?.reminder_subscribers);
   return reminderSubscribers;
 }
-let reminderEmailEditing = false;
-async function subscribeReminderEmail() {
-  const input = document.getElementById('reminderEmailInput');
-  const email = (input?.value || '').trim().toLowerCase();
-  const errEl = document.getElementById('reminderEmailError');
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    if (errEl) errEl.classList.add('show');
+
+// ── 批量导入邮箱提醒（管理员统一添加，唯一的添加入口）──────────
+// 解析一行输入，支持"姓名 邮箱" / "姓名,邮箱" / "邮箱 姓名" / "邮箱,姓名"，
+// 中英文逗号、空格、顿号都认。一行里找到一个合法邮箱，剩下的部分当作姓名。
+// 姓名是必填的——没有姓名就没法判断"本周排班里有没有这个人"，这条记录会被跳过。
+function parseBulkReminderLine(line) {
+  const trimmed = String(line || '').trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split(/[,，、\s]+/).filter(Boolean);
+  if (!parts.length) return null;
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const email = parts.find(p => emailRe.test(p));
+  if (!email) return null;
+  const name = parts.filter(p => p !== email).join(' ').trim();
+  if (!name) return null;
+  return { email: email.trim().toLowerCase(), name };
+}
+
+async function bulkImportReminderSubscribers() {
+  const input = document.getElementById('bulkReminderInput');
+  const errEl = document.getElementById('bulkReminderError');
+  const listEl = document.getElementById('bulkReminderList');
+  const raw = input?.value || '';
+  const lines = raw.split('\n');
+  const parsed = [];
+  const invalidLines = [];
+  lines.forEach(line => {
+    if (!line.trim()) return;
+    const item = parseBulkReminderLine(line);
+    if (item) parsed.push(item);
+    else invalidLines.push(line.trim());
+  });
+  if (errEl) errEl.classList.remove('show');
+  if (!parsed.length) {
+    if (errEl) { errEl.textContent = '没有解析到有效的记录，请检查格式（每行：姓名 邮箱，姓名必填）'; errEl.classList.add('show'); }
     return;
   }
-  if (errEl) errEl.classList.remove('show');
-  const btn = document.getElementById('reminderEmailSubmitBtn');
-  if (btn) btn.disabled = true;
-  const oldEmail = reminderEmailEditing ? getMyReminderEmail() : '';
   try {
     await fetchReminderSubscribersFromRemote();
-    const existing = reminderSubscribers.find(s => s.email === email);
-    if (existing) {
-      existing.watchNames = [...settings.watchNames];
-    } else {
-      reminderSubscribers.push({ email, watchNames: [...settings.watchNames], addedAt: new Date().toISOString() });
-    }
-    // 改邮箱：新地址已写入后，把旧地址的订阅记录去掉
-    if (oldEmail && oldEmail !== email) {
-      reminderSubscribers = reminderSubscribers.filter(s => s.email !== oldEmail);
-    }
+    let added = 0, updated = 0;
+    parsed.forEach(({ email, name }) => {
+      const existing = reminderSubscribers.find(s => s.email === email);
+      if (existing) {
+        existing.name = name;
+        if (!existing.token) existing.token = genSubscriberToken();
+        updated++;
+      } else {
+        reminderSubscribers.push({
+          email,
+          name,
+          token: genSubscriberToken(),
+          addedAt: new Date().toISOString(),
+        });
+        added++;
+      }
+    });
     await syncRemoteField('reminder_subscribers', reminderSubscribers);
-    try { localStorage.setItem(LS_REMINDER_EMAIL, email); } catch (e) {}
-    showToast(oldEmail && oldEmail !== email ? `✅ 提醒邮箱已改为：${email}` : `✅ 已订阅邮箱提醒：${email}`);
-    reminderEmailEditing = false;
-    sendReminderWelcomeEmail(email, settings.watchNames);
+    if (input) input.value = '';
+    showToast(`✅ 导入完成：新增 ${added} 个，更新 ${updated} 个${invalidLines.length ? `，${invalidLines.length} 行未能识别` : ''}`);
+    if (listEl) listEl.textContent = invalidLines.length ? `未能识别的行（姓名或邮箱缺失）：${invalidLines.join(' ／ ')}` : '';
   } catch (e) {
-    console.error('订阅邮箱提醒失败', e);
+    console.error('批量导入邮箱提醒失败', e);
     if (isMissingRemoteColumnError(e, 'reminder_subscribers')) {
       showToast('后端缺少 reminder_subscribers 字段，请先执行修复 SQL');
     } else {
-      showToast('订阅失败，请检查网络后重试');
+      showToast('批量导入失败，请检查网络后重试');
     }
-  } finally {
-    if (btn) btn.disabled = false;
-    renderReminderEmailUI();
   }
 }
-// 订阅/改邮箱成功后，调用后端 Edge Function 发一封"订阅成功"确认邮件。
-// 静默失败：确认邮件发不出去不影响订阅本身已经成功这件事，不打断用户操作。
-function sendReminderWelcomeEmail(email, watchNames) {
-  if (!isSupabaseEnabled()) return;
-  fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-welcome-email`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-      'apikey': SUPABASE_CONFIG.anonKey,
-    },
-    body: JSON.stringify({ email, watchNames: [...watchNames] }),
-  }).catch(e => console.error('发送订阅成功确认邮件失败', e));
-}
-function startEditReminderEmail() {
-  reminderEmailEditing = true;
-  renderReminderEmailUI();
-  const input = document.getElementById('reminderEmailInput');
-  if (input) { input.value = getMyReminderEmail(); input.focus(); input.select(); }
-}
-function cancelEditReminderEmail() {
-  reminderEmailEditing = false;
-  renderReminderEmailUI();
-}
-// 关注人名列表变化后，如果当前设备已订阅邮箱提醒，把最新的关注人名同步给订阅记录，
-// 让邮件提醒和"人名排班提醒"用同一份关注名单，不需要用户重复维护
-let watchNameSyncTimer = null;
-function syncWatchNamesToReminderSubscription() {
-  const email = getMyReminderEmail();
-  if (!email) return;
-  clearTimeout(watchNameSyncTimer);
-  watchNameSyncTimer = setTimeout(async () => {
-    try {
-      await fetchReminderSubscribersFromRemote();
-      const existing = reminderSubscribers.find(s => s.email === email);
-      if (!existing) return; // 订阅记录已经不存在（例如在别的设备取消订阅了），不重新创建
-      existing.watchNames = [...settings.watchNames];
-      await syncRemoteField('reminder_subscribers', reminderSubscribers);
-    } catch (e) {
-      console.error('同步关注人名到邮箱提醒失败', e);
-    } finally {
-      renderReminderEmailUI();
+
+// 手动触发一次"订阅成功"提醒，发给当前订阅列表里的所有邮箱（不只是刚导入的）。
+// 实际发信在 Edge Function 里按顺序完成（跟 weekly-reminder 一样，避免个人邮箱
+// SMTP 并发被限流），这里只是发一个"批量模式"的请求。
+async function triggerBatchWelcomeEmails() {
+  if (!isSupabaseEnabled()) { showToast('未配置 Supabase，无法发送'); return; }
+  if (!confirm('确认要给当前订阅列表里的所有邮箱都发一遍"订阅成功"提醒吗？')) return;
+  showToast('⏳ 正在批量发送，请稍候…');
+  try {
+    const resp = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-welcome-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+        'apikey': SUPABASE_CONFIG.anonKey,
+      },
+      body: JSON.stringify({ mode: 'batchAll', siteUrl: `${location.origin}${location.pathname}` }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
+    const listEl = document.getElementById('bulkReminderList');
+    const failCount = Array.isArray(data.failed) ? data.failed.length : 0;
+    showToast(`✅ 批量发送完成：成功 ${data.sent ?? '?'} 个${failCount ? `，失败 ${failCount} 个` : ''}`);
+    if (listEl && failCount) {
+      listEl.textContent = `发送失败：${data.failed.map(f => f.email).join(' ／ ')}`;
     }
-  }, 400);
+  } catch (e) {
+    console.error('批量发送订阅成功提醒失败', e);
+    showToast('批量发送失败，请检查 Edge Function 是否已部署');
+  }
 }
-async function unsubscribeReminderEmail() {
-  const email = getMyReminderEmail();
-  if (!email) return;
+
+// ── 通过专属链接修改邮箱绑定信息 ──────────────────────
+// 打开 “xxx?manage=token” 这样的链接时，弹窗展示这条订阅记录的邮箱/姓名，
+// 可以直接修改或取消订阅，不需要登录。
+let manageSubCurrent = null; // { email, name, token, addedAt }
+
+async function checkManageLinkFromUrl() {
+  let token = '';
+  try {
+    token = new URLSearchParams(location.search).get('manage') || '';
+  } catch (e) { return; }
+  if (!token) return;
   try {
     await fetchReminderSubscribersFromRemote();
-    reminderSubscribers = reminderSubscribers.filter(s => s.email !== email);
+    const sub = reminderSubscribers.find(s => s.token === token);
+    if (!sub) { showToast('没有找到对应的订阅信息，链接可能已失效'); return; }
+    openManageSubModal(sub);
+  } catch (e) {
+    console.error('读取订阅信息失败', e);
+    showToast('读取订阅信息失败，请检查网络后重试');
+  }
+}
+
+function openManageSubModal(sub) {
+  manageSubCurrent = {
+    email: sub.email,
+    name: sub.name || '',
+    token: sub.token,
+    addedAt: sub.addedAt,
+  };
+  const emailInput = document.getElementById('manageSubEmailInput');
+  const nameInput = document.getElementById('manageSubNameInput');
+  if (emailInput) emailInput.value = manageSubCurrent.email;
+  if (nameInput) nameInput.value = manageSubCurrent.name;
+  const errEl = document.getElementById('manageSubError');
+  if (errEl) errEl.classList.remove('show');
+  document.getElementById('manageSubOverlay').classList.add('open');
+}
+function closeManageSubModal(e) {
+  if (!e || e.target === document.getElementById('manageSubOverlay')) {
+    document.getElementById('manageSubOverlay').classList.remove('open');
+  }
+}
+async function saveManageSubModal() {
+  if (!manageSubCurrent) return;
+  const emailInput = document.getElementById('manageSubEmailInput');
+  const nameInput = document.getElementById('manageSubNameInput');
+  const errEl = document.getElementById('manageSubError');
+  const newEmail = (emailInput?.value || '').trim().toLowerCase();
+  if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+    if (errEl) { errEl.textContent = '请输入有效的邮箱地址'; errEl.classList.add('show'); }
+    return;
+  }
+  if (errEl) errEl.classList.remove('show');
+  try {
+    await fetchReminderSubscribersFromRemote();
+    const nextRecord = {
+      email: newEmail,
+      name: (nameInput?.value || '').trim(),
+      token: manageSubCurrent.token,
+      addedAt: manageSubCurrent.addedAt || new Date().toISOString(),
+    };
+    // 用 token 定位这条记录（邮箱可能改了，不能再按旧邮箱找）；
+    // 如果改成了另一个已存在的邮箱，去掉那条旧记录，避免同一个邮箱出现两条
+    reminderSubscribers = reminderSubscribers.filter(s => s.token !== manageSubCurrent.token && s.email !== newEmail);
+    reminderSubscribers.push(nextRecord);
     await syncRemoteField('reminder_subscribers', reminderSubscribers);
-    try { localStorage.removeItem(LS_REMINDER_EMAIL); } catch (e) {}
+    manageSubCurrent = nextRecord;
+    showToast('✅ 已保存修改');
+    closeManageSubModal();
+  } catch (e) {
+    console.error('保存订阅信息失败', e);
+    showToast('保存失败，请检查网络后重试');
+  }
+}
+async function unsubscribeFromManageModal() {
+  if (!manageSubCurrent) return;
+  if (!confirm('确定要取消这个邮箱的提醒订阅吗？')) return;
+  try {
+    await fetchReminderSubscribersFromRemote();
+    reminderSubscribers = reminderSubscribers.filter(s => s.token !== manageSubCurrent.token);
+    await syncRemoteField('reminder_subscribers', reminderSubscribers);
     showToast('已取消邮箱提醒订阅');
+    closeManageSubModal();
   } catch (e) {
     console.error('取消订阅失败', e);
     showToast('取消订阅失败，请检查网络后重试');
-  } finally {
-    renderReminderEmailUI();
   }
 }
-function renderReminderEmailUI() {
-  const statusEl = document.getElementById('reminderEmailStatus');
-  const formEl = document.getElementById('reminderEmailForm');
-  const textEl = document.getElementById('reminderEmailStatusText');
-  const syncEl = document.getElementById('reminderEmailWatchSync');
-  const cancelEl = document.getElementById('reminderEmailCancelEdit');
-  const email = getMyReminderEmail();
-  if (!statusEl || !formEl) return;
-  const showForm = !email || reminderEmailEditing;
-  if (showForm) {
-    statusEl.classList.remove('show');
-    formEl.classList.add('show');
-    if (cancelEl) cancelEl.classList.toggle('show', !!email && reminderEmailEditing);
-    const input = document.getElementById('reminderEmailInput');
-    if (input && !reminderEmailEditing) input.value = '';
-    const submitBtn = document.getElementById('reminderEmailSubmitBtn');
-    if (submitBtn) submitBtn.textContent = reminderEmailEditing ? '保存' : '订阅';
-  } else {
-    if (textEl) textEl.textContent = email;
-    statusEl.classList.add('show');
-    formEl.classList.remove('show');
-    if (cancelEl) cancelEl.classList.remove('show');
-    if (syncEl) {
-      if (settings.watchNames.length) {
-        syncEl.classList.remove('muted');
-        syncEl.innerHTML = `<i class="ti ti-link"></i><span>已联动关注人名：${escapeHtml(settings.watchNames.join('、'))}（增删会自动同步）</span>`;
-      } else {
-        syncEl.classList.add('muted');
-        syncEl.innerHTML = `<i class="ti ti-info-circle"></i><span>暂未添加关注人名，邮件只含本周通用信息；上方添加后自动联动</span>`;
-      }
-    }
-  }
-  const errEl = document.getElementById('reminderEmailError');
-  if (errEl) errEl.classList.remove('show');
-}
+
 const LS_SUNDAY_REMINDER = 'churchSundayReminderShown';
 function checkSundayReminder(){
   const today=new Date();
@@ -8671,7 +8741,6 @@ function addWatchName() {
   if (!settings.watchNames.includes(name)) {
     settings.watchNames.push(name);
     saveSettings();
-    syncWatchNamesToReminderSubscription();
   }
   inp.value = '';
   renderNameTags();
@@ -8680,7 +8749,6 @@ function addWatchName() {
 function removeWatchName(idx) {
   settings.watchNames.splice(idx, 1);
   saveSettings();
-  syncWatchNamesToReminderSubscription();
   renderNameTags();
 }
 
@@ -9718,6 +9786,7 @@ async function bootstrapApp() {
     try {
       await loadRemoteAppState();
       await syncAuthState();
+      await checkManageLinkFromUrl();
     } catch (e) {
       console.error('Supabase 初始化失败，已回退到本地模式', e);
     }
