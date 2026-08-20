@@ -3260,6 +3260,7 @@ body.a11y-mode .toggle-switch input:checked ~ .toggle-thumb { transform: transla
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn-save" style="flex:none;padding:6px 14px" onclick="bulkImportReminderSubscribers()"><i class="ti ti-upload" style="font-size:14px;margin-right:4px"></i>批量导入</button>
           <button class="btn-cancel" style="flex:none;padding:6px 14px" onclick="triggerBatchWelcomeEmails()"><i class="ti ti-send" style="font-size:14px;margin-right:4px"></i>批量发送订阅成功提醒</button>
+          <button class="btn-cancel" style="flex:none;padding:6px 14px" onclick="triggerBatchScheduleEmails()"><i class="ti ti-calendar-event" style="font-size:14px;margin-right:4px"></i>批量发送排班提醒</button>
         </div>
         <div id="bulkReminderList" style="font-size:12px;color:#999;line-height:1.6"></div>
 
@@ -8297,21 +8298,27 @@ function renderReminderSubscribersListUI() {
         <div style="font-size:13px;font-weight:600;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(s.name || '（未填姓名）')}</div>
         <div style="font-size:12px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(s.email)}</div>
       </div>
-      <button class="name-add-btn" style="flex:none;padding:5px 10px;font-size:12px" data-token="${escapeHtml(s.token)}" onclick="sendSingleWelcomeEmail(this.dataset.token, this)">发送</button>
+      <div style="flex:none;display:flex;gap:6px">
+        <button class="name-add-btn" style="padding:5px 10px;font-size:12px" data-token="${escapeHtml(s.token)}" onclick="sendSingleWelcomeEmail(this.dataset.token, this)">发送</button>
+        <button class="name-add-btn" style="padding:5px 10px;font-size:12px;background:#3B5BDB" data-token="${escapeHtml(s.token)}" onclick="sendScheduleOnlyEmail(this.dataset.token, this)">发排班</button>
+      </div>
     </div>
   `).join('');
 }
 
-// 按条发送：只给这一个订阅者发一封"订阅成功"提醒（跟批量发送用同一个 Edge
-// Function，只是走单个模式，不带 mode:"batchAll"）
-async function sendSingleWelcomeEmail(token, btnEl) {
+// 按条发送：给这一个订阅者发一封邮件（跟批量发送用同一个 Edge Function，
+// 只是走单个模式，不带 mode:"batchAll"）。
+// type 为空：发"订阅成功"确认邮件（原来的"发送"按钮）；
+// type 为 "scheduleOnly"：只发"本周是否有排班"+"本月排班明细"，不含订阅/
+// 欢迎文案（"发排班"按钮）。失败会自动重试一次，不需要手动再点一次。
+async function sendSingleReminderEmail(token, btnEl, type) {
   const sub = reminderSubscribers.find(s => s.token === token);
   if (!sub) { showToast('没有找到这条订阅记录，请先点"刷新"'); return; }
   if (!isSupabaseEnabled()) { showToast('未配置 Supabase，无法发送'); return; }
   const originalText = btnEl ? btnEl.textContent : '';
   if (btnEl) { btnEl.disabled = true; btnEl.textContent = '发送中…'; }
-  try {
-    const manageUrl = sub.token ? buildManageLink(sub.token) : '';
+  const manageUrl = sub.token ? buildManageLink(sub.token) : '';
+  const doSend = async () => {
     const resp = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-welcome-email`, {
       method: 'POST',
       headers: {
@@ -8319,17 +8326,36 @@ async function sendSingleWelcomeEmail(token, btnEl) {
         'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
         'apikey': SUPABASE_CONFIG.anonKey,
       },
-      body: JSON.stringify({ email: sub.email, name: sub.name || '', manageUrl }),
+      body: JSON.stringify({ email: sub.email, name: sub.name || '', manageUrl, type: type || undefined }),
     });
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
+    return data;
+  };
+  try {
+    await doSend();
     showToast(`✅ 已发送给 ${sub.email}`);
   } catch (e) {
-    console.error('发送单条订阅成功提醒失败', e);
-    showToast(`发送失败：${sub.email}，请检查 Edge Function 是否已部署`);
+    // 第一次失败：先提示"发送失败"，然后自动重试一次，不需要用户手动再点一次
+    console.error('发送提醒邮件失败，准备自动重试', e);
+    showToast(`⚠️ 发送失败：${sub.email}，正在自动重试…`);
+    if (btnEl) btnEl.textContent = '重试中…';
+    try {
+      await doSend();
+      showToast(`✅ 重试成功，已发送给 ${sub.email}`);
+    } catch (e2) {
+      console.error('自动重试后仍然发送失败', e2);
+      showToast(`❌ 发送失败：${sub.email}（已自动重试一次），请检查 Edge Function 是否已部署`);
+    }
   } finally {
-    if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText || '发送'; }
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; }
   }
+}
+function sendSingleWelcomeEmail(token, btnEl) {
+  return sendSingleReminderEmail(token, btnEl, '');
+}
+function sendScheduleOnlyEmail(token, btnEl) {
+  return sendSingleReminderEmail(token, btnEl, 'scheduleOnly');
 }
 
 async function bulkImportReminderSubscribers() {
@@ -8385,36 +8411,69 @@ async function bulkImportReminderSubscribers() {
   }
 }
 
-// 手动触发一次"订阅成功"提醒，发给当前订阅列表里的所有邮箱（不只是刚导入的）。
+// 调一次批量发送请求。onlyEmails 传了就只给这几个邮箱发（自动重试用），
+// 不传就是发给全部订阅者。type 为空发"订阅成功"邮件；type 为 "scheduleOnly"
+// 发"仅排班提醒"邮件。
+async function requestBatchReminderEmails(type, onlyEmails) {
+  const reqBody = { mode: 'batchAll', siteUrl: `${location.origin}${location.pathname}` };
+  if (type) reqBody.type = type;
+  if (Array.isArray(onlyEmails) && onlyEmails.length) reqBody.onlyEmails = onlyEmails;
+  const resp = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-welcome-email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+      'apikey': SUPABASE_CONFIG.anonKey,
+    },
+    body: JSON.stringify(reqBody),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
+  return data;
+}
+
+// 手动触发一次批量发送，发给当前订阅列表里的所有邮箱（不只是刚导入的）。
 // 实际发信在 Edge Function 里按顺序完成（跟 weekly-reminder 一样，避免个人邮箱
 // SMTP 并发被限流），这里只是发一个"批量模式"的请求。
-async function triggerBatchWelcomeEmails() {
+// 如果有发送失败的邮箱，会自动只对失败的那几个重试一次，不需要把全部人再发一遍。
+async function triggerBatchReminderEmails(type, confirmText, doneLabel, failLogLabel) {
   if (!isSupabaseEnabled()) { showToast('未配置 Supabase，无法发送'); return; }
-  if (!confirm('确认要给当前订阅列表里的所有邮箱都发一遍"订阅成功"提醒吗？')) return;
+  if (!confirm(confirmText)) return;
+  const listEl = document.getElementById('bulkReminderList');
   showToast('⏳ 正在批量发送，请稍候…');
   try {
-    const resp = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-welcome-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-        'apikey': SUPABASE_CONFIG.anonKey,
-      },
-      body: JSON.stringify({ mode: 'batchAll', siteUrl: `${location.origin}${location.pathname}` }),
-    });
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
-    const listEl = document.getElementById('bulkReminderList');
-    const failCount = Array.isArray(data.failed) ? data.failed.length : 0;
-    showToast(`✅ 批量发送完成：成功 ${data.sent ?? '?'} 个${failCount ? `，失败 ${failCount} 个` : ''}`);
-    if (listEl && failCount) {
-      listEl.textContent = `发送失败：${data.failed.map(f => f.email).join(' ／ ')}`;
+    const first = await requestBatchReminderEmails(type);
+    let totalSent = first.sent || 0;
+    let finalFailed = Array.isArray(first.failed) ? first.failed : [];
+
+    if (finalFailed.length) {
+      showToast(`⚠️ ${finalFailed.length} 个发送失败，正在自动重试…`);
+      try {
+        const retryEmails = finalFailed.map(f => f.email);
+        const retry = await requestBatchReminderEmails(type, retryEmails);
+        totalSent += retry.sent || 0;
+        finalFailed = Array.isArray(retry.failed) ? retry.failed : [];
+      } catch (retryErr) {
+        // 重试这次请求本身失败了（比如网络问题），保留第一次的失败列表不变
+        console.error('批量重试请求失败', retryErr);
+      }
+    }
+
+    showToast(`✅ ${doneLabel}完成：成功 ${totalSent} 个${finalFailed.length ? `，失败 ${finalFailed.length} 个（已自动重试）` : ''}`);
+    if (listEl) {
+      listEl.textContent = finalFailed.length ? `发送失败：${finalFailed.map(f => f.email).join(' ／ ')}` : '';
     }
     loadReminderSubscribersList();
   } catch (e) {
-    console.error('批量发送订阅成功提醒失败', e);
+    console.error(failLogLabel, e);
     showToast('批量发送失败，请检查 Edge Function 是否已部署');
   }
+}
+function triggerBatchWelcomeEmails() {
+  return triggerBatchReminderEmails('', '确认要给当前订阅列表里的所有邮箱都发一遍"订阅成功"提醒吗？', '批量发送', '批量发送订阅成功提醒失败');
+}
+function triggerBatchScheduleEmails() {
+  return triggerBatchReminderEmails('scheduleOnly', '确认要给当前订阅列表里的所有邮箱都发一遍"排班提醒"吗？', '批量发送', '批量发送排班提醒失败');
 }
 
 // ── 通过专属链接修改邮箱绑定信息 ──────────────────────
