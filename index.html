@@ -466,6 +466,23 @@ body.a11y-mode .app-topbar-title { font-size: 22px; }
 .sunday-pill.active { background: #fff; border-color: var(--primary); box-shadow: var(--shadow-sm); }
 .sunday-pill.active .s-num { color: var(--primary-dark); }
 .sunday-pill.active .s-label { color: var(--primary); }
+.sunday-pill.custom-date { background: #FFF3E0; position: relative; }
+.sunday-pill.custom-date .s-label { color: #B8641B; max-width: 44px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sunday-pill.custom-date.active { background: #fff; border-color: #E08A3C; }
+.sunday-pill.custom-date.active .s-num { color: #B8641B; }
+.sunday-pill.custom-date.active .s-label { color: #B8641B; }
+.sunday-pill.custom-date .s-dot { background: #E08A3C; }
+.sunday-pill .s-del-btn {
+  position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; border-radius: 50%;
+  background: #e74c3c; color: #fff; border: 1.5px solid #fff; font-size: 9px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+}
+.sunday-pill-add {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 34px; height: 42px; border-radius: 12px; border: 1.5px dashed var(--border-soft);
+  background: none; color: var(--text-4); cursor: pointer; font-size: 15px;
+}
+.sunday-pill-add:hover { border-color: var(--primary); color: var(--primary); }
 .collapse-tab {
   display: flex; align-items: center; justify-content: center;
   gap: 4px; padding: 10px 0 12px; cursor: pointer;
@@ -3736,6 +3753,11 @@ let sermonByDate = {
   '2026-06-28': '邹王君',
 };
 
+// 特别聚会日期：除了每周固定的主日之外，管理员可以额外添加的排班日期
+// （比如培灵会、退修会这种一周里连续好几天都要排班的场合）。
+// 结构：{ 'YYYY-MM-DD': '标签文字，比如"特别聚会"' }
+let customEventDates = {};
+
 function getRotationPerson(cfg, key) {
   const base = new Date(cfg.base + 'T00:00:00');
   const cur  = new Date(key + 'T00:00:00');
@@ -4389,12 +4411,12 @@ const BIBLE_BOOKS = [
   {name:'提多书', abbr:'tit', chapters:3},
   {name:'腓利门书', abbr:'phm', chapters:1},
   {name:'希伯来书', abbr:'heb', chapters:13},
-  {name:'雅各书', abbr:'jam', chapters:5},
+  {name:'雅各书', abbr:'jas', chapters:5},
   {name:'彼得前书', abbr:'1pe', chapters:5},
   {name:'彼得后书', abbr:'2pe', chapters:3},
-  {name:'约翰一书', abbr:'1jo', chapters:5},
-  {name:'约翰二书', abbr:'2jo', chapters:1},
-  {name:'约翰三书', abbr:'3jo', chapters:1},
+  {name:'约翰一书', abbr:'1jn', chapters:5},
+  {name:'约翰二书', abbr:'2jn', chapters:1},
+  {name:'约翰三书', abbr:'3jn', chapters:1},
   {name:'犹大书', abbr:'jud', chapters:1},
   {name:'启示录', abbr:'rev', chapters:22},
 ];
@@ -4681,6 +4703,57 @@ function getInitials(n){ if(!n)return'?'; const t=n.trim(); return /[a-zA-Z]/.te
 function getSundaysOfMonth(y,m){ const d=new Date(y,m,1),r=[]; while(d.getMonth()===m){if(d.getDay()===0)r.push(new Date(d));d.setDate(d.getDate()+1);}return r; }
 function toKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function monthHasData(y,m){ const p=`${y}-${String(m+1).padStart(2,'0')}-`; return Object.keys(scheduleData).some(k=>k.startsWith(p)); }
+// 特别聚会日期：从 customEventDates（YYYY-MM-DD -> 标签）里挑出属于某个月份的，转成 Date 数组
+function getExtraDatesOfMonth(y,m){
+  return Object.keys(customEventDates)
+    .filter(k=>{ const parts=k.split('-'); return +parts[0]===y && (+parts[1]-1)===m; })
+    .map(k=>{ const parts=k.split('-'); return new Date(+parts[0], +parts[1]-1, +parts[2]); })
+    .sort((a,b)=>a-b);
+}
+// 某个日期在导航条 / 标题里应该显示的标签：主日显示"主日"，特别聚会显示管理员填的标签，
+// 其他情况（理论上不会被选中，兜底用）显示对应的中文星期
+function getDateNavLabel(d){
+  if (d.getDay()===0) return '主日';
+  const custom = customEventDates[toKey(d)];
+  if (custom) return custom;
+  const zhWeek=['周日','周一','周二','周三','周四','周五','周六'];
+  return zhWeek[d.getDay()];
+}
+// 合并"当月所有主日" + "当月所有特别聚会日期"，按日期先后排序，用于导航条和月份总览
+function getAllScheduleDatesOfMonth(y,m){
+  const merged=[...getSundaysOfMonth(y,m), ...getExtraDatesOfMonth(y,m)];
+  merged.sort((a,b)=>a-b);
+  return merged;
+}
+// 添加一个特别聚会日期（管理员操作），成功后自动跳转过去查看
+async function addCustomEventDate(){
+  if(!isAdmin) return;
+  const dateStr=(prompt('添加特别聚会日期（格式：YYYY-MM-DD，例如 2026-08-21）：','')||'').trim();
+  if(!dateStr) return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)){ showToast('日期格式不对，请填 YYYY-MM-DD'); return; }
+  const d=new Date(dateStr+'T00:00:00');
+  if(isNaN(d)){ showToast('日期格式不对'); return; }
+  if(d.getDay()===0){ showToast('这一天本来就是主日，不用重复添加'); return; }
+  const label=(prompt('给这一天起个名字（比如：特别聚会、培灵会）：','特别聚会')||'').trim();
+  if(!label) return;
+  customEventDates[dateStr]=label;
+  selectedSunday=d;
+  render();
+  showToast(`✅ 已添加「${label}」· ${d.getMonth()+1}月${d.getDate()}日`);
+  await syncRemoteField('custom_event_dates', customEventDates);
+}
+// 删除一个特别聚会日期（管理员操作）
+async function removeCustomEventDate(dateStr){
+  if(!isAdmin) return;
+  const label=customEventDates[dateStr]||'这个日期';
+  if(!confirm(`确定要删除"${label}"吗？该日期已经排好的班/上传的诗歌等数据不会被删除，只是不再出现在日期导航里。`)) return;
+  delete customEventDates[dateStr];
+  // 如果删掉的正好是当前正在查看的日期，跳回最近的主日，避免停留在一个导航条里已经消失的日期上
+  if(selectedSunday && toKey(selectedSunday)===dateStr) selectedSunday=getCurrentWeekSunday();
+  render();
+  showToast('已删除该特别聚会日期');
+  await syncRemoteField('custom_event_dates', customEventDates);
+}
 
 // ── State ─────────────────────────────────────────────
 let selectedSunday=null, pickerYear=new Date().getFullYear(), headerCollapsed=false, scheduleCollapsed=false, isAdmin=false, viewMode='card';
@@ -4799,7 +4872,7 @@ function shiftMonth(d){ const n=new Date(selectedSunday.getFullYear(),selectedSu
 // ── Notice ────────────────────────────────────────────
 function renderNotice(key){
   const sec=document.getElementById('noticeSection');
-  const d=selectedSunday, dateStr=`${d.getMonth()+1}月${d.getDate()}日（周日）`;
+  const d=selectedSunday, dateStr=`${d.getMonth()+1}月${d.getDate()}日（${getDateNavLabel(d)}）`;
   const data=getNoticeForKey(key);
   sec.innerHTML=`
     <div class="leader-card" onclick="openNoticeDetail('${key}','${dateStr}')">
@@ -6320,7 +6393,7 @@ function openSermonThemeDetail(key){
   const items=getSermonPassagesForKey(key);
   const audioUrl=getSafeExternalUrl(getSermonAudioForKey(key).trim());
   const d=new Date(key+'T00:00:00');
-  const dateLabel=`${d.getMonth()+1}月${d.getDate()}日（周日）`;
+  const dateLabel=`${d.getMonth()+1}月${d.getDate()}日（${getDateNavLabel(d)}）`;
   const passageHtml=items.length
     ? `<div class="sermon-theme-detail-block">
         <div class="sermon-theme-detail-label">证道经文</div>
@@ -6387,7 +6460,7 @@ function openSermonDetail(key){
   const notes=getSermonNotesForKey(key).trim();
   const safeAudioUrl=getSafeExternalUrl(audioUrl);
   const d=new Date(key+'T00:00:00');
-  const dateLabel=`${d.getMonth()+1}月${d.getDate()}日（周日）`;
+  const dateLabel=`${d.getMonth()+1}月${d.getDate()}日（${getDateNavLabel(d)}）`;
   const editBtn=isAdmin?`<button class="sermon-compact-edit-btn" onclick="closeSermonDetail();openSermonPassageEditor('${key}')"><i class="ti ti-edit"></i>编辑</button>`:'';
   const previewHtml=items.length
     ? `<div class="sermon-block-label">证道经文</div>
@@ -6474,7 +6547,7 @@ function openSermonPassageEditor(key){
   sermonThemeDraft=getSermonThemeForKey(key);
   sermonAudioDraft=getSermonAudioForKey(key);
   const d=new Date(key+'T00:00:00');
-  document.getElementById('sermonPassageSub').textContent=`${d.getMonth()+1}月${d.getDate()}日（周日）`;
+  document.getElementById('sermonPassageSub').textContent=`${d.getMonth()+1}月${d.getDate()}日（${getDateNavLabel(d)}）`;
   document.getElementById('sermonThemeInput').value=sermonThemeDraft;
   document.getElementById('sermonAudioInput').value=sermonAudioDraft;
   renderSermonPassageDraftList();
@@ -6658,7 +6731,7 @@ function renderShifts(key){
 }
 function render(){
   const d=selectedSunday, year=d.getFullYear(), month=d.getMonth();
-  const sundays=getSundaysOfMonth(year,month);
+  const sundays=getAllScheduleDatesOfMonth(year,month);
   const now=new Date();
   const zhWeek=['主日','周一','周二','周三','周四','周五','周六'];
   document.getElementById('hdrDay').textContent=headerCollapsed ? ZH_MONTHS[month]+'月份' : `${now.getMonth()+1}月${now.getDate()}日`;
@@ -6668,12 +6741,29 @@ function render(){
   const wl=document.getElementById('todayBtn');
   if(wl) wl.textContent=getRelativeWeekLabel(new Date(d));
   const lbl=document.getElementById('cardDateLabel');
-  if(lbl) lbl.innerHTML=`${month+1}月${d.getDate()}日&nbsp;<span>周日</span>`;
+  if(lbl) lbl.innerHTML=`${month+1}月${d.getDate()}日&nbsp;<span>${getDateNavLabel(d)}</span>`;
   const scheduleLabel=document.getElementById('scheduleSectionLabel');
   if(scheduleLabel) scheduleLabel.textContent=getRelativeWeekSectionTitle(d,'排班');
-  // Sunday pills
+  // 日期导航条：本月所有主日 + 本月所有特别聚会日期，按日期先后排列
   const nav=document.getElementById('sundayNav'); nav.innerHTML='';
-  sundays.forEach(s=>{ const a=s.toDateString()===d.toDateString(); const p=document.createElement('div'); p.className='sunday-pill'+(a?' active':''); p.innerHTML=`<span class="s-num">${s.getDate()}</span><span class="s-label">主日</span>${a?'<span class="s-dot"></span>':''}`; p.onclick=()=>{selectedSunday=s;render();}; nav.appendChild(p); });
+  sundays.forEach(s=>{
+    const a=s.toDateString()===d.toDateString();
+    const isCustom=s.getDay()!==0;
+    const p=document.createElement('div');
+    p.className='sunday-pill'+(a?' active':'')+(isCustom?' custom-date':'');
+    const delBtn=(isCustom&&isAdmin)?`<button class="s-del-btn" onclick="event.stopPropagation();removeCustomEventDate('${toKey(s)}')" title="删除这个日期"><i class="ti ti-x"></i></button>`:'';
+    p.innerHTML=`<span class="s-num">${s.getDate()}</span><span class="s-label">${getDateNavLabel(s)}</span>${a?'<span class="s-dot"></span>':''}${delBtn}`;
+    p.onclick=()=>{selectedSunday=s;render();};
+    nav.appendChild(p);
+  });
+  if(isAdmin){
+    const addBtn=document.createElement('button');
+    addBtn.className='sunday-pill-add';
+    addBtn.title='添加特别聚会日期';
+    addBtn.innerHTML='<i class="ti ti-plus"></i>';
+    addBtn.onclick=(e)=>{ e.stopPropagation(); addCustomEventDate(); };
+    nav.appendChild(addBtn);
+  }
   const key=toKey(d);
   renderNotice(key);
   renderSermonPassages(key);
@@ -6918,7 +7008,7 @@ function closeEdit(e){ if(!e||e.target===document.getElementById('editOverlay'))
 function renderEditDrawer(){
   const d=selectedSunday, roles=editMode==='edit'?[editRole]:ROLES;
   document.getElementById('editDrawerTitle').textContent=editMode==='edit'?`修改「${editRole}」安排`:'新增排班';
-  document.getElementById('editDrawerSub').textContent=`${d.getMonth()+1}月${d.getDate()}日（周日）`;
+  document.getElementById('editDrawerSub').textContent=`${d.getMonth()+1}月${d.getDate()}日（${getDateNavLabel(d)}）`;
   const c=document.getElementById('editRoleSections'); c.innerHTML='';
   roles.forEach(role=>{
     const col=roleColors[role]||{badgeBg:'#888',badgeText:'#fff',icon:'ti-user'};
@@ -9371,6 +9461,7 @@ function getSharedAppStateSnapshot() {
     song_lib_storage_config: normalizeSongLibSbConfig(songLibSupabaseConfig),
     song_lib_categories: normalizeSongLibCategoryList(songLibCategories),
     song_lib_songbooks: normalizeSongLibSongbookList(songLibSongbooks),
+    custom_event_dates: normalizeSimpleMap(customEventDates),
   };
 }
 
@@ -9382,6 +9473,7 @@ function applyRemoteAppState(row) {
   sermonPassagesByDate = normalizeSimpleMap(row?.sermon_passages_by_date || sermonPassagesByDate);
   sermonThemesByDate = normalizeSimpleMap(row?.sermon_themes_by_date || sermonThemesByDate);
   sermonAudioByDate = normalizeSimpleMap(row?.sermon_audio_by_date || sermonAudioByDate);
+  customEventDates = normalizeSimpleMap(row?.custom_event_dates || customEventDates);
   if (row && row.leave_requests !== undefined) {
     leaveRequests = normalizeLeaveRequests(row.leave_requests);
     persistLeaveRequests();
