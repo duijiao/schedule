@@ -1094,7 +1094,6 @@ document.addEventListener('click', (e)=>{
 });
 function updateAdminUI(){
   document.getElementById('adminBar').classList.toggle('show',isAdmin);
-  document.getElementById('loginEntryBtn').style.display=isAdmin?'none':'flex';
   const tb=document.getElementById('topbarAdminBadge'); if(tb) tb.style.display=isAdmin?'flex':'none';
   const gb=document.getElementById('topbarGuestBadge'); if(gb) gb.style.display=isAdmin?'none':'flex';
   const b=document.getElementById('addShiftBtn'); if(b) b.style.display=isAdmin?'flex':'none';

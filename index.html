@@ -37,16 +37,14 @@
     <div class="app-topbar-id">
       <div class="app-topbar-title">巴西华人基督教会</div>
       <div class="admin-badge" id="topbarAdminBadge" style="display:none"><i class="ti ti-shield-check"></i>管理员</div>
-      <div class="guest-badge" id="topbarGuestBadge"><i class="ti ti-user"></i>游客模式</div>
+      <button class="guest-badge" id="topbarGuestBadge" onclick="openLogin()" title="点击登录管理员账号" aria-label="游客模式，点击登录">
+        <i class="ti ti-user"></i>游客模式 · 点击登录
+      </button>
     </div>
     <div class="app-topbar-icons">
       <!-- Search moved up from the header card for quicker access -->
       <button class="search-entry-btn" id="searchEntryBtn" onclick="openSearchModal()" title="搜索人员排班" aria-label="搜索排班">
         <i class="ti ti-search"></i><span class="tb-btn-label">搜索</span>
-      </button>
-      <!-- Logged-out state: guest can log in here; leave requests now live in Settings -->
-      <button class="login-entry-btn" id="loginEntryBtn" onclick="openLogin()" title="管理员登录" aria-label="管理员登录">
-        <i class="ti ti-lock"></i><span class="tb-btn-label">登录</span>
       </button>
       <!-- Song library entry now sits in the primary top bar for quick access -->
       <button class="songlib-entry-btn" id="songLibEntryBtn" onclick="openSongLibrary()" title="诗歌库" aria-label="诗歌库">
@@ -70,11 +68,12 @@
             <button class="admin-menu-item" onclick="closeAdminMenu();openRoster()">
               <i class="ti ti-users"></i><span>名单成员管理</span>
             </button>
+            <div class="admin-menu-divider"></div>
+            <button class="admin-menu-item danger" onclick="closeAdminMenu();logout()">
+              <i class="ti ti-logout"></i><span>退出登录</span>
+            </button>
           </div>
         </div>
-        <button class="logout-btn" onclick="logout()" title="退出登录" aria-label="退出登录">
-          <i class="ti ti-logout"></i><span class="tb-btn-label">退出</span>
-        </button>
       </div>
       <button class="settings-entry-btn" onclick="openSettings()" title="用户设置" aria-label="用户设置">
         <i class="ti ti-settings"></i><span class="tb-btn-label">设置</span>

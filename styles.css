@@ -415,8 +415,15 @@ body.a11y-mode .app-topbar-title { font-size: 22px; }
   background: var(--bg-subtle); color: var(--text-3);
   border-radius: 20px; padding: 5px 11px; font-size: 12px; font-weight: 600;
   white-space: nowrap; width: fit-content;
+  border: none; font-family: inherit; cursor: pointer; transition: all 0.15s;
 }
+.guest-badge:hover { background: var(--primary-light); color: var(--primary); }
 .guest-badge i { font-size: 12px; }
+.admin-menu-divider { height: 1px; background: rgba(0,0,0,0.08); margin: 4px 2px; }
+.admin-menu-item.danger { color: #e74c3c; }
+.admin-menu-item.danger i { color: #e74c3c; }
+.admin-menu-item.danger:hover { background: rgba(231,76,60,0.1); color: #e74c3c; }
+.admin-menu-item.danger:hover i { color: #e74c3c; }
 .logout-btn,
 .login-entry-btn,
 .songlib-entry-btn,
