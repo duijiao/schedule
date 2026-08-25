@@ -409,6 +409,39 @@
         <div class="export-option-desc">导出当前月份所有周日的排班</div>
       </div>
     </div>
+    <div class="export-option" onclick="openCustomExport()">
+      <div class="export-option-icon" style="background:#EAF1FC"><i class="ti ti-adjustments" style="color:#2B5FAD"></i></div>
+      <div>
+        <div class="export-option-title">自定义导出</div>
+        <div class="export-option-desc">自选日期范围，可自定义标题</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="customExportOverlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="export-choice modal-has-close-btn" onclick="event.stopPropagation()">
+    <button class="modal-close-btn" onclick="document.getElementById('customExportOverlay').classList.remove('open')" aria-label="关闭"><i class="ti ti-x"></i></button>
+    <div class="picker-handle"></div>
+    <div class="export-choice-title">自定义导出</div>
+    <div class="export-choice-sub">选择日期范围，并可以自定义标题</div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
+      <div>
+        <label style="display:block;font-size:13px;color:var(--text-secondary,#666);margin-bottom:6px">开始日期</label>
+        <input type="date" id="customExportStart" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,0.12);font-size:15px">
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;color:var(--text-secondary,#666);margin-bottom:6px">结束日期</label>
+        <input type="date" id="customExportEnd" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,0.12);font-size:15px">
+      </div>
+      <div>
+        <label style="display:block;font-size:13px;color:var(--text-secondary,#666);margin-bottom:6px">自定义标题（留空则用默认标题）</label>
+        <input type="text" id="customExportTitle" placeholder="例如：2026年复活节特别聚会排班表" maxlength="40" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,0.12);font-size:15px">
+      </div>
+    </div>
+    <button class="export-btn" style="width:100%;justify-content:center;margin-top:20px" onclick="doExportCustom()">
+      <i class="ti ti-download"></i> 生成并下载
+    </button>
   </div>
 </div>
 

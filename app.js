@@ -662,12 +662,12 @@ const BIBLE_BOOKS = [
   {name:'提多书', abbr:'tit', chapters:3},
   {name:'腓利门书', abbr:'phm', chapters:1},
   {name:'希伯来书', abbr:'heb', chapters:13},
-  {name:'雅各书', abbr:'jam', chapters:5},
+  {name:'雅各书', abbr:'jas', chapters:5},
   {name:'彼得前书', abbr:'1pe', chapters:5},
   {name:'彼得后书', abbr:'2pe', chapters:3},
-  {name:'约翰一书', abbr:'1jo', chapters:5},
-  {name:'约翰二书', abbr:'2jo', chapters:1},
-  {name:'约翰三书', abbr:'3jo', chapters:1},
+  {name:'约翰一书', abbr:'1jn', chapters:5},
+  {name:'约翰二书', abbr:'2jn', chapters:1},
+  {name:'约翰三书', abbr:'3jn', chapters:1},
   {name:'犹大书', abbr:'jud', chapters:1},
   {name:'启示录', abbr:'rev', chapters:22},
 ];
@@ -3348,18 +3348,14 @@ function saveEdit(){
 }
 
 // ── Export ────────────────────────────────────────────
-function doExport(mode){
-  document.getElementById('exportChoiceOverlay').classList.remove('open');
-  const d=selectedSunday, year=d.getFullYear(), month=d.getMonth();
-  const prefix=`${year}-${String(month+1).padStart(2,'0')}-`;
-  const sundays=getSundaysOfMonth(year,month);
-  const keys=mode==='week'?[toKey(d)]:sundays.map(s=>toKey(s)).filter(k=>scheduleData[k]);
-
+// 共用的表格绘制逻辑：给定要导出的主日 key 数组、标题、副标题、文件名，画到 canvas 上并下载。
+// doExport（本周/本月）和 doExportCustom（自定义日期范围+自定义标题）都复用这一份代码，
+// 避免以后改样式要改两处。
+function renderExportTable(keys, titleStr, subStr, filename){
   const dpr=window.devicePixelRatio||1;
   const padX=10, padY=8;
-  const cols=mode==='week'?1:keys.length; // 按实际主日数量，不再限制为4个
+  const cols=keys.length;
   const totalCols=cols+1;
-  // 列数越多，画布越宽，保证每列有足够宽度显示姓名
   const minColW=110;
   const W=Math.max(760, padX*2+totalCols*minColW);
   const cw=(W-padX*2)/totalCols;
@@ -3379,10 +3375,8 @@ function doExport(mode){
   const canvasPrimary = settings ? settings.primaryColor : '#1D9E75';
   rr(ctx,0,0,W,hdrH,0,canvasPrimary);
   ctx.fillStyle='#fff'; ctx.font='bold 28px PingFang SC,sans-serif'; ctx.textAlign='center';
-  const titleStr=`${year}年${ZH_MONTHS[month]}月份敬拜排班表`;
   ctx.fillText(titleStr,W/2,44);
   ctx.font='17px PingFang SC,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.75)';
-  const subStr=mode==='week'?`${month+1}月${d.getDate()}日（周日）`:`本月全部 ${keys.length} 个主日`;
   ctx.fillText(subStr,W/2,70);
 
   // table header
@@ -3391,8 +3385,16 @@ function doExport(mode){
   ctx.fillText('类别',padX+cw/2,hdrH+35);
   keys.forEach((k,i)=>{
     const[,m,dd]=k.split('-');
+    const dObj=new Date(k+'T00:00:00');
+    const isSunday=dObj.getDay()===0;
+    const cx=padX+cw*(i+1)+cw/2;
     ctx.fillStyle=settings ? settings.primaryColor : '#1D9E75'; ctx.font='bold 20px PingFang SC,sans-serif';
-    ctx.fillText(`${parseInt(dd)}/${parseInt(m)}`,padX+cw*(i+1)+cw/2,hdrH+35);
+    ctx.fillText(`${parseInt(dd)}/${parseInt(m)}`, cx, isSunday?hdrH+35:hdrH+27);
+    // 非主日（特别聚会日期）在日期下面加一行小标签，导出图片上能一眼看出这是什么聚会
+    if(!isSunday){
+      ctx.fillStyle='#888'; ctx.font='12px PingFang SC,sans-serif';
+      ctx.fillText(getDateNavLabel(dObj), cx, hdrH+47);
+    }
   });
 
   // divider
@@ -3451,8 +3453,67 @@ function doExport(mode){
   ctx.strokeRect(padX,hdrH,W-padX*2,dateRowH+roles.length*rowH);
 
   const a=document.createElement('a');
+  a.download=filename; a.href=canvas.toDataURL('image/png'); a.click();
+}
+
+function doExport(mode){
+  document.getElementById('exportChoiceOverlay').classList.remove('open');
+  const d=selectedSunday, year=d.getFullYear(), month=d.getMonth();
+  // 本月全部：主日 + 当月所有特别聚会日期都算进去，只要那天有排班数据
+  const allDates=getAllScheduleDatesOfMonth(year,month);
+  const keys=mode==='week'?[toKey(d)]:allDates.map(s=>toKey(s)).filter(k=>scheduleData[k]);
+
+  if(!keys.length){ alert('这段时间还没有排班数据，无法导出'); return; }
+
+  const titleStr=`${year}年${ZH_MONTHS[month]}月份敬拜排班表`;
+  const subStr=mode==='week'?`${month+1}月${d.getDate()}日（${getDateNavLabel(d)}）`:`本月全部 ${keys.length} 场排班`;
   const fname=mode==='week'?`排班_${month+1}月${d.getDate()}日.png`:`排班_${year}年${month+1}月全部.png`;
-  a.download=fname; a.href=canvas.toDataURL('image/png'); a.click();
+  renderExportTable(keys, titleStr, subStr, fname);
+}
+
+// ── 自定义导出：选日期范围 + 自定义标题 ─────────────────
+function openCustomExport(){
+  document.getElementById('exportChoiceOverlay').classList.remove('open');
+  // 默认把日期范围设成当前选中周日所在的月份，标题留空（导出时会给个默认值）
+  const d=selectedSunday, year=d.getFullYear(), month=d.getMonth();
+  const first=new Date(year,month,1), last=new Date(year,month+1,0);
+  const toInputDate=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  document.getElementById('customExportStart').value=toInputDate(first);
+  document.getElementById('customExportEnd').value=toInputDate(last);
+  document.getElementById('customExportTitle').value='';
+  document.getElementById('customExportOverlay').classList.add('open');
+}
+
+function doExportCustom(){
+  const startVal=document.getElementById('customExportStart').value;
+  const endVal=document.getElementById('customExportEnd').value;
+  const customTitle=document.getElementById('customExportTitle').value.trim();
+
+  if(!startVal||!endVal){ alert('请选择开始和结束日期'); return; }
+  const start=new Date(startVal+'T00:00:00');
+  const end=new Date(endVal+'T00:00:00');
+  if(start>end){ alert('开始日期不能晚于结束日期'); return; }
+
+  // 收集范围内、且已经有排班数据的所有日期 —— 逐天扫描，
+  // 这样主日和管理员额外添加的"特别聚会日期"都能被导出，不会漏掉特别聚会
+  const keys=[];
+  const cur=new Date(start);
+  while(cur<=end){
+    const k=toKey(cur);
+    if(scheduleData[k]) keys.push(k);
+    cur.setDate(cur.getDate()+1);
+  }
+
+  if(!keys.length){ alert('所选日期范围内没有找到已排班的日期，无法导出'); return; }
+
+  const titleStr=customTitle || '敬拜排班表';
+  const fmtShort=k=>{ const[,m,dd]=k.split('-'); return `${parseInt(m)}/${parseInt(dd)}`; };
+  const subStr=keys.length===1?`${fmtShort(keys[0])}（${getDateNavLabel(new Date(keys[0]+'T00:00:00'))}）`:`${fmtShort(keys[0])} - ${fmtShort(keys[keys.length-1])}，共 ${keys.length} 场排班`;
+  const safeTitle=(customTitle||'排班').replace(/[\\/:*?"<>|]/g,'_');
+  const fname=`${safeTitle}.png`;
+
+  document.getElementById('customExportOverlay').classList.remove('open');
+  renderExportTable(keys, titleStr, subStr, fname);
 }
 
 function doExportPerson(name){
