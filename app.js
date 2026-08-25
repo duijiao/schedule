@@ -251,6 +251,7 @@ function normalizeSongLibrary(raw) {
       band: (item?.band || '').trim(),
       songbook: (item?.songbook || '').trim(),
       lyrics: item?.lyrics || '',
+      lyricsLrc: item?.lyricsLrc || '',
       keys,
       music,
       lastPlayedAt: item?.lastPlayedAt || null,
@@ -274,6 +275,7 @@ function ensureSongInLibrary(title, src) {
     band: '',
     songbook: '',
     lyrics: '',
+    lyricsLrc: '',
     keys: src ? [{ id: genSongLibId(), label: '', src }] : [],
     music: [],
     lastPlayedAt: null,
@@ -1099,6 +1101,7 @@ function updateAdminUI(){
   const b=document.getElementById('addShiftBtn'); if(b) b.style.display=isAdmin?'flex':'none';
   const me=document.getElementById('adminMonthlyEditBtn'); if(me) me.style.display=isAdmin?'flex':'none';
   document.querySelectorAll('.upload-song-btn').forEach(el=>el.classList.toggle('show',isAdmin));
+  if (songLibDetailCurrent) renderSongLibLrc();
   document.querySelectorAll('.sermon-edit-btn').forEach(el=>el.classList.toggle('show',isAdmin));
   updateLeaveBadge();
   updateSongLibImportHint();
@@ -1947,6 +1950,7 @@ function openSongLibDetail(id){
   renderSongLibDetailKeyChips();
   renderSongLibDetailThumb();
   renderSongLibLyrics();
+  renderSongLibLrc();
   const weeks = findSongUsageWeeks(s.title);
   const usageList = document.getElementById('songLibUsageList');
   usageList.innerHTML = weeks.length
@@ -2179,9 +2183,9 @@ function ensureGlobalAudioEl() {
   el.style.width = '100%';
   el.preload = 'auto';
   el.addEventListener('ended', onGlobalAudioEnded);
-  el.addEventListener('play', updateFloatingAudioPlayState);
-  el.addEventListener('pause', updateFloatingAudioPlayState);
-  el.addEventListener('timeupdate', updateFloatingAudioProgress);
+  el.addEventListener('play', () => { updateFloatingAudioPlayState(); renderNowPlayingTransport(); });
+  el.addEventListener('pause', () => { updateFloatingAudioPlayState(); renderNowPlayingTransport(); });
+  el.addEventListener('timeupdate', () => { updateFloatingAudioProgress(); updateNowPlayingProgress(); });
   document.body.appendChild(el);
   globalAudioEl = el;
   return el;
@@ -2246,6 +2250,7 @@ function startPlaylistSong(title, link) {
   audioEl.play().catch(() => {});
   renderMusicPlayerBody();
   if (floatingAudioVisible) showFloatingAudioBar();
+  syncNowPlayingToCurrentTrack();
 }
 function toggleAudioRepeatOne() {
   audioRepeatOne = !audioRepeatOne;
@@ -2341,9 +2346,10 @@ function updateFloatingAudioProgress() {
 }
 function floatingAudioNext() { playNextSongInLibrary(); }
 function floatingAudioPrev() { playPrevSongInLibrary(); }
-// 点击悬浮条主体：重新打开该诗歌的音乐弹窗（继续播放，不会重新开始）
+// 点击悬浮条主体：重新打开"正在播放"整屏页面（继续播放，不会重新开始）
 function reopenFloatingAudio() {
-  if (musicPlayerSongTitle) openMusicPlayer(musicPlayerSongTitle);
+  const s = findSongLibEntryByTitle(musicPlayerSongTitle);
+  if (s) openSongNowPlaying(s.id); else if (musicPlayerSongTitle) openMusicPlayer(musicPlayerSongTitle);
 }
 
 // 歌单库网格里点击"列表播放"按钮：不打开弹窗，直接播放并以悬浮条展示，默认开启列表播放模式
@@ -2537,7 +2543,515 @@ async function submitMusicLinkEdit() {
   await syncSongLibraryToRemote();
 }
 
+// ══════════════════════════════════════════════════════════
+// ── Now Playing：整屏音乐播放界面（歌谱 + 播放控制）───────
+// ══════════════════════════════════════════════════════════
+let nowPlayingSong = null;   // 当前展示的歌单库记录
+let nowPlayingLrcLines = []; // 当前歌曲解析后的动态歌词行 [{time, text}]
+let nowPlayingLrcActiveIndex = -1;
+let nowPlayingKeyIndex = 0;  // 当前展示的"调"下标
+let nowPlayingSeeking = false; // 用户正在拖动进度条时，暂停自动刷新，避免打架
+
+// 从歌单库详情页打开"播放"
+function openSongNowPlayingFromDetail() {
+  if (songLibDetailCurrent) openSongNowPlaying(songLibDetailCurrent.id);
+}
+// 从歌单库详情页打开"分享"
+function openSongShareFromDetail() {
+  if (songLibDetailCurrent) openMusicShare(songLibDetailCurrent.id);
+}
+function openSongNowPlaying(id) {
+  const s = songLibrary.find(x => x.id === id);
+  if (!s) return;
+  nowPlayingSong = s;
+  nowPlayingKeyIndex = (songLibDetailCurrent && songLibDetailCurrent.id === s.id) ? songLibDetailKeyIndex : 0;
+  closeAllNowPlayingPanels();
+  renderNowPlaying();
+  // 若这首歌还没有在播放，且存在可直接播放的音频文件链接，自动开始播放（列表播放模式）
+  const audioLinks = getAudioLinksForTitle(s.title);
+  const alreadyPlayingThis = musicPlayerSongTitle === s.title && loadedAudioLinkId;
+  if (audioLinks.length && !alreadyPlayingThis) {
+    quickPlaySongAudio(s.title);
+  } else if (audioLinks.length) {
+    musicPlayerSongTitle = s.title;
+  }
+  document.getElementById('songLibDetailOverlay')?.classList.remove('open');
+  document.getElementById('nowPlayingOverlay').classList.add('open');
+  renderNowPlayingTransport();
+}
+function closeNowPlaying() {
+  document.getElementById('nowPlayingOverlay').classList.remove('open');
+  closeAllNowPlayingPanels();
+  closeNowPlayingMoreMenu();
+  if (loadedAudioLinkId && globalAudioEl) showFloatingAudioBar();
+}
+// 保持"正在播放"页面与当前实际播放的曲目同步（上一首/下一首/自动切歌时调用）
+function syncNowPlayingToCurrentTrack() {
+  if (!document.getElementById('nowPlayingOverlay')?.classList.contains('open')) return;
+  const entry = findSongLibEntryByTitle(musicPlayerSongTitle);
+  if (entry) {
+    nowPlayingSong = entry;
+    nowPlayingKeyIndex = 0;
+    renderNowPlaying();
+  }
+}
+function renderNowPlaying() {
+  const s = nowPlayingSong;
+  if (!s) return;
+  const key = s.keys[nowPlayingKeyIndex] || s.keys[0] || null;
+  document.getElementById('npSheetImgWrap').innerHTML = key?.src
+    ? `<img src="${key.src}" alt="${escapeHtml(s.title)}" onclick="openLightboxFromNowPlaying()">`
+    : `<div class="np-sheet-placeholder"><i class="ti ti-music"></i></div>`;
+  document.getElementById('npSongTitle').textContent = s.title;
+  document.getElementById('npSongBand').textContent = s.band || s.songbook || '';
+  renderNowPlayingFavBtn();
+  const tags = [];
+  if (s.keys.length > 1) tags.push(`<button class="np-tag-chip" onclick="openTransposePanel()">${s.keys.length}个调</button>`);
+  tags.push(`<span class="np-tag-chip static">${escapeHtml(getSongLibKeyDisplayLabel(key || {}))}</span>`);
+  tags.push(`<span class="np-tag-chip static">简谱</span>`);
+  document.getElementById('npTagsRow').innerHTML = tags.join('');
+  const lyricsLines = (s.lyrics || '').split('\n').map(l => l.trim()).filter(Boolean);
+  nowPlayingLrcLines = parseLrc(s.lyricsLrc);
+  nowPlayingLrcActiveIndex = -1;
+  const lrcTexts = nowPlayingLrcLines.map(l => l.text).filter(Boolean);
+  const previewSource = lrcTexts.length ? lrcTexts : lyricsLines;
+  document.getElementById('npLyricsPreview').innerHTML = previewSource.length
+    ? previewSource.slice(0, 2).map(l => `<div>${escapeHtml(l)}</div>`).join('')
+    : `<div class="np-lyrics-preview-empty">暂无歌词，点击"歌词"添加</div>`;
+  renderNowPlayingLyricsPanel();
+  renderNowPlayingTransposePanel();
+  renderNowPlayingTransport();
+}
+function renderNowPlayingFavBtn() {
+  const s = nowPlayingSong;
+  if (!s) return;
+  const isFav = isSongLibFavorite(s.id);
+  const btn = document.getElementById('npFavBtn');
+  if (btn) { btn.classList.toggle('active', isFav); btn.innerHTML = `<i class="ti ${isFav ? 'ti-heart-filled' : 'ti-heart'}"></i>`; }
+  const moreBtn = document.getElementById('npMoreFavBtn');
+  if (moreBtn) moreBtn.innerHTML = `<i class="ti ${isFav ? 'ti-heart-filled' : 'ti-heart'}"></i>${isFav ? '取消收藏' : '收藏'}`;
+}
+function toggleNowPlayingFavorite() {
+  if (!nowPlayingSong) return;
+  toggleSongLibFavorite(nowPlayingSong.id);
+  renderNowPlayingFavBtn();
+}
+// 点击歌谱大图：放大查看
+function openLightboxFromNowPlaying() {
+  const s = nowPlayingSong;
+  const key = s?.keys[nowPlayingKeyIndex];
+  if (!key?.src) return;
+  const label = getSongLibKeyDisplayLabel(key);
+  openLightboxWithList([{ title: `${s.title}${key.label ? '（' + label + '）' : ''}`, src: key.src }], 0);
+}
+function downloadCurrentNowPlayingImage() {
+  const s = nowPlayingSong;
+  const key = s?.keys[nowPlayingKeyIndex];
+  if (!key?.src) { showToast('这首诗歌暂无谱子图片'); return; }
+  const label = key.label ? `-${key.label}` : '';
+  const ext = (key.src.split('?')[0].split('.').pop() || 'jpg').slice(0, 4);
+  triggerFileDownload(key.src, `${sanitizeFileName(s.title)}${label}.${/^[a-zA-Z0-9]+$/.test(ext) ? ext : 'jpg'}`);
+}
+
+// ── 播放/暂停/进度/模式：直接复用悬浮播放条共用的全局音频状态 ──
+function renderNowPlayingTransport() {
+  const playBtn = document.getElementById('npPlayBtn');
+  if (playBtn) {
+    const playing = globalAudioEl && !globalAudioEl.paused && loadedAudioLinkId && musicPlayerSongTitle === nowPlayingSong?.title;
+    playBtn.innerHTML = playing ? '<i class="ti ti-player-pause"></i>' : '<i class="ti ti-player-play"></i>';
+  }
+  const modeBtn = document.getElementById('npModeBtn');
+  if (modeBtn) {
+    modeBtn.innerHTML = audioRepeatOne ? '<i class="ti ti-repeat-once"></i>' : '<i class="ti ti-repeat"></i>';
+    modeBtn.classList.toggle('active', audioRepeatOne || audioPlaylistMode);
+    modeBtn.title = audioRepeatOne ? '单曲循环' : (audioPlaylistMode ? '列表循环' : '顺序播放');
+  }
+  updateNowPlayingProgress();
+}
+function updateNowPlayingProgress() {
+  const slider = document.getElementById('npProgressSlider');
+  const curEl = document.getElementById('npCurTime');
+  const durEl = document.getElementById('npDurTime');
+  if (!slider || nowPlayingSeeking) return;
+  const el = globalAudioEl;
+  const isCurrentTrack = el && loadedAudioLinkId && musicPlayerSongTitle === nowPlayingSong?.title;
+  if (!isCurrentTrack || !el.duration || isNaN(el.duration)) {
+    slider.value = 0; if (curEl) curEl.textContent = '00:00'; if (durEl) durEl.textContent = '00:00';
+    return;
+  }
+  slider.value = Math.round((el.currentTime / el.duration) * 1000);
+  if (curEl) curEl.textContent = formatPlayTime(el.currentTime);
+  if (durEl) durEl.textContent = formatPlayTime(el.duration);
+  updateNowPlayingLrcHighlight();
+}
+function formatPlayTime(sec) {
+  sec = Math.max(0, Math.floor(sec || 0));
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+function onNowPlayingSeekInput(val) {
+  nowPlayingSeeking = true;
+  const el = document.getElementById('npCurTime');
+  if (el && globalAudioEl?.duration) el.textContent = formatPlayTime((val / 1000) * globalAudioEl.duration);
+}
+function onNowPlayingSeekChange(val) {
+  nowPlayingSeeking = false;
+  if (globalAudioEl && globalAudioEl.duration && musicPlayerSongTitle === nowPlayingSong?.title) {
+    globalAudioEl.currentTime = (val / 1000) * globalAudioEl.duration;
+  }
+}
+function cycleNowPlayingMode() {
+  if (!nowPlayingSong) return;
+  const audioLinks = getAudioLinksForTitle(nowPlayingSong.title);
+  if (!audioRepeatOne && !audioPlaylistMode) toggleAudioRepeatOne();
+  else if (audioRepeatOne) { toggleAudioRepeatOne(); if (audioLinks.length > 1 || getFilteredSongLibrary().length > 1) toggleAudioPlaylistMode(); }
+  else toggleAudioPlaylistMode();
+  renderNowPlayingTransport();
+}
+
+// ── 滑出面板：完整歌词 / 变调(切换版本) / 播放列表 —— 三者共用同一套开关逻辑 ──
+function closeAllNowPlayingPanels() {
+  ['npLyricsPanel', 'npTransposePanel', 'npQueuePanel'].forEach(id => document.getElementById(id)?.classList.remove('show'));
+  document.getElementById('npSlidePanelBackdrop')?.classList.remove('show');
+}
+function toggleNowPlayingLyrics() {
+  const panel = document.getElementById('npLyricsPanel');
+  if (!panel) return;
+  if (panel.classList.contains('show')) { closeAllNowPlayingPanels(); return; }
+  closeAllNowPlayingPanels();
+  renderNowPlayingLyricsPanel();
+  panel.classList.add('show');
+  document.getElementById('npSlidePanelBackdrop')?.classList.add('show');
+}
+function renderNowPlayingLyricsPanel() {
+  const s = nowPlayingSong;
+  const body = document.getElementById('npLyricsPanelBody');
+  if (!s || !body) return;
+  if (nowPlayingLrcLines.length) {
+    body.innerHTML = `<div class="np-lrc-list" id="npLrcList">` +
+      nowPlayingLrcLines.map((l, i) => `<div class="np-lrc-line" onclick="seekNowPlayingToLrcLine(${i})">${escapeHtml(l.text || '♪')}</div>`).join('') +
+      `</div>`;
+    nowPlayingLrcActiveIndex = -1;
+    updateNowPlayingLrcHighlight(true);
+    return;
+  }
+  body.innerHTML = s.lyrics
+    ? `<div class="np-lyrics-full">${escapeHtml(s.lyrics)}</div>`
+    : `<div class="np-lyrics-preview-empty">这首诗歌还没有录入歌词，可前往歌单库详情页添加</div>`;
+}
+// 点击某一行动态歌词：跳转播放进度到该行的时间戳
+function seekNowPlayingToLrcLine(i) {
+  const line = nowPlayingLrcLines[i];
+  if (!line || !globalAudioEl || musicPlayerSongTitle !== nowPlayingSong?.title) return;
+  globalAudioEl.currentTime = line.time;
+  updateNowPlayingProgress();
+}
+// 根据当前播放进度，高亮对应的动态歌词行，并在歌词面板打开时自动滚动到可见区域；
+// 同时把当前行（及下一行）同步到收起状态下的歌词预览区
+function updateNowPlayingLrcHighlight(force) {
+  if (!nowPlayingLrcLines.length) return;
+  const el = globalAudioEl;
+  const isCurrentTrack = el && loadedAudioLinkId && musicPlayerSongTitle === nowPlayingSong?.title;
+  const t = isCurrentTrack ? el.currentTime : 0;
+  let idx = -1;
+  for (let i = 0; i < nowPlayingLrcLines.length; i++) {
+    if (nowPlayingLrcLines[i].time <= t + 0.05) idx = i; else break;
+  }
+  if (idx === nowPlayingLrcActiveIndex && !force) return;
+  nowPlayingLrcActiveIndex = idx;
+  const list = document.getElementById('npLrcList');
+  if (list) {
+    [...list.children].forEach((child, i) => child.classList.toggle('active', i === idx));
+    const activeEl = idx >= 0 ? list.children[idx] : null;
+    const panel = document.getElementById('npLyricsPanel');
+    if (activeEl && panel && panel.classList.contains('show')) {
+      activeEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }
+  const previewEl = document.getElementById('npLyricsPreview');
+  if (previewEl) {
+    const cur = idx >= 0 ? nowPlayingLrcLines[idx].text : (nowPlayingLrcLines[0]?.text || '');
+    const next = nowPlayingLrcLines[idx + 1]?.text || '';
+    previewEl.innerHTML = `<div class="np-lrc-preview-cur">${escapeHtml(cur || '♪')}</div>` +
+      (next ? `<div class="np-lrc-preview-next">${escapeHtml(next)}</div>` : '');
+  }
+}
+function openTransposePanel() {
+  const panel = document.getElementById('npTransposePanel');
+  if (!panel) return;
+  closeAllNowPlayingPanels();
+  renderNowPlayingTransposePanel();
+  panel.classList.add('show');
+  document.getElementById('npSlidePanelBackdrop')?.classList.add('show');
+}
+function closeTransposePanel() {
+  document.getElementById('npTransposePanel')?.classList.remove('show');
+  document.getElementById('npSlidePanelBackdrop')?.classList.remove('show');
+}
+function renderNowPlayingTransposePanel() {
+  const s = nowPlayingSong;
+  const wrap = document.getElementById('npTransposeList');
+  if (!s || !wrap) return;
+  if (!s.keys.length) { wrap.innerHTML = `<div class="np-lyrics-preview-empty">这首诗歌还没有上传谱子图片</div>`; return; }
+  wrap.innerHTML = s.keys.map((k, i) => `
+    <button class="np-key-option${i === nowPlayingKeyIndex ? ' active' : ''}" onclick="selectNowPlayingKey(${i})">
+      <span><i class="ti ti-music" style="margin-right:6px"></i>${escapeHtml(getSongLibKeyDisplayLabel(k))}</span>
+      <i class="ti ti-check check"></i>
+    </button>`).join('');
+}
+function selectNowPlayingKey(idx) {
+  nowPlayingKeyIndex = idx;
+  renderNowPlaying();
+  closeTransposePanel();
+}
+function openNowPlayingQueue() {
+  const panel = document.getElementById('npQueuePanel');
+  if (!panel) return;
+  closeAllNowPlayingPanels();
+  renderNowPlayingQueue();
+  panel.classList.add('show');
+  document.getElementById('npSlidePanelBackdrop')?.classList.add('show');
+}
+function closeNowPlayingQueue() {
+  document.getElementById('npQueuePanel')?.classList.remove('show');
+  document.getElementById('npSlidePanelBackdrop')?.classList.remove('show');
+}
+function renderNowPlayingQueue() {
+  const wrap = document.getElementById('npQueueList');
+  if (!wrap) return;
+  const list = getFilteredSongLibrary().filter(s => getAudioLinksForTitle(s.title).length > 0);
+  if (!list.length) { wrap.innerHTML = `<div class="np-queue-empty">歌单库里暂时没有可直接播放的音频文件</div>`; return; }
+  wrap.innerHTML = list.map(s => {
+    const active = s.title.trim().toLowerCase() === (musicPlayerSongTitle || '').trim().toLowerCase();
+    const safeTitle = escapeHtml(s.title).replace(/'/g, "\\'");
+    return `<button class="np-queue-item${active ? ' active' : ''}" onclick="playFromNowPlayingQueue('${safeTitle}')">
+      <i class="ti ${active ? 'ti-volume' : 'ti-music'} playing-icon"></i>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(s.title)}</span>
+      ${s.band ? `<span style="color:var(--text-4);font-size:11.5px;flex-shrink:0">${escapeHtml(s.band)}</span>` : ''}
+    </button>`;
+  }).join('');
+}
+function playFromNowPlayingQueue(title) {
+  const s = findSongLibEntryByTitle(title);
+  const audioLinks = getAudioLinksForTitle(title);
+  if (s && audioLinks.length) {
+    startPlaylistSong(title, audioLinks[0]);
+    nowPlayingSong = s;
+    nowPlayingKeyIndex = 0;
+    renderNowPlaying();
+  }
+  closeNowPlayingQueue();
+}
+
+// ── 更多菜单 ──
+function toggleNowPlayingMoreMenu() {
+  const menu = document.getElementById('npMoreMenu');
+  if (!menu) return;
+  menu.classList.toggle('show');
+}
+function closeNowPlayingMoreMenu() {
+  document.getElementById('npMoreMenu')?.classList.remove('show');
+}
+
+// ── 节拍器：Web Audio 打点，不依赖任何外部音频文件 ──
+let metronomeTimer = null;
+let metronomeCtx = null;
+const METRONOME_BPM = 80;
+function toggleMetronome() {
+  const btn = document.getElementById('npMetronomeBtn');
+  if (metronomeTimer) {
+    clearInterval(metronomeTimer);
+    metronomeTimer = null;
+    btn?.classList.remove('active');
+    showToast('节拍器已停止');
+    return;
+  }
+  try {
+    metronomeCtx = metronomeCtx || new (window.AudioContext || window.webkitAudioContext)();
+  } catch (e) { showToast('当前浏览器不支持节拍器'); return; }
+  const tick = () => {
+    if (!metronomeCtx) return;
+    const osc = metronomeCtx.createOscillator();
+    const gain = metronomeCtx.createGain();
+    osc.type = 'sine'; osc.frequency.value = 1000;
+    gain.gain.setValueAtTime(0.16, metronomeCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, metronomeCtx.currentTime + 0.05);
+    osc.connect(gain); gain.connect(metronomeCtx.destination);
+    osc.start(); osc.stop(metronomeCtx.currentTime + 0.06);
+  };
+  tick();
+  metronomeTimer = setInterval(tick, Math.round(60000 / METRONOME_BPM));
+  btn?.classList.add('active');
+  showToast(`节拍器已开启 · ${METRONOME_BPM} BPM`);
+}
+
+// ══════════════════════════════════════════════════════════
+// ── Share Music：分享卡片 + 二维码 + 分享渠道 ────────────
+// ══════════════════════════════════════════════════════════
+let musicShareSong = null;
+function openMusicShare(id) {
+  const s = id ? songLibrary.find(x => x.id === id) : nowPlayingSong;
+  if (!s) return;
+  musicShareSong = s;
+  renderMusicShareCard();
+  document.getElementById('musicShareOverlay').classList.add('open');
+}
+function closeMusicShare() {
+  document.getElementById('musicShareOverlay').classList.remove('open');
+  restoreShareMeta();
+}
+function getMusicShareUrl(s) {
+  const url = new URL(location.href);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('song', s.id);
+  return url.toString();
+}
+function renderMusicShareCard() {
+  const s = musicShareSong;
+  if (!s) return;
+  const key = s.keys[nowPlayingSong?.id === s.id ? nowPlayingKeyIndex : 0] || s.keys[0] || null;
+  document.getElementById('msCardThumb').innerHTML = key?.src
+    ? `<img src="${key.src}" alt="${escapeHtml(s.title)}">`
+    : `<i class="ti ti-photo"></i>`;
+  document.getElementById('msCardTitle').textContent = s.title;
+  document.getElementById('msCardBand').textContent = s.band || s.songbook || '诗歌库';
+  const tags = [];
+  if (s.keys.length) tags.push(`<span>${s.keys.length}个调</span>`);
+  tags.push(`<span>简谱</span>`);
+  document.getElementById('msCardTags').innerHTML = tags.join('');
+  const lyricsLines = (s.lyrics || '').split('\n').map(l => l.trim()).filter(Boolean);
+  document.getElementById('msCardQuote').innerHTML = lyricsLines.length
+    ? lyricsLines.slice(0, 2).map(l => `<div>${escapeHtml(l)}</div>`).join('')
+    : `<div>愿这首诗歌，带给你安慰与力量</div>`;
+  const qrCanvas = document.getElementById('msCardQr');
+  if (qrCanvas) {
+    if (typeof QRCode !== 'undefined') {
+      QRCode.toCanvas(qrCanvas, getMusicShareUrl(s), {
+        width: 96, margin: 0, color: { dark: '#1a3d33', light: '#ffffff' }
+      }, (err) => { if (err) console.error('二维码生成失败：', err); });
+    } else {
+      // 二维码库没能加载成功（比如 CDN 抽风），别默默什么都不画，
+      // 至少在控制台留个线索方便排查，不然看起来像是"卡死"了
+      console.error('二维码生成失败：QRCode 库未加载（typeof QRCode === "undefined"）');
+    }
+  }
+  // 动态更新页面标题和 OG 分享信息，这样如果是在微信自带浏览器里，
+  // 用户点右上角"⋯"用微信原生的「发送给朋友」/「分享到朋友圈」时，
+  // 预览卡片上看到的标题和封面图会是这首歌的，而不是首页的通用标题
+  updateShareMeta(`${s.title} · 诗歌库分享`, lyricsLines[0] || '来自诗歌库的分享', key?.src || '');
+}
+// 记录页面原本的标题/描述，分享面板关闭后恢复回去
+let _origPageMeta = null;
+function updateShareMeta(title, desc, image) {
+  if (!_origPageMeta) {
+    _origPageMeta = {
+      title: document.title,
+      desc: document.getElementById('metaDescTag')?.content || '',
+      ogTitle: document.getElementById('metaOgTitleTag')?.content || '',
+      ogDesc: document.getElementById('metaOgDescTag')?.content || '',
+      ogImage: document.getElementById('metaOgImageTag')?.content || '',
+    };
+  }
+  document.title = title;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.content = val; };
+  set('metaDescTag', desc);
+  set('metaOgTitleTag', title);
+  set('metaOgDescTag', desc);
+  set('metaOgImageTag', image);
+}
+function restoreShareMeta() {
+  if (!_origPageMeta) return;
+  document.title = _origPageMeta.title;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.content = val; };
+  set('metaDescTag', _origPageMeta.desc);
+  set('metaOgTitleTag', _origPageMeta.ogTitle);
+  set('metaOgDescTag', _origPageMeta.ogDesc);
+  set('metaOgImageTag', _origPageMeta.ogImage);
+  _origPageMeta = null;
+}
+async function copyMusicShareLink() {
+  const s = musicShareSong;
+  if (!s) return;
+  const url = getMusicShareUrl(s);
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('✅ 链接已复制');
+  } catch (e) {
+    showToast(url);
+  }
+}
+// 保存图片：直接下载当前调的谱子图片
+function saveMusicShareImage() {
+  const s = musicShareSong;
+  const key = s?.keys[0];
+  if (!key?.src) { showToast('这首诗歌暂无谱子图片'); return; }
+  const ext = (key.src.split('?')[0].split('.').pop() || 'jpg').slice(0, 4);
+  triggerFileDownload(key.src, `${sanitizeFileName(s.title)}.${/^[a-zA-Z0-9]+$/.test(ext) ? ext : 'jpg'}`);
+}
+// 保存海报：直接把屏幕上正在显示的分享卡片（#msCard）原样截图导出，
+// 不再另外用 canvas 手工重画一遍——这样保证导出的海报跟你屏幕上看到的
+// 排版、字号、间距永远一致，以后卡片样式改了也不用同步维护两套代码
+async function saveMusicSharePoster() {
+  const s = musicShareSong;
+  if (!s) return;
+  if (typeof html2canvas === 'undefined') {
+    showToast('海报生成组件加载失败，请检查网络后重试');
+    return;
+  }
+  showToast('海报生成中…');
+  const cardEl = document.getElementById('msCard');
+  try {
+    // scale 调高一些，保证导出的图片足够清晰（不会因为手机屏幕本身分辨率一般而显得模糊）
+    const scale = Math.max(3, (window.devicePixelRatio || 1) * 2);
+    const canvas = await html2canvas(cardEl, {
+      backgroundColor: '#ffffff',
+      scale,
+      useCORS: true,
+      logging: false,
+    });
+    const a = document.createElement('a');
+    a.download = `${sanitizeFileName(s.title)}-分享海报.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    showToast('✅ 海报已生成，正在下载');
+  } catch (e) {
+    console.error('生成海报失败', e);
+    showToast('海报生成失败（可能是图片跨域限制），可尝试"保存图片"');
+  }
+}
+
+// 页面加载时若带有 ?song=<id> 参数，自动打开对应诗歌的播放页（用于分享二维码/链接跳转）
+function checkSongShareLinkFromUrl() {
+  try {
+    const id = new URLSearchParams(location.search).get('song');
+    if (!id) return;
+    const s = songLibrary.find(x => x.id === id);
+    if (s) setTimeout(() => openSongNowPlaying(s.id), 300);
+  } catch (e) { /* ignore */ }
+}
+
 let songLibLyricsEditing = false;
+// 解析 LRC 格式动态歌词：[mm:ss.xx]歌词内容，支持一行多个时间戳
+function parseLrc(text) {
+  if (!text) return [];
+  const timeTag = /\[(\d{1,2}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g;
+  const result = [];
+  text.split('\n').forEach(line => {
+    const tags = [...line.matchAll(timeTag)];
+    if (!tags.length) return;
+    const content = line.replace(timeTag, '').trim();
+    tags.forEach(m => {
+      const min = parseInt(m[1], 10) || 0;
+      const sec = parseInt(m[2], 10) || 0;
+      const msRaw = m[3] || '0';
+      const ms = parseInt(msRaw.padEnd(3, '0').slice(0, 3), 10) || 0;
+      result.push({ time: min * 60 + sec + ms / 1000, text: content });
+    });
+  });
+  result.sort((a, b) => a.time - b.time);
+  return result;
+}
 function renderSongLibLyrics(){
   const s = songLibDetailCurrent;
   const actionsEl = document.getElementById('songLibLyricsActions');
@@ -2588,6 +3102,76 @@ function downloadCurrentSongLibLyrics(){
   if (!s || !s.lyrics) return;
   const content = `${s.title}\n\n${s.lyrics}\n`;
   downloadTextFile(content, `${sanitizeFileName(s.title)}-歌词.txt`);
+}
+
+// ── 动态歌词（LRC 时间轴）：管理员在歌单库详情页录入，播放时逐行同步高亮 ──
+let songLibLrcEditing = false;
+function renderSongLibLrc(){
+  const s = songLibDetailCurrent;
+  const sectionEl = document.getElementById('songLibLrcSection');
+  const actionsEl = document.getElementById('songLibLrcActions');
+  const bodyEl = document.getElementById('songLibLrcBody');
+  if (!sectionEl || !actionsEl || !bodyEl) return;
+  if (!s || !isAdmin) { sectionEl.style.display = 'none'; return; }
+  sectionEl.style.display = '';
+  if (songLibLrcEditing) {
+    actionsEl.innerHTML = '';
+    bodyEl.innerHTML = `<div class="song-lib-lyrics-edit">
+      <textarea id="songLibLrcTextarea" placeholder="逐行输入 LRC 格式歌词，如：&#10;[00:00.72]吹起复兴的风&#10;[00:04.20]我们的神&#10;[00:07.50]来点燃这地 我们呼求">${escapeHtml(s.lyricsLrc)}</textarea>
+      <div class="song-lib-lyrics-edit-actions">
+        <button class="btn-cancel" onclick="cancelLrcEdit()">取消</button>
+        <button class="btn-save" onclick="saveLrcEdit()">保存</button>
+      </div>
+    </div>`;
+    return;
+  }
+  const parsed = parseLrc(s.lyricsLrc);
+  actionsEl.innerHTML = s.lyricsLrc
+    ? `<button class="song-lib-lyrics-link-btn" onclick="openLrcEdit()"><i class="ti ti-edit"></i>编辑</button>
+       <button class="song-lib-lyrics-link-btn" style="color:#e74c3c" onclick="clearLrcEdit()"><i class="ti ti-trash"></i>清除</button>`
+    : `<button class="song-lib-lyrics-link-btn" onclick="openLrcEdit()"><i class="ti ti-plus"></i>添加</button>`;
+  bodyEl.innerHTML = s.lyricsLrc
+    ? `<div class="song-lib-lyrics-preview">已设置 ${parsed.length} 行同步歌词，播放时会随进度逐行高亮显示</div>`
+    : `<div class="song-lib-lyrics-empty">还没有设置动态歌词。录入 LRC 格式的时间轴歌词后，播放页会随播放进度逐行同步高亮</div>`;
+}
+function openLrcEdit(){
+  if (!isAdmin) return;
+  songLibLrcEditing = true;
+  renderSongLibLrc();
+  const ta = document.getElementById('songLibLrcTextarea');
+  if (ta) ta.focus();
+}
+function cancelLrcEdit(){
+  songLibLrcEditing = false;
+  if (songLibDetailCurrent) renderSongLibLrc();
+}
+async function saveLrcEdit(){
+  const s = songLibDetailCurrent;
+  if (!s || !isAdmin) return;
+  const ta = document.getElementById('songLibLrcTextarea');
+  const raw = (ta?.value || '').trim();
+  if (raw && !parseLrc(raw).length) {
+    showToast('⚠️ 未识别到时间戳，格式应为 [分:秒.毫秒]歌词，如 [00:00.72]吹起复兴的风');
+    return;
+  }
+  s.lyricsLrc = raw;
+  persistSongLibrary();
+  songLibLrcEditing = false;
+  renderSongLibLrc();
+  showToast('✅ 动态歌词已保存');
+  if (nowPlayingSong?.id === s.id) { nowPlayingLrcLines = parseLrc(s.lyricsLrc); nowPlayingLrcActiveIndex = -1; renderNowPlayingLyricsPanel(); }
+  await syncSongLibraryToRemote();
+}
+async function clearLrcEdit(){
+  const s = songLibDetailCurrent;
+  if (!s || !isAdmin) return;
+  s.lyricsLrc = '';
+  persistSongLibrary();
+  songLibLrcEditing = false;
+  renderSongLibLrc();
+  showToast('✅ 动态歌词已清除');
+  if (nowPlayingSong?.id === s.id) { nowPlayingLrcLines = []; nowPlayingLrcActiveIndex = -1; renderNowPlayingLyricsPanel(); }
+  await syncSongLibraryToRemote();
 }
 
 
@@ -3595,6 +4179,14 @@ function rr(ctx,x,y,w,h,r,fill){
   ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
   ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
   ctx.closePath(); ctx.fillStyle=fill; ctx.fill();
+}
+// 只构建圆角矩形路径（不填充），用于 ctx.clip()
+function roundRectPath(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
 }
 
 // ── Init ──────────────────────────────────────────────
@@ -6342,6 +6934,7 @@ async function bootstrapApp() {
   syncTopbarSpacer();
   checkSundayReminder();
   checkSaturdayReminder();
+  checkSongShareLinkFromUrl();
 }
 
 bootstrapApp().finally(hideAppLoader);
