@@ -664,12 +664,12 @@ const BIBLE_BOOKS = [
   {name:'提多书', abbr:'tit', chapters:3},
   {name:'腓利门书', abbr:'phm', chapters:1},
   {name:'希伯来书', abbr:'heb', chapters:13},
-  {name:'雅各书', abbr:'jam', chapters:5},
+  {name:'雅各书', abbr:'jas', chapters:5},
   {name:'彼得前书', abbr:'1pe', chapters:5},
   {name:'彼得后书', abbr:'2pe', chapters:3},
-  {name:'约翰一书', abbr:'1jo', chapters:5},
-  {name:'约翰二书', abbr:'2jo', chapters:1},
-  {name:'约翰三书', abbr:'3jo', chapters:1},
+  {name:'约翰一书', abbr:'1jn', chapters:5},
+  {name:'约翰二书', abbr:'2jn', chapters:1},
+  {name:'约翰三书', abbr:'3jn', chapters:1},
   {name:'犹大书', abbr:'jud', chapters:1},
   {name:'启示录', abbr:'rev', chapters:22},
 ];
@@ -2917,8 +2917,8 @@ function renderMusicShareCard() {
   document.getElementById('msCardTitle').textContent = s.title;
   document.getElementById('msCardBand').textContent = s.band || s.songbook || '诗歌库';
   const tags = [];
-  if (s.keys.length) tags.push(`<span>${s.keys.length}个调</span>`);
-  tags.push(`<span>简谱</span>`);
+  if (s.keys.length) tags.push(`<span><i class="ti ti-music"></i>${s.keys.length}个调</span>`);
+  tags.push(`<span><i class="ti ti-layout-grid"></i>简谱</span>`);
   document.getElementById('msCardTags').innerHTML = tags.join('');
   const lyricsLines = (s.lyrics || '').split('\n').map(l => l.trim()).filter(Boolean);
   document.getElementById('msCardQuote').innerHTML = lyricsLines.length

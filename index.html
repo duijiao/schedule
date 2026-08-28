@@ -978,6 +978,7 @@
           <div class="ms-card-song-info">
             <div class="ms-card-song-title" id="msCardTitle"></div>
             <div class="ms-card-song-band" id="msCardBand"></div>
+            <span class="ms-card-band-underline"></span>
             <div class="ms-card-song-tags" id="msCardTags"></div>
           </div>
         </div>
@@ -995,10 +996,16 @@
         <i class="ti ti-leaf ms-card-leaf"></i>
         <div class="ms-card-footer">
           <div class="ms-card-footer-text">
-            <div class="ms-card-footer-from">来自 诗歌库</div>
-            <div class="ms-card-footer-sub">海量诗歌，轻松敬拜</div>
+            <div class="ms-card-footer-brand"><i class="ti ti-heart-filled"></i></div>
+            <div>
+              <div class="ms-card-footer-from">来自 诗歌库</div>
+              <div class="ms-card-footer-sub">海量诗歌，轻松敬拜</div>
+            </div>
           </div>
-          <div class="ms-card-qr-box"><canvas class="ms-card-qr" id="msCardQr" width="96" height="96"></canvas></div>
+          <div class="ms-card-qr-wrap">
+            <div class="ms-card-qr-box"><canvas class="ms-card-qr" id="msCardQr" width="96" height="96"></canvas></div>
+            <div class="ms-card-qr-caption"><i class="ti ti-scan"></i>长按识别二维码</div>
+          </div>
         </div>
       </div>
     </div>
