@@ -2923,12 +2923,16 @@ body.a11y-mode .np-lyrics-preview { font-size: 17px; }
 .ms-card-song-tags span i { font-size: 12px; }
 
 .ms-card-quote-wrap { position: relative; padding: 6px 4px 28px; margin-bottom: 2px; }
+.ms-card-note-deco {
+  position: absolute; top: -6px; right: -12px; width: 150px; height: auto; pointer-events: none; z-index: 0;
+}
 .ms-card-quote-mark {
   display: block; font-size: 46px; line-height: 1; font-weight: 700; font-family: Georgia, serif;
-  color: var(--primary-mid); margin-bottom: 2px;
+  color: var(--primary-mid); margin-bottom: 2px; position: relative; z-index: 1;
 }
 .ms-card-quote {
   font-size: 19px; font-weight: 700; line-height: 1.75; color: var(--text-1); letter-spacing: 0.2px;
+  position: relative; z-index: 1;
 }
 .ms-card-quote div + div { margin-top: 4px; }
 

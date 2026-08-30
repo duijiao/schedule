@@ -14,6 +14,9 @@ let sermonByDate = window.APP_CONFIG.sermonByDate;
 // 结构：{ 'YYYY-MM-DD': '标签文字，比如"特别聚会"' }
 let customEventDates = window.APP_CONFIG.customEventDates;
 
+// 教会主页（church.html）用的站点素材：logo 和欢迎横幅背景图，管理员在"设置"里上传
+let churchSite = { logoUrl: '', bannerUrl: '' };
+
 function getRotationPerson(cfg, key) {
   const base = new Date(cfg.base + 'T00:00:00');
   const cur  = new Date(key + 'T00:00:00');
@@ -4875,6 +4878,19 @@ function openSettings() {
     bulkReminderSec.style.display = isAdmin ? '' : 'none';
     if (isAdmin) loadReminderSubscribersList();
   }
+  // 教会主页（church.html）logo / 横幅设置：仅管理员可见
+  const churchSiteSec = document.getElementById('churchSiteSection');
+  if (churchSiteSec) {
+    churchSiteSec.style.display = isAdmin ? '' : 'none';
+    if (isAdmin) {
+      const logoPrev = document.getElementById('churchLogoPreview');
+      const bannerPrev = document.getElementById('churchBannerPreview');
+      if (logoPrev) logoPrev.src = churchSite.logoUrl || '';
+      if (bannerPrev) bannerPrev.src = churchSite.bannerUrl || '';
+      if (logoPrev) logoPrev.style.display = churchSite.logoUrl ? '' : 'none';
+      if (bannerPrev) bannerPrev.style.display = churchSite.bannerUrl ? '' : 'none';
+    }
+  }
   document.getElementById('settingsOverlay').classList.add('open');
 }
 
@@ -6365,6 +6381,7 @@ function getSharedAppStateSnapshot() {
     song_lib_categories: normalizeSongLibCategoryList(songLibCategories),
     song_lib_songbooks: normalizeSongLibSongbookList(songLibSongbooks),
     custom_event_dates: normalizeSimpleMap(customEventDates),
+    church_site: normalizeSimpleMap(churchSite),
   };
 }
 
@@ -6377,6 +6394,7 @@ function applyRemoteAppState(row) {
   sermonThemesByDate = normalizeSimpleMap(row?.sermon_themes_by_date || sermonThemesByDate);
   sermonAudioByDate = normalizeSimpleMap(row?.sermon_audio_by_date || sermonAudioByDate);
   customEventDates = normalizeSimpleMap(row?.custom_event_dates || customEventDates);
+  churchSite = { logoUrl: '', bannerUrl: '', ...normalizeSimpleMap(row?.church_site || churchSite) };
   if (row && row.leave_requests !== undefined) {
     leaveRequests = normalizeLeaveRequests(row.leave_requests);
     persistLeaveRequests();
@@ -6670,6 +6688,63 @@ function formatLogTime(iso) {
 async function dataUrlToBlob(dataUrl) {
   const res = await fetch(dataUrl);
   return await res.blob();
+}
+
+// ── 教会主页（church.html）logo / 横幅图片上传 ────────────
+// 复用现成的 song-images 存储桶（跟诗歌谱子图片共用同一个已经配置好公开访问的桶），
+// 只是单独放在 site/ 这个子目录下，不需要额外去 Supabase 后台新建桶。
+async function uploadChurchSiteImage(file, kind) {
+  if (!initSupabaseClient()) throw new Error('尚未连接 Supabase，无法上传');
+  const mime = file.type || 'image/png';
+  const rawExt = (mime.split('/')[1] || file.name.split('.').pop() || 'png').toLowerCase();
+  const ext = rawExt === 'jpeg' ? 'jpg' : rawExt;
+  const filePath = `site/${kind}_${Date.now()}.${ext}`;
+  const { error } = await supabaseClient.storage
+    .from(SUPABASE_CONFIG.songBucket)
+    .upload(filePath, file, { contentType: mime, upsert: true });
+  if (error) throw error;
+  const { data } = supabaseClient.storage
+    .from(SUPABASE_CONFIG.songBucket)
+    .getPublicUrl(filePath);
+  return data.publicUrl;
+}
+
+async function handleChurchLogoSelect(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const preview = document.getElementById('churchLogoPreview');
+  try {
+    if (preview) preview.style.opacity = '0.4';
+    const url = await uploadChurchSiteImage(file, 'logo');
+    churchSite.logoUrl = url;
+    await syncRemoteField('church_site', churchSite);
+    if (preview) { preview.src = url; preview.style.opacity = '1'; }
+    showToast('✅ Logo 已更新');
+  } catch (e) {
+    if (preview) preview.style.opacity = '1';
+    showToast('上传失败：' + (e?.message || '请重试'));
+  } finally {
+    input.value = '';
+  }
+}
+
+async function handleChurchBannerSelect(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const preview = document.getElementById('churchBannerPreview');
+  try {
+    if (preview) preview.style.opacity = '0.4';
+    const url = await uploadChurchSiteImage(file, 'banner');
+    churchSite.bannerUrl = url;
+    await syncRemoteField('church_site', churchSite);
+    if (preview) { preview.src = url; preview.style.opacity = '1'; }
+    showToast('✅ 欢迎横幅背景图已更新');
+  } catch (e) {
+    if (preview) preview.style.opacity = '1';
+    showToast('上传失败：' + (e?.message || '请重试'));
+  } finally {
+    input.value = '';
+  }
 }
 
 async function uploadSongDataUrl(serviceDate, dataUrl, index) {
