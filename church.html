@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>巴西华人基督教会</title>
+<meta name="description" content="巴西华人基督教会主页 · 本周证道信息与教会基本信息">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="church.css">
+</head>
+<body>
+<div class="church-app">
+
+  <!-- 顶部导航条 -->
+  <div class="church-topbar">
+    <button class="church-icon-btn" aria-label="菜单"><i class="ti ti-menu-2"></i></button>
+    <button class="church-icon-btn" aria-label="分享" onclick="shareChurchPage()"><i class="ti ti-share-2"></i></button>
+  </div>
+
+  <!-- Logo + 教会名称 -->
+  <div class="church-brand">
+    <div class="church-logo-wrap" id="churchLogoWrap">
+      <img id="churchLogoImg" class="church-logo-img" alt="教会 Logo" style="display:none">
+      <div class="church-logo-fallback" id="churchLogoFallback">
+        <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">
+          <defs>
+            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f9a825"></stop>
+              <stop offset="50%" stop-color="#f4511e"></stop>
+              <stop offset="100%" stop-color="#e64a19"></stop>
+            </linearGradient>
+          </defs>
+          <circle cx="50" cy="50" r="44" fill="none" stroke="url(#logoGrad)" stroke-width="9" stroke-linecap="round" stroke-dasharray="220 60"></circle>
+          <rect x="46" y="26" width="8" height="46" rx="3" fill="#2b2b2b"></rect>
+          <rect x="30" y="42" width="40" height="8" rx="3" fill="#2b2b2b"></rect>
+        </svg>
+      </div>
+    </div>
+    <h1 class="church-name" id="churchName">巴西华人基督教会</h1>
+    <div class="church-name-sub" id="churchNameSub">Igreja Cristã dos Chineses no Brasil</div>
+  </div>
+
+  <!-- 欢迎横幅 -->
+  <div class="church-welcome-banner" id="churchWelcomeBanner">
+    <div class="church-welcome-overlay"></div>
+    <div class="church-welcome-text">
+      <div class="church-welcome-title">欢迎您！</div>
+      <div class="church-welcome-body">
+        <div>无论您来自哪里，</div>
+        <div>我们都在这里，陪伴您认识耶稣，</div>
+        <div>经历爱与希望。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 教会基本信息 -->
+  <div class="church-card">
+    <div class="church-card-head">
+      <div class="church-card-icon"><i class="ti ti-info-circle"></i></div>
+      <div class="church-card-title">教会基本信息</div>
+    </div>
+    <div class="church-info-grid">
+      <div class="church-info-item">
+        <div class="church-info-icon"><i class="ti ti-map-pin"></i></div>
+        <div class="church-info-label">教会地址</div>
+        <div class="church-info-value">R. Cel. Morais, 597<br>Canindé, São Paulo - SP,<br>03029-000</div>
+      </div>
+      <div class="church-info-item">
+        <div class="church-info-icon"><i class="ti ti-clock"></i></div>
+        <div class="church-info-label">聚会时间</div>
+        <div class="church-info-value">主日聚会：10:00<br>祷告会：周三 20:00<br>青年团契：周六 19:00</div>
+      </div>
+      <div class="church-info-item">
+        <div class="church-info-icon"><i class="ti ti-phone"></i></div>
+        <div class="church-info-label">联系方式</div>
+        <div class="church-info-value">WhatsApp:<br>(11) 98116-0665</div>
+      </div>
+      <div class="church-info-item">
+        <div class="church-info-icon"><i class="ti ti-users"></i></div>
+        <div class="church-info-label">教会语言</div>
+        <div class="church-info-value">中文 / 葡语<br>Português<br>Mandarim</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 本周证道信息：从排班数据自动读取 -->
+  <div class="church-card">
+    <div class="church-card-head church-card-head-row">
+      <div class="church-card-head-left">
+        <div class="church-card-icon"><i class="ti ti-book-2"></i></div>
+        <div class="church-card-title">本周证道信息</div>
+      </div>
+      <a class="church-link-btn" href="index.html"><span>查看历史证道</span><i class="ti ti-chevron-right"></i></a>
+    </div>
+    <div class="church-sermon-body" id="churchSermonBody">
+      <div class="church-sermon-loading">正在加载本周证道信息…</div>
+    </div>
+  </div>
+
+  <!-- 关于我们 -->
+  <div class="church-card church-about-card">
+    <div class="church-card-head">
+      <div class="church-card-icon church-card-icon-outline"><i class="ti ti-heart"></i></div>
+      <div class="church-card-title">关于我们</div>
+    </div>
+    <div class="church-about-row">
+      <div class="church-about-text">
+        我们是一个以基督为中心、以圣经为根基的教会，<br>
+        致力于传扬福音，装备信徒，关爱社区，见证神的爱。
+      </div>
+      <a class="church-link-btn church-link-btn-shrink" href="index.html"><span>了解更多</span><i class="ti ti-chevron-right"></i></a>
+    </div>
+    <div class="church-about-grid">
+      <div class="church-about-item">
+        <div class="church-about-icon" style="background:#fdece3"><i class="ti ti-cross" style="color:#e05a2b"></i></div>
+        <div class="church-about-item-title">认识耶稣</div>
+        <div class="church-about-item-sub">福音简介</div>
+      </div>
+      <div class="church-about-item">
+        <div class="church-about-icon" style="background:#fdece3"><i class="ti ti-users-group" style="color:#e05a2b"></i></div>
+        <div class="church-about-item-title">团契小组</div>
+        <div class="church-about-item-sub">彼此相爱</div>
+      </div>
+      <div class="church-about-item">
+        <div class="church-about-icon" style="background:#fdece3"><i class="ti ti-hand-heart" style="color:#e05a2b"></i></div>
+        <div class="church-about-item-title">服事与事工</div>
+        <div class="church-about-item-sub">一起服事</div>
+      </div>
+      <div class="church-about-item">
+        <div class="church-about-icon" style="background:#fdece3"><i class="ti ti-message-circle" style="color:#e05a2b"></i></div>
+        <div class="church-about-item-title">联系我们</div>
+        <div class="church-about-item-sub">欢迎咨询</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部经文 -->
+  <div class="church-footer">
+    <div class="church-footer-verse">你们要先求祂的国和祂的义，这些东西都要加给你们了。</div>
+    <div class="church-footer-ref">— 马太福音 6:33 —</div>
+    <i class="ti ti-cross church-footer-cross"></i>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="church.js"></script>
+</body>
+</html>
