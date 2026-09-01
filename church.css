@@ -92,41 +92,83 @@ body {
 .church-info-value { font-size: 12px; color: var(--c-text-2); line-height: 1.6; }
 
 /* ── 本周证道信息 ─────────────────────────────────── */
-.church-sermon-loading, .church-sermon-empty {
-  font-size: 13px; color: var(--c-text-3); padding: 20px 4px; text-align: center;
+.church-sermon-loading, .cs-empty {
+  font-size: 13px; color: var(--c-text-3); padding: 24px 10px; text-align: center;
 }
-.church-sermon-body { display: flex; flex-direction: column; gap: 14px; }
-.church-sermon-row { display: flex; gap: 14px; }
-.church-sermon-thumb {
-  width: 130px; height: 150px; border-radius: 12px; overflow: hidden; flex-shrink: 0;
-  background: var(--c-orange-light); display: flex; align-items: center; justify-content: center;
+.cs-empty i { opacity: 0.5; }
+
+.cs-top { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+.cs-thumb {
+  width: 64px; height: 64px; border-radius: 14px; flex-shrink: 0; overflow: hidden; position: relative;
+  background: var(--c-orange-light); color: var(--c-orange); font-size: 26px;
+  display: flex; align-items: center; justify-content: center;
 }
-.church-sermon-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.church-sermon-thumb i { font-size: 30px; color: var(--c-orange); opacity: 0.5; }
-.church-sermon-info { min-width: 0; flex: 1; display: flex; flex-direction: column; }
-.church-sermon-tag {
-  display: inline-flex; align-self: flex-start; background: var(--c-orange); color: #fff;
-  font-size: 11.5px; font-weight: 700; padding: 4px 11px; border-radius: 8px; margin-bottom: 10px;
+.cs-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cs-thumb .cs-live-badge {
+  position: absolute; left: 2px; right: 2px; bottom: 2px; font-size: 8.5px; font-weight: 700;
+  letter-spacing: .5px; text-align: center; background: rgba(0,0,0,.55); color: #fff; border-radius: 4px; padding: 1.5px 0;
 }
-.church-sermon-title { font-size: 21px; font-weight: 800; color: var(--c-text-1); line-height: 1.3; margin-bottom: 8px; }
-.church-sermon-ref { font-size: 13px; color: var(--c-text-2); font-weight: 600; margin-bottom: 4px; }
-.church-sermon-quote { font-size: 12.5px; color: var(--c-text-3); line-height: 1.6; }
-.church-sermon-bottom {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  border-top: 1px solid var(--c-border); padding-top: 14px; flex-wrap: wrap;
+.cs-meta { flex: 1; min-width: 0; padding-top: 2px; }
+.cs-tag {
+  display: inline-block; font-size: 11.5px; font-weight: 700; color: var(--c-orange);
+  background: var(--c-orange-light); border-radius: 8px; padding: 4px 11px; margin-bottom: 8px;
 }
-.church-sermon-preacher { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.church-sermon-avatar {
-  width: 38px; height: 38px; border-radius: 50%; background: var(--c-orange-light); color: var(--c-orange);
-  display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0;
+.cs-title { font-size: 19px; font-weight: 800; color: var(--c-text-1); line-height: 1.35; word-break: break-word; }
+.cs-title-muted { color: var(--c-text-3); font-weight: 700; font-size: 15px; }
+
+/* 多段经文：横向滑动卡片 + 圆点指示器，一段经文一张卡，可左右滑动查看 */
+.cs-passages { margin-bottom: 14px; }
+.cs-passage-track {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
 }
-.church-sermon-preacher-name { font-size: 13.5px; font-weight: 700; color: var(--c-text-1); }
-.church-sermon-preacher-date { font-size: 11.5px; color: var(--c-text-3); margin-top: 2px; }
-.church-sermon-watch-btn {
+.cs-passage-track::-webkit-scrollbar { display: none; }
+.cs-passage-card {
+  scroll-snap-align: start; flex: 0 0 100%; min-width: 0; background: #faf7f3;
+  border: 1px solid var(--c-border); border-radius: 14px; padding: 12px 14px; box-sizing: border-box;
+  max-height: 190px; overflow-y: auto;
+}
+.cs-passage-ref { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--c-orange-dark); margin-bottom: 6px; }
+.cs-passage-ref i { font-size: 14px; }
+.cs-passage-quote { font-size: 13.5px; line-height: 1.9; color: var(--c-text-2); }
+.cs-passage-quote .v-num { color: var(--c-orange); font-weight: 700; margin-right: 3px; font-size: 11px; vertical-align: 1px; }
+.cs-passage-empty, .cs-passage-loading { font-size: 12.5px; color: var(--c-text-3); }
+.cs-dots { display: flex; justify-content: center; gap: 6px; margin-top: 8px; }
+.cs-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-border); transition: background .2s, width .2s; cursor: pointer; border: none; padding: 0; }
+.cs-dot.active { background: var(--c-orange); width: 16px; border-radius: 3px; }
+
+.cs-bottom {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  border-top: 1px solid var(--c-border); padding-top: 14px;
+}
+.cs-preacher { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cs-avatar {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--c-orange-light); color: var(--c-orange);
+  display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+}
+.cs-preacher-name { font-size: 13px; font-weight: 700; color: var(--c-text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cs-preacher-date { font-size: 11.5px; color: var(--c-text-3); margin-top: 2px; }
+.cs-watch-btn {
   display: inline-flex; align-items: center; gap: 6px; background: var(--c-orange); color: #fff;
-  border: none; border-radius: 20px; padding: 10px 18px; font-size: 13px; font-weight: 700;
-  cursor: pointer; font-family: inherit; text-decoration: none; white-space: nowrap;
+  font-size: 12.5px; font-weight: 700; border-radius: 20px; padding: 9px 17px; text-decoration: none;
+  white-space: nowrap; border: none; font-family: inherit;
 }
+.cs-watch-btn-disabled { background: var(--c-border); color: var(--c-text-3); cursor: default; }
+
+/* 主日直播卡片：点击跳转到 YouTube /live 链接，不用内嵌播放器 */
+.cs-live-tap {
+  display: flex; align-items: center; gap: 12px; text-decoration: none; background: #faf7f3;
+  border: 1px solid var(--c-border); border-radius: 14px; padding: 12px 14px; transition: background .15s;
+}
+.cs-live-tap:active { background: var(--c-orange-light); }
+.cs-live-tap-icon {
+  width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg,#e5312e,#c4211f); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+.cs-live-tap-text { flex: 1; min-width: 0; }
+.cs-live-tap-title { font-size: 14px; font-weight: 700; color: var(--c-text-1); }
+.cs-live-tap-sub { font-size: 11.5px; color: var(--c-text-3); margin-top: 3px; line-height: 1.5; }
+.cs-live-tap-arrow { font-size: 16px; color: var(--c-text-3); flex-shrink: 0; }
 
 /* ── 关于我们 ─────────────────────────────────────── */
 .church-about-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
@@ -152,8 +194,7 @@ body {
 
 @media (max-width: 380px) {
   .church-info-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .church-sermon-row { flex-direction: column; }
-  .church-sermon-thumb { width: 100%; height: 150px; }
   .church-about-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .church-about-icon { width: 40px; height: 40px; font-size: 17px; }
+  .cs-passage-card { max-height: 230px; }
 }

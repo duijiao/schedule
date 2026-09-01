@@ -7,49 +7,6 @@
 <meta name="description" content="巴西华人基督教会主页 · 本周证道信息与教会基本信息">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="stylesheet" href="church.css">
-<style>
-/* 本周证道信息卡片 — 自带样式，不依赖 church.css，避免和现有样式冲突 */
-.cs-top{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px}
-.cs-thumb{width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,#185FA5,#2e86de);display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;flex-shrink:0;overflow:hidden;position:relative}
-.cs-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.cs-thumb .cs-live-badge{position:absolute;left:2px;right:2px;bottom:2px;font-size:8.5px;font-weight:700;letter-spacing:.5px;text-align:center;background:rgba(0,0,0,.55);color:#fff;border-radius:4px;padding:1.5px 0}
-.cs-meta{flex:1;min-width:0;padding-top:2px}
-.cs-tag{display:inline-block;font-size:11px;font-weight:600;color:#185FA5;background:#e8f1fb;border-radius:6px;padding:2px 8px;margin-bottom:6px}
-.cs-title{font-size:16px;font-weight:700;color:#222;line-height:1.4;word-break:break-word}
-.cs-title-muted{color:#999;font-weight:600;font-size:14px}
-
-.cs-passages{margin-bottom:14px}
-.cs-passage-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.cs-passage-track::-webkit-scrollbar{display:none}
-.cs-passage-card{scroll-snap-align:start;flex:0 0 100%;min-width:0;background:#f7f8fa;border-radius:12px;padding:12px 14px;box-sizing:border-box;max-height:190px;overflow-y:auto}
-.cs-passage-ref{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#185FA5;margin-bottom:6px}
-.cs-passage-ref i{font-size:14px}
-.cs-passage-quote{font-size:13.5px;line-height:1.9;color:#444}
-.cs-passage-quote .v-num{color:#185FA5;font-weight:700;margin-right:3px;font-size:11px;vertical-align:1px}
-.cs-passage-empty,.cs-passage-loading{font-size:12.5px;color:#999}
-.cs-dots{display:flex;justify-content:center;gap:6px;margin-top:8px}
-.cs-dot{width:6px;height:6px;border-radius:50%;background:#d8d4cc;transition:background .2s,width .2s;cursor:pointer}
-.cs-dot.active{background:#185FA5;width:16px;border-radius:3px}
-
-.cs-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.cs-preacher{display:flex;align-items:center;gap:10px;min-width:0}
-.cs-avatar{width:36px;height:36px;border-radius:50%;background:#eef2f5;display:flex;align-items:center;justify-content:center;color:#185FA5;font-size:16px;flex-shrink:0}
-.cs-preacher-name{font-size:13px;font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cs-preacher-date{font-size:11.5px;color:#999;margin-top:2px}
-.cs-watch-btn{display:inline-flex;align-items:center;gap:6px;background:#185FA5;color:#fff;font-size:12.5px;font-weight:600;border-radius:20px;padding:8px 16px;text-decoration:none;white-space:nowrap;border:none}
-.cs-watch-btn-disabled{background:#d8d4cc;color:#fff;cursor:default}
-.cs-empty{padding:24px 10px;text-align:center;color:#999;font-size:13px}
-.church-sermon-loading{padding:24px 10px;text-align:center;color:#999;font-size:13px}
-
-/* 主日直播卡片：点击跳转到 YouTube /live 链接，不用内嵌播放器 */
-.cs-live-tap{display:flex;align-items:center;gap:12px;text-decoration:none;background:#f7f8fa;border-radius:12px;padding:12px 14px;transition:background .15s}
-.cs-live-tap:active{background:#eef0f2}
-.cs-live-tap-icon{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#e5312e,#c4211f);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.cs-live-tap-text{flex:1;min-width:0}
-.cs-live-tap-title{font-size:14px;font-weight:700;color:#222}
-.cs-live-tap-sub{font-size:11.5px;color:#999;margin-top:3px;line-height:1.5}
-.cs-live-tap-arrow{font-size:16px;color:#bbb;flex-shrink:0}
-</style>
 </head>
 <body>
 <div class="church-app">

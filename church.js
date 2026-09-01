@@ -129,8 +129,10 @@ async function loadChurchData() {
     return;
   }
 
-  applyChurchSite(row.church_site || {});
+  // 先渲染证道卡片（会生成 #csThumb 占位），再应用 logo/横幅/投影画面，
+  // 这样投影画面首次加载就能显示，不用等 15 秒后第一次轮询才出现。
   await renderSermon(row);
+  applyChurchSite(row.church_site || {});
   startLiveSlidePolling(client);
 }
 
@@ -196,42 +198,98 @@ async function renderSermon(row) {
     return;
   }
 
-  const refText = passages.length ? passages.map(formatPassageRef).join('；') : '';
-  let quoteText = '';
-  if (passages.length) {
-    quoteText = await tryFetchVerseQuote(passages[0]);
-  }
+  // 有经文才需要经文正文，提前把索引加载好（内部有缓存，重复调用不会重复请求）
+  if (passages.length) await ensureBibleIndex();
 
   const dateLabel = formatDateLabel(upcomingSunday(new Date()));
 
+  const passageCardsHtml = passages.map(item => {
+    const ref = formatPassageRef(item);
+    const verses = getPassageVerses(item);
+    let bodyHtml;
+    if (verses.length) {
+      bodyHtml = `<div class="cs-passage-quote">${verses
+        .map(v => `<span class="v-num">${v.verse}</span>${escapeHtml(v.text)}`)
+        .join(' ')}</div>`;
+    } else if (bibleLoadFailed) {
+      bodyHtml = `<div class="cs-passage-empty">经文原文暂不可用</div>`;
+    } else {
+      bodyHtml = `<div class="cs-passage-loading">经文加载中…</div>`;
+    }
+    return `
+      <div class="cs-passage-card">
+        <div class="cs-passage-ref"><i class="ti ti-bookmark"></i>${escapeHtml(ref)}</div>
+        ${bodyHtml}
+      </div>`;
+  }).join('');
+
+  const dotsHtml = passages.length > 1
+    ? `<div class="cs-dots">${passages
+        .map((_, i) => `<button type="button" class="cs-dot${i === 0 ? ' active' : ''}" data-idx="${i}" aria-label="第 ${i + 1} 段经文"></button>`)
+        .join('')}</div>`
+    : '';
+
   const html = `
-    <div class="church-sermon-row">
-      <div class="church-sermon-thumb"><i class="ti ti-book-2"></i></div>
-      <div class="church-sermon-info">
-        ${theme ? `<span class="church-sermon-tag">本周主题</span><div class="church-sermon-title">${escapeHtml(theme)}</div>` : ''}
-        ${refText ? `<div class="church-sermon-ref">${escapeHtml(refText)}</div>` : ''}
-        ${quoteText ? `<div class="church-sermon-quote">「${escapeHtml(quoteText)}」</div>` : ''}
+    <div class="cs-top">
+      <div class="cs-thumb" id="csThumb"><i class="ti ti-book-2"></i></div>
+      <div class="cs-meta">
+        ${theme
+          ? `<span class="cs-tag">本周主题</span><div class="cs-title">${escapeHtml(theme)}</div>`
+          : `<div class="cs-title cs-title-muted">本周证道</div>`}
       </div>
     </div>
-    <div class="church-sermon-bottom">
-      <div class="church-sermon-preacher">
-        <div class="church-sermon-avatar"><i class="ti ti-user"></i></div>
+    ${passages.length ? `
+    <div class="cs-passages">
+      <div class="cs-passage-track" id="csPassageTrack">${passageCardsHtml}</div>
+      ${dotsHtml}
+    </div>` : ''}
+    <div class="cs-bottom">
+      <div class="cs-preacher">
+        <div class="cs-avatar"><i class="ti ti-user"></i></div>
         <div>
-          <div class="church-sermon-preacher-name">证道人：${preacher ? escapeHtml(preacher) : '待安排'}</div>
-          <div class="church-sermon-preacher-date">${dateLabel}</div>
+          <div class="cs-preacher-name">证道人：${preacher ? escapeHtml(preacher) : '待安排'}</div>
+          <div class="cs-preacher-date">${escapeHtml(dateLabel)}</div>
         </div>
       </div>
       ${audioUrl
-        ? `<a class="church-sermon-watch-btn" href="${audioUrl}" target="_blank" rel="noopener"><i class="ti ti-player-play-filled"></i>观看证道</a>`
-        : `<span class="church-sermon-watch-btn" style="background:#d8d4cc;cursor:default"><i class="ti ti-player-play-filled"></i>暂无录音</span>`}
+        ? `<a class="cs-watch-btn" href="${audioUrl}" target="_blank" rel="noopener"><i class="ti ti-player-play-filled"></i>观看证道</a>`
+        : `<span class="cs-watch-btn cs-watch-btn-disabled"><i class="ti ti-player-play-filled"></i>暂无录音</span>`}
     </div>
   `;
   document.getElementById('churchSermonBody').innerHTML = html;
+
+  if (passages.length > 1) setupPassageDots();
+}
+
+// 多段经文卡片：点圆点跳转到对应卡片，滑动时同步高亮当前圆点
+function setupPassageDots() {
+  const track = document.getElementById('csPassageTrack');
+  const dots = Array.from(document.querySelectorAll('.cs-dot'));
+  if (!track || !dots.length) return;
+
+  dots.forEach(dot => {
+    dot.addEventListener('click', () => {
+      const idx = Number(dot.dataset.idx);
+      const card = track.children[idx];
+      if (card) track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior: 'smooth' });
+    });
+  });
+
+  let ticking = false;
+  track.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const idx = Math.round(track.scrollLeft / (track.clientWidth || 1));
+      dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+      ticking = false;
+    });
+  });
 }
 
 function renderSermonEmpty() {
   document.getElementById('churchSermonBody').innerHTML =
-    `<div class="church-sermon-empty"><i class="ti ti-book-off" style="font-size:22px;display:block;margin-bottom:8px;opacity:0.5"></i>本周证道信息暂未发布，敬请期待</div>`;
+    `<div class="cs-empty"><i class="ti ti-book-off" style="font-size:22px;display:block;margin-bottom:8px"></i>本周证道信息暂未发布，敬请期待</div>`;
 }
 
 function shareChurchPage() {
