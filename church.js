@@ -149,7 +149,7 @@ function applyChurchSite(site) {
   applyLiveSlide(site.liveSlideUrl || '');
 }
 
-/* ── 证道缩略图：如果配置了 liveSlideUrl（当前投影画面），显示图片；否则显示书本图标 ──
+// ── 证道缩略图：如果配置了 liveSlideUrl（当前投影画面），显示图片；否则显示书本图标 ──
 function applyLiveSlide(url) {
   const thumb = document.getElementById('csThumb');
   if (!thumb) return;
@@ -182,7 +182,8 @@ function startLiveSlidePolling(client) {
     if (url) applyLiveSlide(url);
   }, 15000);
 }
-*/
+
+
 async function renderSermon(row) {
   const key = toKey(upcomingSunday(new Date()));
   const preacher = (row.sermon_by_date || {})[key] || '';
@@ -195,93 +196,42 @@ async function renderSermon(row) {
     return;
   }
 
+  const refText = passages.length ? passages.map(formatPassageRef).join('；') : '';
+  let quoteText = '';
+  if (passages.length) {
+    quoteText = await tryFetchVerseQuote(passages[0]);
+  }
+
   const dateLabel = formatDateLabel(upcomingSunday(new Date()));
 
-  const body = document.getElementById('churchSermonBody');
-  body.innerHTML = `
-    <div class="cs-top">
-      <div class="cs-thumb" id="csThumb"><i class="ti ti-book-2"></i></div>
-      <div class="cs-meta">
-        ${theme ? `<span class="cs-tag">本周主题</span><div class="cs-title">${escapeHtml(theme)}</div>` : `<div class="cs-title cs-title-muted">本周主题待发布</div>`}
+  const html = `
+    <div class="church-sermon-row">
+      <div class="church-sermon-thumb"><i class="ti ti-book-2"></i></div>
+      <div class="church-sermon-info">
+        ${theme ? `<span class="church-sermon-tag">本周主题</span><div class="church-sermon-title">${escapeHtml(theme)}</div>` : ''}
+        ${refText ? `<div class="church-sermon-ref">${escapeHtml(refText)}</div>` : ''}
+        ${quoteText ? `<div class="church-sermon-quote">「${escapeHtml(quoteText)}」</div>` : ''}
       </div>
     </div>
-    ${passages.length ? `
-    <div class="cs-passages">
-      <div class="cs-passage-track" id="csPassageTrack">
-        ${passages.map((item, i) => `
-          <div class="cs-passage-card">
-            <div class="cs-passage-ref"><i class="ti ti-bookmark"></i>${escapeHtml(formatSermonPassageRef(item))}</div>
-            <div class="cs-passage-quote" id="csQuote-${i}"><span class="cs-passage-loading">正在加载经文…</span></div>
-          </div>`).join('')}
-      </div>
-      ${passages.length > 1 ? `<div class="cs-dots" id="csDots">${passages.map((_, i) => `<span class="cs-dot${i === 0 ? ' active' : ''}"></span>`).join('')}</div>` : ''}
-    </div>` : ''}
-    <div class="cs-bottom">
-      <div class="cs-preacher">
-        <div class="cs-avatar"><i class="ti ti-user"></i></div>
+    <div class="church-sermon-bottom">
+      <div class="church-sermon-preacher">
+        <div class="church-sermon-avatar"><i class="ti ti-user"></i></div>
         <div>
-          <div class="cs-preacher-name">证道人：${preacher ? escapeHtml(preacher) : '待安排'}</div>
-          <div class="cs-preacher-date">${dateLabel}</div>
+          <div class="church-sermon-preacher-name">证道人：${preacher ? escapeHtml(preacher) : '待安排'}</div>
+          <div class="church-sermon-preacher-date">${dateLabel}</div>
         </div>
       </div>
       ${audioUrl
-        ? `<a class="cs-watch-btn" href="${audioUrl}" target="_blank" rel="noopener"><i class="ti ti-player-play-filled"></i>观看证道</a>`
-        : `<span class="cs-watch-btn cs-watch-btn-disabled"><i class="ti ti-player-play-filled"></i>暂无录音</span>`}
+        ? `<a class="church-sermon-watch-btn" href="${audioUrl}" target="_blank" rel="noopener"><i class="ti ti-player-play-filled"></i>观看证道</a>`
+        : `<span class="church-sermon-watch-btn" style="background:#d8d4cc;cursor:default"><i class="ti ti-player-play-filled"></i>暂无录音</span>`}
     </div>
   `;
-
-  // liveSlideUrl 已经在 applyChurchSite 里读过一次了，thumb 刚被重建，需要重新套用
-  applyLiveSlide((row.church_site || {}).liveSlideUrl || '');
-
-  if (passages.length) hydratePassageQuotes(passages);
-  if (passages.length > 1) wirePassageDots(passages.length);
-}
-
-async function hydratePassageQuotes(passages) {
-  await ensureBibleIndex();
-  passages.forEach((item, i) => {
-    const el = document.getElementById(`csQuote-${i}`);
-    if (!el) return;
-    const verses = getPassageVerses(item);
-    if (!verses.length) {
-      el.innerHTML = `<span class="cs-passage-empty">经文内容暂不可查看</span>`;
-      if (bibleLoadFailed) {
-        console.error('[church.js] 经文正文未能显示：经文文件没有加载成功（见上方错误）');
-      } else {
-        console.error(`[church.js] 经文正文未能显示：在经文文件里没有找到 ${item.bookAbbr.toUpperCase()}_${item.chapter}（对应 ${formatSermonPassageRef(item)}），请检查该书卷缩写、章节是否正确`);
-      }
-      return;
-    }
-    el.innerHTML = verses.map(v => `<span class="v-num">${v.verse}</span>${escapeHtml(v.text)}`).join(' ');
-  });
-}
-
-function wirePassageDots(count) {
-  const track = document.getElementById('csPassageTrack');
-  const dots = document.getElementById('csDots');
-  if (!track || !dots) return;
-  const dotEls = Array.from(dots.children);
-  let ticking = false;
-  track.addEventListener('scroll', () => {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(() => {
-      const cardWidth = track.clientWidth;
-      const idx = Math.round(track.scrollLeft / cardWidth);
-      dotEls.forEach((d, i) => d.classList.toggle('active', i === idx));
-      ticking = false;
-    });
-  }, { passive: true });
-  dotEls.forEach((d, i) => {
-    d.addEventListener('click', () => {
-      track.scrollTo({ left: i * track.clientWidth, behavior: 'smooth' });
-    });
-  });
+  document.getElementById('churchSermonBody').innerHTML = html;
 }
 
 function renderSermonEmpty() {
   document.getElementById('churchSermonBody').innerHTML =
-    `<div class="cs-empty"><i class="ti ti-book-off" style="font-size:22px;display:block;margin-bottom:8px;opacity:0.5"></i>本周证道信息暂未发布，敬请期待</div>`;
+    `<div class="church-sermon-empty"><i class="ti ti-book-off" style="font-size:22px;display:block;margin-bottom:8px;opacity:0.5"></i>本周证道信息暂未发布，敬请期待</div>`;
 }
 
 function shareChurchPage() {
