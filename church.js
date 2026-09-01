@@ -149,7 +149,7 @@ function applyChurchSite(site) {
   applyLiveSlide(site.liveSlideUrl || '');
 }
 
-// ── 证道缩略图：如果配置了 liveSlideUrl（当前投影画面），显示图片；否则显示书本图标 ──
+/* ── 证道缩略图：如果配置了 liveSlideUrl（当前投影画面），显示图片；否则显示书本图标 ──
 function applyLiveSlide(url) {
   const thumb = document.getElementById('csThumb');
   if (!thumb) return;
@@ -182,7 +182,7 @@ function startLiveSlidePolling(client) {
     if (url) applyLiveSlide(url);
   }, 15000);
 }
-
+*/
 async function renderSermon(row) {
   const key = toKey(upcomingSunday(new Date()));
   const preacher = (row.sermon_by_date || {})[key] || '';

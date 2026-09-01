@@ -95,6 +95,20 @@
       </div>
     </div>
   </div>
+  
+    <!-- 本周证道信息：从排班数据自动读取 -->
+  <div class="church-card">
+    <div class="church-card-head church-card-head-row">
+      <div class="church-card-head-left">
+        <div class="church-card-icon"><i class="ti ti-book-2"></i></div>
+        <div class="church-card-title">本周证道信息</div>
+      </div>
+      <a class="church-link-btn" href="/"><span>查看历史证道</span><i class="ti ti-chevron-right"></i></a>
+    </div>
+    <div class="church-sermon-body" id="churchSermonBody">
+      <div class="church-sermon-loading">正在加载本周证道信息…</div>
+    </div>
+  </div>
 
   <!-- 主日直播：跳转到 YouTube 频道的 /live 专用链接（正在直播时自动播放该直播，没有直播时显示频道页），
        比"频道直播内嵌播放器"更可靠——内嵌播放器经常出现"此视频无法观看"的问题，这是 YouTube 那个内嵌接口本身不稳定，
@@ -109,8 +123,8 @@
     <a class="cs-live-tap" href="https://www.youtube.com/channel/UCJ72h_0wV2v-TMCHSsE7Bow/live" target="_blank" rel="noopener">
       <div class="cs-live-tap-icon"><i class="ti ti-player-play-filled"></i></div>
       <div class="cs-live-tap-text">
-        <div class="cs-live-tap-title">点击观看主日直播</div>
-        <div class="cs-live-tap-sub">正在直播时会自动打开直播画面；没有直播时会显示频道最新视频</div>
+        <div class="cs-live-tap-title">巴西华人基督教会-YouTube直播</div>
+        <div class="cs-live-tap-sub">点击查看直播内容</div>
       </div>
       <i class="ti ti-external-link cs-live-tap-arrow"></i>
     </a>
@@ -131,34 +145,22 @@
       <div class="church-info-item">
         <div class="church-info-icon"><i class="ti ti-clock"></i></div>
         <div class="church-info-label">聚会时间</div>
-        <div class="church-info-value">主日聚会：10:00<br>祷告会：周三 20:00<br>青年团契：周六 19:00</div>
+        <div class="church-info-value">主日聚会：14:00<br>祷告会：周五 19:00<br>查经聚会：周六 19:00</div>
       </div>
       <div class="church-info-item">
         <div class="church-info-icon"><i class="ti ti-phone"></i></div>
         <div class="church-info-label">联系方式</div>
-        <div class="church-info-value">WhatsApp:<br>(11) 98116-0665</div>
+        <div class="church-info-value">WhatsApp:<br>暂无</div>
       </div>
       <div class="church-info-item">
         <div class="church-info-icon"><i class="ti ti-users"></i></div>
         <div class="church-info-label">教会语言</div>
-        <div class="church-info-value">中文 / 葡语<br>Português<br>Mandarim</div>
+        <div class="church-info-value">中文</div>
       </div>
     </div>
   </div>
 
-  <!-- 本周证道信息：从排班数据自动读取 -->
-  <div class="church-card">
-    <div class="church-card-head church-card-head-row">
-      <div class="church-card-head-left">
-        <div class="church-card-icon"><i class="ti ti-book-2"></i></div>
-        <div class="church-card-title">本周证道信息</div>
-      </div>
-      <a class="church-link-btn" href="index.html"><span>查看历史证道</span><i class="ti ti-chevron-right"></i></a>
-    </div>
-    <div class="church-sermon-body" id="churchSermonBody">
-      <div class="church-sermon-loading">正在加载本周证道信息…</div>
-    </div>
-  </div>
+
 
   <!-- 关于我们 -->
   <div class="church-card church-about-card">
@@ -171,7 +173,7 @@
         我们是一个以基督为中心、以圣经为根基的教会，<br>
         致力于传扬福音，装备信徒，关爱社区，见证神的爱。
       </div>
-      <a class="church-link-btn church-link-btn-shrink" href="index.html"><span>了解更多</span><i class="ti ti-chevron-right"></i></a>
+      <a class="church-link-btn church-link-btn-shrink" href="/"><span>了解更多</span><i class="ti ti-chevron-right"></i></a>
     </div>
     <div class="church-about-grid">
       <div class="church-about-item">
@@ -185,7 +187,7 @@
         <div class="church-about-item-sub">彼此相爱</div>
       </div>
       <div class="church-about-item">
-        <div class="church-about-icon" style="background:#fdece3"><i class="ti ti-hand-heart" style="color:#e05a2b"></i></div>
+        <div class="church-about-icon" style="background:#fdece3"><i class="ti ti-users-group" style="color:#e05a2b"></i></div>
         <div class="church-about-item-title">服事与事工</div>
         <div class="church-about-item-sub">一起服事</div>
       </div>
