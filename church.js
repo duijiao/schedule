@@ -36,19 +36,31 @@ async function ensureBibleIndex() {
   if (bibleIndex || bibleLoadFailed) return;
   try {
     const res = await fetch(BIBLE_FILE);
-    if (!res.ok) { bibleLoadFailed = true; return; }
+    if (!res.ok) {
+      bibleLoadFailed = true;
+      console.error(`[church.js] 经文文件加载失败：HTTP ${res.status}，请确认 ${BIBLE_FILE} 和 church.html 上传在同一个目录下`);
+      return;
+    }
     const text = await res.text();
     const index = {};
+    let matched = 0;
     text.split(/\r?\n/).forEach(line => {
       const m = line.match(/^([A-Z0-9]+)\s+(\d+):(\d+)\s+(.*)$/);
       if (!m) return;
+      matched++;
       const key = `${m[1]}_${m[2]}`;
       if (!index[key]) index[key] = [];
       index[key].push({ verse: Number(m[3]), text: m[4] });
     });
+    if (!matched) {
+      bibleLoadFailed = true;
+      console.error(`[church.js] ${BIBLE_FILE} 加载成功，但没有解析出任何经文行，请检查文件格式是否为「BOOK 章:节 经文内容」，比如 GEN 1:1 起初，神创造天地。`);
+      return;
+    }
     bibleIndex = index;
   } catch (e) {
     bibleLoadFailed = true;
+    console.error('[church.js] 经文文件加载出错：', e);
   }
 }
 
@@ -192,6 +204,11 @@ async function hydratePassageQuotes(passages) {
     const verses = getPassageVerses(item);
     if (!verses.length) {
       el.innerHTML = `<span class="cs-passage-empty">经文内容暂不可查看</span>`;
+      if (bibleLoadFailed) {
+        console.error('[church.js] 经文正文未能显示：经文文件没有加载成功（见上方错误）');
+      } else {
+        console.error(`[church.js] 经文正文未能显示：在经文文件里没有找到 ${item.bookAbbr.toUpperCase()}_${item.chapter}（对应 ${formatSermonPassageRef(item)}），请检查该书卷缩写、章节是否正确`);
+      }
       return;
     }
     el.innerHTML = verses.map(v => `<span class="v-num">${v.verse}</span>${escapeHtml(v.text)}`).join(' ');

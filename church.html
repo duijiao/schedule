@@ -41,10 +41,14 @@
 .cs-empty{padding:24px 10px;text-align:center;color:#999;font-size:13px}
 .church-sermon-loading{padding:24px 10px;text-align:center;color:#999;font-size:13px}
 
-/* 主日直播卡片 */
-.cs-live-wrap{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#111}
-.cs-live-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-.cs-live-hint{margin-top:8px;font-size:11.5px;color:#999;line-height:1.5}
+/* 主日直播卡片：点击跳转到 YouTube /live 链接，不用内嵌播放器 */
+.cs-live-tap{display:flex;align-items:center;gap:12px;text-decoration:none;background:#f7f8fa;border-radius:12px;padding:12px 14px;transition:background .15s}
+.cs-live-tap:active{background:#eef0f2}
+.cs-live-tap-icon{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#e5312e,#c4211f);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.cs-live-tap-text{flex:1;min-width:0}
+.cs-live-tap-title{font-size:14px;font-weight:700;color:#222}
+.cs-live-tap-sub{font-size:11.5px;color:#999;margin-top:3px;line-height:1.5}
+.cs-live-tap-arrow{font-size:16px;color:#bbb;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -92,25 +96,24 @@
     </div>
   </div>
 
-  <!-- 主日直播：直接嵌入 YouTube 频道当前直播，不经过 ProPresenter，不需要额外服务器 -->
+  <!-- 主日直播：跳转到 YouTube 频道的 /live 专用链接（正在直播时自动播放该直播，没有直播时显示频道页），
+       比"频道直播内嵌播放器"更可靠——内嵌播放器经常出现"此视频无法观看"的问题，这是 YouTube 那个内嵌接口本身不稳定，
+       用直接跳转的方式可以完全避开这个问题。 -->
   <div class="church-card" id="churchLiveCard">
     <div class="church-card-head church-card-head-row">
       <div class="church-card-head-left">
         <div class="church-card-icon"><i class="ti ti-video"></i></div>
         <div class="church-card-title">主日直播</div>
       </div>
-      <a class="church-link-btn" href="https://www.youtube.com/channel/UCJ72h_0wV2v-TMCHSsE7Bow" target="_blank" rel="noopener"><span>前往频道</span><i class="ti ti-chevron-right"></i></a>
     </div>
-    <div class="cs-live-wrap">
-      <iframe
-        src="https://www.youtube.com/embed/live_stream?channel=UCJ72h_0wV2v-TMCHSsE7Bow&autoplay=0&mute=1"
-        title="教会主日直播"
-        frameborder="0"
-        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen
-        loading="lazy"></iframe>
-    </div>
-    <div class="cs-live-hint">没有直播时会显示频道最近的视频；聚会开始后这里会自动切换为直播画面</div>
+    <a class="cs-live-tap" href="https://www.youtube.com/channel/UCJ72h_0wV2v-TMCHSsE7Bow/live" target="_blank" rel="noopener">
+      <div class="cs-live-tap-icon"><i class="ti ti-player-play-filled"></i></div>
+      <div class="cs-live-tap-text">
+        <div class="cs-live-tap-title">点击观看主日直播</div>
+        <div class="cs-live-tap-sub">正在直播时会自动打开直播画面；没有直播时会显示频道最新视频</div>
+      </div>
+      <i class="ti ti-external-link cs-live-tap-arrow"></i>
+    </a>
   </div>
 
   <!-- 教会基本信息 -->
