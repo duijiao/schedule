@@ -8,7 +8,48 @@
 //
 // SUPABASE_CONFIG、BIBLE_BOOKS、getBibleBookByAbbr、formatSermonPassageRef、toKey
 // 这几个跟 app.js 共用的定义，现在统一放在 shared.js 里，church.html 会在这个文件之前加载它。
+const SUPABASE_CONFIG = {
+  url: 'https://citorcvisrfqkflwortx.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpdG9yY3Zpc3JmcWtmbHdvcnR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4OTk4NjQsImV4cCI6MjA5NzQ3NTg2NH0.I1G-oO1T3wfWJ5GcmYejT6Y0x2wAJ0xXRQsIcPVPjos',
+  table: 'church_app_state',
+  rowId: 1,
+};
 
+// ── 圣经书卷名对照（跟排班系统 app.js 里的 BIBLE_BOOKS 是同一份） ──
+const BIBLE_BOOKS = [
+  {name:'创世记', abbr:'gen'}, {name:'出埃及记', abbr:'exo'}, {name:'利未记', abbr:'lev'},
+  {name:'民数记', abbr:'num'}, {name:'申命记', abbr:'deu'}, {name:'约书亚记', abbr:'jos'},
+  {name:'士师记', abbr:'jdg'}, {name:'路得记', abbr:'rut'}, {name:'撒母耳记上', abbr:'1sa'},
+  {name:'撒母耳记下', abbr:'2sa'}, {name:'列王纪上', abbr:'1ki'}, {name:'列王纪下', abbr:'2ki'},
+  {name:'历代志上', abbr:'1ch'}, {name:'历代志下', abbr:'2ch'}, {name:'以斯拉记', abbr:'ezr'},
+  {name:'尼希米记', abbr:'neh'}, {name:'以斯帖记', abbr:'est'}, {name:'约伯记', abbr:'job'},
+  {name:'诗篇', abbr:'psa'}, {name:'箴言', abbr:'pro'}, {name:'传道书', abbr:'ecc'},
+  {name:'雅歌', abbr:'sng'}, {name:'以赛亚书', abbr:'isa'}, {name:'耶利米书', abbr:'jer'},
+  {name:'耶利米哀歌', abbr:'lam'}, {name:'以西结书', abbr:'ezk'}, {name:'但以理书', abbr:'dan'},
+  {name:'何西阿书', abbr:'hos'}, {name:'约珥书', abbr:'jol'}, {name:'阿摩司书', abbr:'amo'},
+  {name:'俄巴底亚书', abbr:'oba'}, {name:'约拿书', abbr:'jon'}, {name:'弥迦书', abbr:'mic'},
+  {name:'那鸿书', abbr:'nam'}, {name:'哈巴谷书', abbr:'hab'}, {name:'西番雅书', abbr:'zep'},
+  {name:'哈该书', abbr:'hag'}, {name:'撒迦利亚书', abbr:'zec'}, {name:'玛拉基书', abbr:'mal'},
+  {name:'马太福音', abbr:'mat'}, {name:'马可福音', abbr:'mar'}, {name:'路加福音', abbr:'luk'},
+  {name:'约翰福音', abbr:'joh'}, {name:'使徒行传', abbr:'act'}, {name:'罗马书', abbr:'rom'},
+  {name:'哥林多前书', abbr:'1co'}, {name:'哥林多后书', abbr:'2co'}, {name:'加拉太书', abbr:'gal'},
+  {name:'以弗所书', abbr:'eph'}, {name:'腓立比书', abbr:'phi'}, {name:'歌罗西书', abbr:'col'},
+  {name:'帖撒罗尼迦前书', abbr:'1th'}, {name:'帖撒罗尼迦后书', abbr:'2th'}, {name:'提摩太前书', abbr:'1ti'},
+  {name:'提摩太后书', abbr:'2ti'}, {name:'提多书', abbr:'tit'}, {name:'腓利门书', abbr:'phm'},
+  {name:'希伯来书', abbr:'heb'}, {name:'雅各书', abbr:'jas'}, {name:'彼得前书', abbr:'1pe'},
+  {name:'彼得后书', abbr:'2pe'}, {name:'约翰一书', abbr:'1jn'}, {name:'约翰二书', abbr:'2jn'},
+  {name:'约翰三书', abbr:'3jn'}, {name:'犹大书', abbr:'jud'}, {name:'启示录', abbr:'rev'},
+];
+function getBibleBookByAbbr(abbr) { return BIBLE_BOOKS.find(b => b.abbr === abbr); }
+function formatPassageRef(item) {
+  const book = getBibleBookByAbbr(item.bookAbbr);
+  const name = book ? book.name : item.bookAbbr;
+  const start = Number(item.verseStart) || 1;
+  const end = Math.max(start, Number(item.verseEnd) || start);
+  return `${name} ${item.chapter}:${start}${end !== start ? '-' + end : ''}`;
+}
+
+function toKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 function upcomingSunday(d) {
   const day = d.getDay();
   const diff = (7 - day) % 7;
