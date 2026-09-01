@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>历史证道库 · 巴西华人基督教会</title>
+<meta name="description" content="巴西华人基督教会历史证道库，按年份浏览往期证道信息">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="church.css">
+<link rel="stylesheet" href="history.css">
+</head>
+<body>
+<div class="hs-app">
+
+  <!-- 顶部导航条 -->
+  <div class="hs-topbar">
+    <button class="church-icon-btn" aria-label="返回" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
+    <div class="hs-topbar-title">历史证道库</div>
+    <button class="church-icon-btn" aria-label="搜索" id="hsSearchBtn"><i class="ti ti-search"></i></button>
+  </div>
+
+  <!-- 搜索框：点击放大镜展开，按标题/证道人/经文搜索 -->
+  <div class="hs-search-bar" id="hsSearchBar">
+    <i class="ti ti-search"></i>
+    <input type="text" id="hsSearchInput" placeholder="搜索标题、经文或证道人">
+  </div>
+
+  <!-- 统计卡片 -->
+  <div class="hs-stat-card">
+    <div class="hs-stat-icon"><i class="ti ti-book-2"></i></div>
+    <div class="hs-stat-text">
+      <div class="hs-stat-label">历史证道总数</div>
+      <div class="hs-stat-number"><span id="hsTotalCount">0</span><span class="hs-stat-unit">篇</span></div>
+      <div class="hs-stat-sub">愿神的话语激励我们每一天</div>
+    </div>
+    <svg class="hs-stat-deco" viewBox="0 0 140 100" aria-hidden="true">
+      <path d="M0,100 L0,55 Q35,35 70,55 Q105,72 140,50 L140,100 Z" fill="currentColor" opacity="0.5"></path>
+      <rect x="60" y="18" width="6" height="26" fill="currentColor" opacity="0.7"></rect>
+      <rect x="49" y="27" width="28" height="6" fill="currentColor" opacity="0.7"></rect>
+    </svg>
+  </div>
+
+  <!-- 年份筛选 + 更多筛选 -->
+  <div class="hs-filter-row">
+    <div class="hs-tabs" id="yearTabs">
+      <button type="button" class="hs-tab active" data-year="all">全部</button>
+    </div>
+    <button type="button" class="hs-filter-btn" id="hsFilterBtn"><i class="ti ti-filter"></i>筛选</button>
+  </div>
+
+  <!-- 证道列表 -->
+  <div class="hs-list" id="hsList">
+    <div class="hs-loading">正在加载历史证道…</div>
+  </div>
+
+  <!-- 分页 -->
+  <div class="hs-pagination">
+    <button type="button" class="hs-page-btn" id="hsPrevBtn"><i class="ti ti-chevron-left"></i>上一页</button>
+    <div class="hs-page-label" id="hsPageLabel">1 / 1</div>
+    <button type="button" class="hs-page-btn" id="hsNextBtn">下一页<i class="ti ti-chevron-right"></i></button>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="history.js"></script>
+</body>
+</html>
