@@ -12,7 +12,7 @@ let sermonByDate = window.APP_CONFIG.sermonByDate;
 // 特别聚会日期：除了每周固定的主日之外，管理员可以额外添加的排班日期
 // （比如培灵会、退修会这种一周里连续好几天都要排班的场合）。
 // 结构：{ 'YYYY-MM-DD': '标签文字，比如"特别聚会"' }
-let customEventDates = window.APP_CONFIG.customEventDates;
+let customEventDates = (window.APP_CONFIG.customEventDates && typeof window.APP_CONFIG.customEventDates === 'object' && !Array.isArray(window.APP_CONFIG.customEventDates)) ? window.APP_CONFIG.customEventDates : {};
 
 // 教会主页（church.html）用的站点素材：logo 和欢迎横幅背景图，管理员在"设置"里上传
 // roleBgImages：排班分类卡片（主领/伴唱/键盘…）的自定义背景图，结构 { '主领': 图片URL, ... }，没设置的分类沿用原来的颜色
@@ -1024,6 +1024,51 @@ function getAllScheduleDatesOfMonth(y,m){
   merged.sort((a,b)=>a-b);
   return merged;
 }
+// 特别聚会日期的本地持久化：云端字段（custom_event_dates）不存在或同步失败时，刷新页面也不会丢
+const LS_CUSTOM_EVENT_DATES='churchAppCustomEventDates';
+const LS_CUSTOM_EVENT_PENDING='churchAppCustomEventDatesPending';
+function loadCustomEventDatesLocal(){
+  try{
+    const raw=localStorage.getItem(LS_CUSTOM_EVENT_DATES);
+    if(!raw) return;
+    const obj=JSON.parse(raw);
+    if(obj && typeof obj==='object' && !Array.isArray(obj)) customEventDates=obj;
+  }catch(e){}
+}
+function persistCustomEventDatesLocal(){
+  try{ localStorage.setItem(LS_CUSTOM_EVENT_DATES, JSON.stringify(customEventDates)); }catch(e){}
+}
+function isCustomEventDatesPending(){
+  try{ return localStorage.getItem(LS_CUSTOM_EVENT_PENDING)==='1'; }catch(e){ return false; }
+}
+function setCustomEventDatesPending(v){
+  try{ if(v) localStorage.setItem(LS_CUSTOM_EVENT_PENDING,'1'); else localStorage.removeItem(LS_CUSTOM_EVENT_PENDING); }catch(e){}
+}
+// 保存到本地 + 同步到云端。返回 true=云端成功，false=云端失败（本地已保存），null=没有启用云端
+async function syncCustomEventDates(){
+  persistCustomEventDatesLocal();
+  if(!initSupabaseClient()) return null;
+  try{
+    await syncRemoteField('custom_event_dates', customEventDates);
+    setCustomEventDatesPending(false);
+    return true;
+  }catch(e){
+    console.error('同步特别聚会日期失败', e);
+    setCustomEventDatesPending(true);
+    if(isMissingRemoteColumnError(e,'custom_event_dates')){
+      showToast('云端缺少 custom_event_dates 字段，请先在 Supabase 执行修复 SQL');
+    }else{
+      showToast('特别聚会已保存在本机，但云端同步失败，其他设备暂时看不到');
+    }
+    return false;
+  }
+}
+// 启动时：上次同步失败留下的改动，管理员登录后自动补传
+async function flushPendingCustomEventDates(){
+  if(!isAdmin || !isCustomEventDatesPending()) return;
+  const ok=await syncCustomEventDates();
+  if(ok) showToast('☁️ 特别聚会日期已补传到云端');
+}
 // 添加一个特别聚会日期（管理员操作），成功后自动跳转过去查看
 async function addCustomEventDate(){
   if(!isAdmin) return;
@@ -1031,15 +1076,16 @@ async function addCustomEventDate(){
   if(!dateStr) return;
   if(!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)){ showToast('日期格式不对，请填 YYYY-MM-DD'); return; }
   const d=new Date(dateStr+'T00:00:00');
-  if(isNaN(d)){ showToast('日期格式不对'); return; }
+  if(isNaN(d) || toKey(d)!==dateStr){ showToast('日期不存在，请检查后重新输入'); return; }
   if(d.getDay()===0){ showToast('这一天本来就是主日，不用重复添加'); return; }
   const label=(prompt('给这一天起个名字（比如：特别聚会、培灵会）：','特别聚会')||'').trim();
   if(!label) return;
   customEventDates[dateStr]=label;
+  persistCustomEventDatesLocal();
   selectedSunday=d;
   render();
   showToast(`✅ 已添加「${label}」· ${d.getMonth()+1}月${d.getDate()}日`);
-  await syncRemoteField('custom_event_dates', customEventDates);
+  await syncCustomEventDates();
 }
 // 删除一个特别聚会日期（管理员操作）
 async function removeCustomEventDate(dateStr){
@@ -1047,11 +1093,24 @@ async function removeCustomEventDate(dateStr){
   const label=customEventDates[dateStr]||'这个日期';
   if(!confirm(`确定要删除"${label}"吗？该日期已经排好的班/上传的诗歌等数据不会被删除，只是不再出现在日期导航里。`)) return;
   delete customEventDates[dateStr];
+  persistCustomEventDatesLocal();
   // 如果删掉的正好是当前正在查看的日期，跳回最近的主日，避免停留在一个导航条里已经消失的日期上
   if(selectedSunday && toKey(selectedSunday)===dateStr) selectedSunday=getCurrentWeekSunday();
   render();
   showToast('已删除该特别聚会日期');
-  await syncRemoteField('custom_event_dates', customEventDates);
+  await syncCustomEventDates();
+}
+// 日期的完整文字：主日 → "周日"，特别聚会 → "周五 · 培灵会"
+function getDateWeekdayText(d){
+  if(d.getDay()===0) return '周日';
+  const zhWeek=['周日','周一','周二','周三','周四','周五','周六'];
+  const custom=customEventDates[toKey(d)];
+  return custom ? `${zhWeek[d.getDay()]} · ${custom}` : zhWeek[d.getDay()];
+}
+// 当月日期统计文字："4 个主日 + 2 个特别聚会"
+function describeMonthDates(y,m){
+  const n=getSundaysOfMonth(y,m).length, e=getExtraDatesOfMonth(y,m).length;
+  return e ? `${n} 个主日 + ${e} 个特别聚会` : `${n} 个主日`;
 }
 
 // ── State ─────────────────────────────────────────────
@@ -4319,14 +4378,14 @@ function jumpToMonthOverviewWeek(y,m,dt){
   render();
 }
 function renderMonthOverview(year, month){
-  const sundays=getSundaysOfMonth(year, month);
+  const sundays=getAllScheduleDatesOfMonth(year, month);
   const list=document.getElementById('monthOverviewList');
   const title=document.getElementById('monthOverviewTitle');
   const sub=document.getElementById('monthOverviewSub');
   title.textContent=`📅 ${year}年${ZH_MONTHS[month]}月排班总览`;
-  sub.textContent=`本月共 ${sundays.length} 个主日 · 点击日期可跳转查看`;
+  sub.textContent=`本月共 ${describeMonthDates(year, month)} · 点击日期可跳转查看`;
   if(!sundays.length){
-    list.innerHTML=`<div class="leave-list-empty"><i class="ti ti-calendar-off"></i>该月没有主日</div>`;
+    list.innerHTML=`<div class="leave-list-empty"><i class="ti ti-calendar-off"></i>该月没有排班日期</div>`;
     return;
   }
   list.innerHTML=sundays.map(s=>{
@@ -4360,7 +4419,7 @@ function renderMonthOverview(year, month){
     return `<div class="result-date-group">
       <div class="leave-list-head" style="margin-bottom:8px;padding:0 2px">
         <div>
-          <span style="font-size:13px;font-weight:700;color:${isCur?'var(--primary)':'#1a1a1a'}">${dateLabel}（周日）${isCur?' · 当前':''}</span>
+          <span style="font-size:13px;font-weight:700;color:${isCur?'var(--primary)':'#1a1a1a'}">${dateLabel}（${getDateWeekdayText(s)}）${isCur?' · 当前':''}</span>
           ${preacher?`<span class="leave-list-when" style="margin-left:8px">证道：${escapeHtml(preacher)}</span>`:''}
         </div>
         <button onclick="jumpToMonthOverviewWeek(${s.getFullYear()},${s.getMonth()},${s.getDate()})"
@@ -4400,18 +4459,18 @@ function shiftMonthlyEditor(delta){
 }
 
 function renderMonthlyEditor(){
-  const sundays = getSundaysOfMonth(meYear, meMonth);
+  const sundays = getAllScheduleDatesOfMonth(meYear, meMonth);
   document.getElementById('monthlyEditorTitle').textContent =
     `${meYear}年${ZH_MONTHS[meMonth]}月排班`;
   document.getElementById('monthlyEditorSub').textContent =
-    `本月共 ${sundays.length} 个主日 · 点击角色可直接编辑`;
+    `本月共 ${describeMonthDates(meYear, meMonth)} · 点击角色可直接编辑`;
 
   // copy bar only for admins (always shown in this context)
   document.getElementById('monthlyEditorCopyBar').style.display = isAdmin ? 'flex' : 'none';
 
   const body = document.getElementById('monthlyEditorBody');
   if(!sundays.length){
-    body.innerHTML = `<div class="me-empty"><i class="ti ti-calendar-off"></i>该月没有主日</div>`;
+    body.innerHTML = `<div class="me-empty"><i class="ti ti-calendar-off"></i>该月没有排班日期</div>`;
     return;
   }
 
@@ -4420,7 +4479,7 @@ function renderMonthlyEditor(){
   body.innerHTML = sundays.map((s, idx) => {
     const key = toKey(s);
     const shifts = scheduleData[key] || [];
-    const dateLabel = `${meMonth+1}月${s.getDate()}日（周日）`;
+    const dateLabel = `${meMonth+1}月${s.getDate()}日（${getDateWeekdayText(s)}）`;
     const preacher = getSermonForKey(key).trim();
     const isCur = key === curKey;
     const filledCount = shifts.length;
@@ -4484,7 +4543,7 @@ function renderMonthlyEditor(){
 
 async function meSwapWeek(idx, direction){
   if(!isAdmin) return;
-  const sundays = getSundaysOfMonth(meYear, meMonth);
+  const sundays = getAllScheduleDatesOfMonth(meYear, meMonth);
   const otherIdx = idx + direction;
   if(otherIdx < 0 || otherIdx >= sundays.length) return;
   const keyA = toKey(sundays[idx]);
@@ -4583,10 +4642,10 @@ function meCopyFromLastMonth(){
 
 function meClearMonth(){
   if(!isAdmin) return;
-  const sundays = getSundaysOfMonth(meYear, meMonth);
+  const sundays = getAllScheduleDatesOfMonth(meYear, meMonth);
   const count = sundays.filter(s => scheduleData[toKey(s)]?.length).length;
   if(!count){ alert('本月暂无排班数据'); return; }
-  if(!confirm(`确定要清空${meYear}年${ZH_MONTHS[meMonth]}月的所有排班数据（共 ${count} 周）？此操作不可撤销。`)) return;
+  if(!confirm(`确定要清空${meYear}年${ZH_MONTHS[meMonth]}月的所有排班数据（共 ${count} 天，含特别聚会）？此操作不可撤销。`)) return;
   sundays.forEach(s => delete scheduleData[toKey(s)]);
   renderMonthlyEditor();
   if(typeof syncRemoteField === 'function'){
@@ -4766,14 +4825,14 @@ function renderSermonMonthUI(){
   const container = document.getElementById('sermonMonthList');
   if(!val){ container.innerHTML = '<div style="color:#bbb;font-size:13px;text-align:center;padding:8px 0">请先选择月份</div>'; return; }
   const [y, m] = val.split('-').map(Number);
-  const sundays = getSundaysOfMonth(y, m - 1);
+  const sundays = getAllScheduleDatesOfMonth(y, m - 1);
   if(!sundays.length){ container.innerHTML = '<div style="color:#bbb;font-size:13px;text-align:center;padding:8px 0">该月无周日</div>'; return; }
   container.innerHTML = sundays.map(s => {
     const key = toKey(s);
     const current = sermonByDate[key] || '';
-    const label = `${m}月${s.getDate()}日（周日）`;
+    const label = `${m}月${s.getDate()}日（${getDateWeekdayText(s)}）`;
     return `<div style="display:flex;align-items:center;gap:8px;background:#f8f8f6;border-radius:12px;padding:10px 12px">
-      <span style="font-size:12px;font-weight:500;color:#888;min-width:100px;flex-shrink:0">${label}</span>
+      <span style="font-size:12px;font-weight:500;color:#888;min-width:100px;max-width:45%;flex-shrink:0">${label}</span>
       <input value="${current}" placeholder="证道人姓名"
         id="sermon-inp-${key}"
         style="flex:1;padding:6px 10px;border:1.5px solid rgba(0,0,0,0.1);border-radius:20px;font-size:13px;outline:none;font-family:inherit"
@@ -5097,7 +5156,7 @@ function renderDesktopMonthCard(date) {
   const month = date.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
   const lastDate = new Date(year, month + 1, 0).getDate();
-  const sundaySet = new Set(getSundaysOfMonth(year, month).map(d => d.getDate()));
+  const sundaySet = new Set(getAllScheduleDatesOfMonth(year, month).map(d => d.getDate()));
   const weekdayLabels = ['日', '一', '二', '三', '四', '五', '六'];
   const cells = [];
   for (let i = 0; i < firstDay; i++) cells.push('<span class="desktop-mini-day placeholder">·</span>');
@@ -5115,7 +5174,7 @@ function renderDesktopMonthCard(date) {
       <div class="desktop-calendar-head">
         <div>
           <div class="desktop-calendar-title">${year} 年 ${month + 1} 月</div>
-          <div class="desktop-calendar-sub">带圆点的日期为主日</div>
+          <div class="desktop-calendar-sub">带圆点的日期为主日或特别聚会</div>
         </div>
         <button class="view-toggle-btn" onclick="openMonthPicker()" title="选择月份"><i class="ti ti-calendar-month"></i></button>
       </div>
@@ -6455,7 +6514,12 @@ function applyRemoteAppState(row) {
   sermonPassagesByDate = normalizeSimpleMap(row?.sermon_passages_by_date || sermonPassagesByDate);
   sermonThemesByDate = normalizeSimpleMap(row?.sermon_themes_by_date || sermonThemesByDate);
   sermonAudioByDate = normalizeSimpleMap(row?.sermon_audio_by_date || sermonAudioByDate);
-  customEventDates = normalizeSimpleMap(row?.custom_event_dates || customEventDates);
+  // 云端有这个字段就以云端为准；没有（字段缺失/为空）或本机有未同步成功的改动时，保留本机数据，避免刚添加的特别聚会被冲掉
+  if (row && row.custom_event_dates && typeof row.custom_event_dates === 'object' && !isCustomEventDatesPending()) {
+    const remoteEvents = normalizeSimpleMap(row.custom_event_dates);
+    if (Object.keys(remoteEvents).length || !Object.keys(customEventDates).length) customEventDates = remoteEvents;
+  }
+  persistCustomEventDatesLocal();
   churchSite = { logoUrl: '', bannerUrl: '', roleBgImages: {}, headerBgUrl: '', headerTextTone: 'dark', ...normalizeSimpleMap(row?.church_site || churchSite) };
   if (!churchSite.roleBgImages || typeof churchSite.roleBgImages !== 'object') churchSite.roleBgImages = {};
   if (row && row.leave_requests !== undefined) {
@@ -7257,6 +7321,7 @@ async function bootstrapApp() {
   loadSermonAudio();
   loadSermonNotes();
   loadSermonCollapsed();
+  loadCustomEventDatesLocal();
   loadLeaveRequests();
   loadSongLibrary();
   loadSongLibFavorites();
@@ -7271,6 +7336,7 @@ async function bootstrapApp() {
     try {
       await loadRemoteAppState();
       await syncAuthState();
+      await flushPendingCustomEventDates();
       await checkManageLinkFromUrl();
     } catch (e) {
       console.error('Supabase 初始化失败，已回退到本地模式', e);
