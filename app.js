@@ -15,7 +15,19 @@ let sermonByDate = window.APP_CONFIG.sermonByDate;
 let customEventDates = window.APP_CONFIG.customEventDates;
 
 // 教会主页（church.html）用的站点素材：logo 和欢迎横幅背景图，管理员在"设置"里上传
-let churchSite = { logoUrl: '', bannerUrl: '' };
+// roleBgImages：排班分类卡片（主领/伴唱/键盘…）的自定义背景图，结构 { '主领': 图片URL, ... }，没设置的分类沿用原来的颜色
+let churchSite = { logoUrl: '', bannerUrl: '', roleBgImages: {} };
+
+// 取某个排班分类的自定义背景图 URL（没设置返回空字符串）
+function getRoleBgImage(role) {
+  const map = churchSite && churchSite.roleBgImages;
+  const url = map && typeof map === 'object' ? map[role] : '';
+  return typeof url === 'string' && /^https?:\/\//i.test(url) ? url : '';
+}
+// 拼成安全的 CSS url("...")，避免 URL 里的引号/反斜杠/换行破坏样式
+function cssUrl(url) {
+  return 'url("' + String(url).replace(/["\\\n\r]/g, c => encodeURIComponent(c)) + '")';
+}
 
 function getRotationPerson(cfg, key) {
   const base = new Date(cfg.base + 'T00:00:00');
@@ -3531,13 +3543,18 @@ function renderShifts(key){
         return `<span class="cvi-chip${onLeave?' cvi-chip-leave':''}">${escapeHtml(p)}${onLeave?'<i class="ti ti-calendar-off cvi-chip-leave-icon" title="已请假"></i>':''}</span>`;
       }).join('');
       const item=document.createElement('div');
-      item.className=`card-view-item${ec}`;
-      item.style.cssText=`background:${col.bg};color:${col.text}`;
+      // 有自定义背景图：图片铺满 + 深色遮罩 + 白字（保证任何图片上文字都看得清）；
+      // 图片下面垫一层分类主色，图片加载失败时也是清晰的深色卡片。没有图片则保持原来的颜色。
+      const bgImg=getRoleBgImage(s.role);
+      item.className=`card-view-item${ec}${bgImg?' has-bg-img':''}`;
+      item.style.cssText=bgImg
+        ? `background:linear-gradient(rgba(0,0,0,0.34),rgba(0,0,0,0.42)),${cssUrl(bgImg)} center/cover no-repeat,${col.badgeBg};color:#fff`
+        : `background:${col.bg};color:${col.text}`;
       if(isAdmin) item.setAttribute('onclick',`openEditDrawer('${s.role}','${key}')`);
       item.innerHTML=`
         <button class="cvi-edit-btn" onclick="event.stopPropagation();openEditDrawer('${s.role}','${key}')">✎ 编辑</button>
         <div class="cvi-header">
-          <div class="cvi-icon"><i class="ti ${col.icon}" style="color:${col.text}"></i></div>
+          <div class="cvi-icon"><i class="ti ${col.icon}" style="color:${bgImg?'#fff':col.text}"></i></div>
           <span class="cvi-role">${s.role}</span>
         </div>
         <div class="cvi-chips">${chips}</div>`;
@@ -4890,6 +4907,12 @@ function openSettings() {
       if (logoPrev) logoPrev.style.display = churchSite.logoUrl ? '' : 'none';
       if (bannerPrev) bannerPrev.style.display = churchSite.bannerUrl ? '' : 'none';
     }
+  }
+  // 排班分类卡片背景图设置：仅管理员可见
+  const roleBgSec = document.getElementById('roleBgSection');
+  if (roleBgSec) {
+    roleBgSec.style.display = isAdmin ? '' : 'none';
+    if (isAdmin) renderRoleBgSettings();
   }
   document.getElementById('settingsOverlay').classList.add('open');
 }
@@ -6394,7 +6417,8 @@ function applyRemoteAppState(row) {
   sermonThemesByDate = normalizeSimpleMap(row?.sermon_themes_by_date || sermonThemesByDate);
   sermonAudioByDate = normalizeSimpleMap(row?.sermon_audio_by_date || sermonAudioByDate);
   customEventDates = normalizeSimpleMap(row?.custom_event_dates || customEventDates);
-  churchSite = { logoUrl: '', bannerUrl: '', ...normalizeSimpleMap(row?.church_site || churchSite) };
+  churchSite = { logoUrl: '', bannerUrl: '', roleBgImages: {}, ...normalizeSimpleMap(row?.church_site || churchSite) };
+  if (!churchSite.roleBgImages || typeof churchSite.roleBgImages !== 'object') churchSite.roleBgImages = {};
   if (row && row.leave_requests !== undefined) {
     leaveRequests = normalizeLeaveRequests(row.leave_requests);
     persistLeaveRequests();
@@ -6744,6 +6768,120 @@ async function handleChurchBannerSelect(input) {
     showToast('上传失败：' + (e?.message || '请重试'));
   } finally {
     input.value = '';
+  }
+}
+
+// ── 排班分类卡片背景图（管理员在"设置"里为主领/伴唱/键盘…各自上传） ──────────
+// 图片存到 song-images 桶的 site/ 子目录（跟 logo、横幅同一处），URL 记在 churchSite.roleBgImages[分类名] 里，
+// 跟着 church_site 字段同步到云端，所有人打开排班页都能看到；没上传的分类保持原来的颜色。
+
+// 上传前先压缩：手机原图动辄 3~8MB，卡片最宽也就一屏宽，缩到 1000px 宽、JPEG 82% 足够清晰，加载也快。
+// 透明背景会垫上该分类的主色；读取/压缩失败时直接用原图，不挡住上传。
+function compressImageForCard(file, fillColor, maxW = 1000, quality = 0.82) {
+  return new Promise(resolve => {
+    if (!file.type || file.type === 'image/gif' || file.type === 'image/svg+xml') { resolve(file); return; }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, maxW / (img.naturalWidth || maxW));
+        const w = Math.max(1, Math.round(img.naturalWidth * scale));
+        const h = Math.max(1, Math.round(img.naturalHeight * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = fillColor || '#888';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => {
+          URL.revokeObjectURL(url);
+          // 压缩后更小、或已经缩小过尺寸就用压缩结果，否则（小图、压缩反而变大）保留原文件
+          resolve(blob && (scale < 1 || blob.size < file.size) ? blob : file);
+        }, 'image/jpeg', quality);
+      } catch (e) { URL.revokeObjectURL(url); resolve(file); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+function renderRoleBgSettings() {
+  const wrap = document.getElementById('roleBgList');
+  if (!wrap) return;
+  wrap.innerHTML = ROLES.map(role => {
+    const col = roleColors[role] || { bg: '#f0f0ee', text: '#444', badgeBg: '#888', badgeText: '#fff', icon: 'ti-user' };
+    const img = getRoleBgImage(role);
+    const code = encodeURIComponent(role);
+    const thumbStyle = img
+      ? `background:linear-gradient(rgba(0,0,0,0.34),rgba(0,0,0,0.42)),${cssUrl(img)} center/cover no-repeat,${col.badgeBg};color:#fff`
+      : `background:${col.bg};color:${col.text}`;
+    return `<div class="role-bg-row">
+      <div class="role-bg-thumb" id="roleBgThumb-${code}" style="${escapeHtml(thumbStyle)}">
+        <i class="ti ${col.icon}"></i><span>${escapeHtml(role)}</span>
+      </div>
+      <div class="role-bg-actions">
+        <div class="role-bg-state">${img ? '已设置背景图' : '默认颜色'}</div>
+        <div class="role-bg-btns">
+          <label class="btn-cancel role-bg-btn">
+            <i class="ti ti-upload"></i>${img ? '更换' : '上传'}
+            <input type="file" accept="image/*" style="display:none" onchange="handleRoleBgSelect('${code}', this)">
+          </label>
+          ${img ? `<button type="button" class="btn-cancel role-bg-btn" onclick="clearRoleBg('${code}')"><i class="ti ti-refresh"></i>恢复默认</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function handleRoleBgSelect(roleCode, input) {
+  const role = decodeURIComponent(roleCode);
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (file.type && !file.type.startsWith('image/')) {
+    showToast('请选择图片文件');
+    input.value = '';
+    return;
+  }
+  const thumb = document.getElementById('roleBgThumb-' + roleCode);
+  const prev = getRoleBgImage(role);
+  try {
+    if (thumb) thumb.style.opacity = '0.4';
+    const col = roleColors[role];
+    const blob = await compressImageForCard(file, col && col.badgeBg);
+    const idx = ROLES.indexOf(role);
+    const url = await uploadChurchSiteImage(blob, `rolebg_${idx >= 0 ? idx : 'x'}`);
+    churchSite.roleBgImages = { ...(churchSite.roleBgImages || {}), [role]: url };
+    await syncRemoteField('church_site', churchSite);
+    renderRoleBgSettings();
+    render();
+    showToast(`✅ 「${role}」卡片背景已更新`);
+  } catch (e) {
+    // 上传或同步失败：还原成上传前的状态，避免本地看着改了、别人却看不到
+    const map = { ...(churchSite.roleBgImages || {}) };
+    if (prev) map[role] = prev; else delete map[role];
+    churchSite.roleBgImages = map;
+    if (thumb) thumb.style.opacity = '1';
+    showToast('上传失败：' + (e?.message || '请重试'));
+  } finally {
+    input.value = '';
+  }
+}
+
+async function clearRoleBg(roleCode) {
+  const role = decodeURIComponent(roleCode);
+  const prev = getRoleBgImage(role);
+  if (!prev) return;
+  const map = { ...(churchSite.roleBgImages || {}) };
+  delete map[role];
+  churchSite.roleBgImages = map;
+  try {
+    await syncRemoteField('church_site', churchSite);
+    renderRoleBgSettings();
+    render();
+    showToast(`已恢复「${role}」卡片默认颜色`);
+  } catch (e) {
+    churchSite.roleBgImages = { ...map, [role]: prev };
+    showToast('操作失败：' + (e?.message || '请重试'));
   }
 }
 

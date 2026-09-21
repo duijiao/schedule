@@ -2091,6 +2091,31 @@ body.a11y-mode .sunday-reminder-text { font-size: 15px !important; }
   padding: 3px 8px; font-size: 13px; cursor: pointer; color: inherit; display: none;
 }
 .card-view-item.editable .cvi-edit-btn { display: block; }
+
+/* 分类卡片带背景图时：深色遮罩 + 白字，任何图片上都清晰可读（遮罩本身写在 JS 的 background 里） */
+.card-view-item.has-bg-img { overflow: hidden; text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
+.card-view-item.has-bg-img .cvi-icon { background: rgba(255,255,255,0.25); }
+.card-view-item.has-bg-img .cvi-chip {
+  background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.35);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); color: #fff;
+}
+.card-view-item.has-bg-img .cvi-chip-leave { background: rgba(255,255,255,0.88); color: #555; text-shadow: none; }
+.card-view-item.has-bg-img .cvi-edit-btn { background: rgba(0,0,0,0.35); color: #fff; }
+
+/* 设置里的"排班分类卡片背景"列表 */
+.role-bg-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.role-bg-row + .role-bg-row { border-top: 1px solid rgba(0,0,0,0.06); }
+.role-bg-thumb {
+  width: 92px; height: 52px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 13px; font-weight: 700; transition: opacity 0.15s;
+}
+.role-bg-thumb i { font-size: 15px; }
+.role-bg-actions { flex: 1; min-width: 0; }
+.role-bg-state { font-size: 12px; color: #999; margin-bottom: 5px; }
+.role-bg-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.role-bg-btn { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; font-size: 12.5px; }
+.role-bg-btn i { font-size: 14px; }
 .bible-search-card {
   background: #fff; border-radius: 18px; padding: 16px;
   box-shadow: var(--shadow-sm); margin-bottom: 1rem;
