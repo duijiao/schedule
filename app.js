@@ -16,7 +16,38 @@ let customEventDates = window.APP_CONFIG.customEventDates;
 
 // 教会主页（church.html）用的站点素材：logo 和欢迎横幅背景图，管理员在"设置"里上传
 // roleBgImages：排班分类卡片（主领/伴唱/键盘…）的自定义背景图，结构 { '主领': 图片URL, ... }，没设置的分类沿用原来的颜色
-let churchSite = { logoUrl: '', bannerUrl: '', roleBgImages: {} };
+// headerBgUrl：首页顶部日期卡片的背景图；headerTextTone：'dark' | 'light'（图片偏亮/偏暗时文字用深色/浅色）；
+// headerSlogan：卡片标语，undefined 用默认文案，空字符串表示不显示
+let churchSite = { logoUrl: '', bannerUrl: '', roleBgImages: {}, headerBgUrl: '', headerTextTone: 'dark' };
+const DEFAULT_HEADER_SLOGAN = '与主同行 每天更近一步';
+
+function getHeaderBgImage() {
+  const url = churchSite && churchSite.headerBgUrl;
+  return typeof url === 'string' && /^https?:\/\//i.test(url) ? url : '';
+}
+function getHeaderTextTone() {
+  return churchSite && churchSite.headerTextTone === 'light' ? 'light' : 'dark';
+}
+function getHeaderSlogan() {
+  const t = churchSite && churchSite.headerSlogan;
+  return typeof t === 'string' ? t.trim() : DEFAULT_HEADER_SLOGAN;
+}
+// 把日期卡片的背景图、文字色调、标语应用到页面（render() 每次都会调用，重复调用是安全的）
+function applyHeaderCardStyle() {
+  const card = document.getElementById('headerCard');
+  if (!card) return;
+  const url = getHeaderBgImage();
+  const bg = document.getElementById('headerCardBg');
+  if (bg) bg.style.backgroundImage = url ? cssUrl(url) : '';
+  card.classList.toggle('has-bg', !!url);
+  card.classList.toggle('tone-light', !!url && getHeaderTextTone() === 'light');
+  const slogan = document.getElementById('hdrSlogan');
+  if (slogan) {
+    const lines = getHeaderSlogan().split(/\s+/).filter(Boolean);
+    slogan.innerHTML = lines.map(l => `<span>${escapeHtml(l)}</span>`).join('');
+    slogan.style.display = lines.length ? '' : 'none';
+  }
+}
 
 // 取某个排班分类的自定义背景图 URL（没设置返回空字符串）
 function getRoleBgImage(role) {
@@ -3590,7 +3621,8 @@ function render(){
   const zhWeek=['主日','周一','周二','周三','周四','周五','周六'];
   document.getElementById('hdrDay').textContent=headerCollapsed ? ZH_MONTHS[month]+'月份' : `${now.getMonth()+1}月${now.getDate()}日`;
   const wt=document.getElementById('hdrWeekdayTag'); if(wt) wt.textContent = zhWeek[now.getDay()];
-  document.getElementById('hdrInfo').textContent=getSundayCountdownLabel();
+  document.getElementById('hdrInfo').innerHTML=getSundayCountdownHtml();
+  applyHeaderCardStyle();
   document.getElementById('hdrMini').textContent='敬拜排班表';
   const wl=document.getElementById('todayBtn');
   if(wl) wl.textContent=getRelativeWeekLabel(new Date(d));
@@ -4228,7 +4260,8 @@ function getCurrentWeekSunday(){
   }
   return t;
 }
-function getSundayCountdownLabel(){
+// 首页日期卡片上的主日倒计时（返回 HTML：天数用绿色大号数字突出）
+function getSundayCountdownHtml(){
   const cur=getCurrentWeekSunday();
   if(!cur) return '主日';
   const today=new Date(); today.setHours(0,0,0,0);
@@ -4236,7 +4269,7 @@ function getSundayCountdownLabel(){
   const days=Math.round((sunday-today)/(24*60*60*1000));
   if(days<=0) return '今天就是主日';
   if(days===1) return '明天就是主日';
-  return `距主日还有 ${days} 天`;
+  return `距离主日还有 <span class="countdown-num">${days}</span> 天`;
 }
 function getRelativeWeekPrefix(d){
   const cur=getCurrentWeekSunday();
@@ -4907,6 +4940,12 @@ function openSettings() {
       if (logoPrev) logoPrev.style.display = churchSite.logoUrl ? '' : 'none';
       if (bannerPrev) bannerPrev.style.display = churchSite.bannerUrl ? '' : 'none';
     }
+  }
+  // 首页日期卡片背景图设置：仅管理员可见
+  const headerBgSec = document.getElementById('headerBgSection');
+  if (headerBgSec) {
+    headerBgSec.style.display = isAdmin ? '' : 'none';
+    if (isAdmin) renderHeaderBgSettings();
   }
   // 排班分类卡片背景图设置：仅管理员可见
   const roleBgSec = document.getElementById('roleBgSection');
@@ -6417,7 +6456,7 @@ function applyRemoteAppState(row) {
   sermonThemesByDate = normalizeSimpleMap(row?.sermon_themes_by_date || sermonThemesByDate);
   sermonAudioByDate = normalizeSimpleMap(row?.sermon_audio_by_date || sermonAudioByDate);
   customEventDates = normalizeSimpleMap(row?.custom_event_dates || customEventDates);
-  churchSite = { logoUrl: '', bannerUrl: '', roleBgImages: {}, ...normalizeSimpleMap(row?.church_site || churchSite) };
+  churchSite = { logoUrl: '', bannerUrl: '', roleBgImages: {}, headerBgUrl: '', headerTextTone: 'dark', ...normalizeSimpleMap(row?.church_site || churchSite) };
   if (!churchSite.roleBgImages || typeof churchSite.roleBgImages !== 'object') churchSite.roleBgImages = {};
   if (row && row.leave_requests !== undefined) {
     leaveRequests = normalizeLeaveRequests(row.leave_requests);
@@ -6768,6 +6807,104 @@ async function handleChurchBannerSelect(input) {
     showToast('上传失败：' + (e?.message || '请重试'));
   } finally {
     input.value = '';
+  }
+}
+
+// ── 首页顶部日期卡片背景图（管理员在"设置"里上传） ──────────────────────────
+// 图片存到 song-images 桶的 site/ 子目录，URL、文字色调、标语都记在 churchSite 里，随 church_site 字段同步到云端。
+async function saveChurchSiteField(patch, rollbackKeys) {
+  const before = {};
+  rollbackKeys.forEach(k => { before[k] = churchSite[k]; });
+  Object.assign(churchSite, patch);
+  try {
+    await syncRemoteField('church_site', churchSite);
+  } catch (e) {
+    // 同步失败：还原，避免本地看着改了、别人却看不到
+    rollbackKeys.forEach(k => { if (before[k] === undefined) delete churchSite[k]; else churchSite[k] = before[k]; });
+    throw e;
+  }
+}
+
+function renderHeaderBgSettings() {
+  const url = getHeaderBgImage();
+  const tone = getHeaderTextTone();
+  const preview = document.getElementById('headerBgPreview');
+  if (preview) {
+    preview.className = 'header-bg-preview' + (url ? ' has-img' : '') + (tone === 'light' ? ' tone-light' : '');
+    preview.style.backgroundImage = url ? cssUrl(url) : '';
+    preview.innerHTML = url ? '<span>9月21日</span>' : '<span class="header-bg-preview-empty">未设置 · 使用默认样式</span>';
+  }
+  const btns = document.getElementById('headerBgBtns');
+  if (btns) {
+    btns.innerHTML = `
+      <label class="btn-cancel role-bg-btn"><i class="ti ti-upload"></i>${url ? '更换背景图' : '上传背景图'}
+        <input type="file" accept="image/*" style="display:none" onchange="handleHeaderBgSelect(this)">
+      </label>
+      ${url ? '<button type="button" class="btn-cancel role-bg-btn" onclick="clearHeaderBg()"><i class="ti ti-refresh"></i>恢复默认</button>' : ''}`;
+  }
+  document.querySelectorAll('#headerToneSeg button').forEach(b => b.classList.toggle('active', b.dataset.tone === tone));
+  const input = document.getElementById('headerSloganInput');
+  if (input && document.activeElement !== input) {
+    input.value = typeof churchSite.headerSlogan === 'string' ? churchSite.headerSlogan : DEFAULT_HEADER_SLOGAN;
+  }
+}
+
+async function handleHeaderBgSelect(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (file.type && !file.type.startsWith('image/')) { showToast('请选择图片文件'); input.value = ''; return; }
+  const preview = document.getElementById('headerBgPreview');
+  try {
+    if (preview) preview.style.opacity = '0.4';
+    // 桌面端卡片很宽，这里比分类卡片多留一些分辨率（最宽 1600px）
+    const blob = await compressImageForCard(file, '#E7F7EF', 1600, 0.85);
+    const url = await uploadChurchSiteImage(blob, 'headerbg');
+    await saveChurchSiteField({ headerBgUrl: url }, ['headerBgUrl']);
+    renderHeaderBgSettings();
+    render();
+    showToast('✅ 日期卡片背景已更新');
+  } catch (e) {
+    showToast('上传失败：' + (e?.message || '请重试'));
+  } finally {
+    if (preview) preview.style.opacity = '1';
+    input.value = '';
+  }
+}
+
+async function clearHeaderBg() {
+  if (!getHeaderBgImage()) return;
+  try {
+    await saveChurchSiteField({ headerBgUrl: '' }, ['headerBgUrl']);
+    renderHeaderBgSettings();
+    render();
+    showToast('已恢复日期卡片默认样式');
+  } catch (e) {
+    showToast('操作失败：' + (e?.message || '请重试'));
+  }
+}
+
+async function setHeaderTextTone(tone) {
+  const next = tone === 'light' ? 'light' : 'dark';
+  if (getHeaderTextTone() === next) return;
+  try {
+    await saveChurchSiteField({ headerTextTone: next }, ['headerTextTone']);
+    renderHeaderBgSettings();
+    render();
+  } catch (e) {
+    renderHeaderBgSettings();
+    showToast('操作失败：' + (e?.message || '请重试'));
+  }
+}
+
+async function saveHeaderSlogan(value) {
+  const text = String(value || '').trim();
+  try {
+    await saveChurchSiteField({ headerSlogan: text }, ['headerSlogan']);
+    render();
+    showToast(text ? '✅ 标语已保存' : '已隐藏标语');
+  } catch (e) {
+    renderHeaderBgSettings();
+    showToast('操作失败：' + (e?.message || '请重试'));
   }
 }
 
