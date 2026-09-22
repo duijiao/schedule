@@ -3680,6 +3680,12 @@ function render(){
   const zhWeek=['主日','周一','周二','周三','周四','周五','周六'];
   document.getElementById('hdrDay').textContent=headerCollapsed ? ZH_MONTHS[month]+'月份' : `${now.getMonth()+1}月${now.getDate()}日`;
   const wt=document.getElementById('hdrWeekdayTag'); if(wt) wt.textContent = zhWeek[now.getDay()];
+  const todayLabelEl=document.getElementById('hdrTodayLabel');
+if(todayLabelEl){
+  todayLabelEl.textContent = headerCollapsed
+    ? `今天·${now.getMonth()+1}月${now.getDate()}日·${zhWeek[now.getDay()]}`
+    : '今天';
+}
   document.getElementById('hdrInfo').innerHTML=getSundayCountdownHtml();
   applyHeaderCardStyle();
   document.getElementById('hdrMini').textContent='敬拜排班表';
