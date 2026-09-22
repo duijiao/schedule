@@ -3642,7 +3642,7 @@ function renderShifts(key){
         : `background:${col.bg};color:${col.text}`;
       if(isAdmin) item.setAttribute('onclick',`openEditDrawer('${s.role}','${key}')`);
       item.innerHTML=`
-        <button class="cvi-edit-btn" onclick="event.stopPropagation();openEditDrawer('${s.role}','${key}')">✎ 编辑</button>
+        <button class="cvi-edit-btn" onclick="event.stopPropagation();openEditDrawer('${s.role}','${key}')"><i class="ti ti-user-edit"></i> 编辑</button>
         <div class="cvi-header">
           <div class="cvi-icon"><i class="ti ${col.icon}" style="color:${bgImg?'#fff':col.text}"></i></div>
           <span class="cvi-role">${s.role}</span>
