@@ -505,10 +505,15 @@ body.a11y-mode .app-topbar-title { font-size: 22px; }
 /* 周导航：半透明磨砂白底的圆角容器，里面是圆形箭头 + 白色日期胶囊 */
 .week-nav-wrap {
   display: flex; align-items: center; gap: 4px; padding: 9px 8px;
-  border-radius: 24px; background: rgba(255,255,255,0.78);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.9);
-  box-shadow: 0 6px 20px rgba(28,60,80,0.07);
+  border-radius: 24px; background: rgba(255,255,255,0.30);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 0px solid rgba(255,255,255,0.6); 
+  box-shadow:
+    0 6px 20px rgba(28,60,80,0.08),
+    inset 0 1px 1px rgba(255,255,255,0.8),
+    inset 0 -6px 12px rgba(255,255,255,0.15);
+  position: relative; overflow: hidden;
 }
 .nav-arrow {
   width: 30px; height: 30px; padding: 0; flex-shrink: 0; border: none; cursor: pointer;
