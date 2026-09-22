@@ -389,7 +389,7 @@ body.a11y-mode .app-topbar-title { font-size: 22px; }
 .header-slogan {
   display: none; position: absolute; z-index: 1; top: 8px; right: 14px;
   flex-direction: column; align-items: flex-start; gap: 1px;
-  font-family: "MyLocalFont", "STKaiti", "KaiTi", "楷体", "DFKai-SB", "AR PL UKai CN", cursive;
+  font-family: "MyLocalFont", cursive;
   font-size: 15px; font-weight: 600; line-height: 1.25; color: var(--hdr-slogan);
   transform: rotate(-7deg); transform-origin: left bottom; pointer-events: none; padding-bottom: 8px;
   text-shadow: 0 0 6px rgba(255,255,255,0.7);
