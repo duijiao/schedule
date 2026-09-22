@@ -325,6 +325,7 @@ body.a11y-mode .app-topbar-title { font-size: 22px; }
 }
 .header-card.has-bg .header-card-bg { opacity: 1; }
 .header-card.has-bg .header-card-deco { display: none; }
+.header-card.collapsed .date-info-weekday-tag { display: none; }
 .header-card.tone-light {
   --hdr-ink: #fff; --hdr-sub: rgba(255,255,255,0.9); --hdr-accent: #8ff0c4; --hdr-slogan: #fff;
 }
