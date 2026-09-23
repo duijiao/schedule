@@ -1249,7 +1249,7 @@
           <i class="ti ti-calendar-month"></i>
         </button>
         <button class="admin-monthly-edit-btn" id="adminMonthlyEditBtn" onclick="openMonthlyEditor()" title="按月编辑排班" style="display:none;align-items:center;gap:5px;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">
-          <i class="ti ti-calendar-edit" style="font-size:14px"></i>月排班
+          <i class="ti ti-edit" style="font-size:14px"></i>月排班
         </button>
         <button class="schedule-toggle-btn" id="scheduleToggleBtn" onclick="toggleScheduleSection()">
           <i class="ti ti-chevron-up"></i><span id="scheduleToggleText">收起</span>
@@ -1269,7 +1269,10 @@
         <div id="shiftList"></div>
         <div class="add-row">
           <button class="add-btn admin-add" id="addShiftBtn" onclick="openAddDrawer()" style="display:none">
-            <i class="ti ti-plus" style="font-size:15px"></i>新增排班
+            <i class="ti ti-plus" style="font-size:15px"></i>按周排班
+          </button>
+          <button class="add-btn admin-add" id="addShiftMonthlyBtn" onclick="openMonthlyEditor()" style="display:none">
+            <i class="ti ti-edit" style="font-size:15px"></i>按月排班
           </button>
         </div>
       </div>
