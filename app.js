@@ -1205,6 +1205,7 @@ function updateAdminUI(){
   const gb=document.getElementById('topbarGuestBadge'); if(gb) gb.style.display=isAdmin?'none':'flex';
   const b=document.getElementById('addShiftBtn'); if(b) b.style.display=isAdmin?'flex':'none';
   const me=document.getElementById('adminMonthlyEditBtn'); if(me) me.style.display=isAdmin?'flex':'none';
+  const me2=document.getElementById('addShiftMonthlyBtn'); if(me2) me2.style.display=isAdmin?'flex':'none';
   document.querySelectorAll('.upload-song-btn').forEach(el=>el.classList.toggle('show',isAdmin));
   if (songLibDetailCurrent) renderSongLibLrc();
   document.querySelectorAll('.sermon-edit-btn').forEach(el=>el.classList.toggle('show',isAdmin));
