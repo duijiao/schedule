@@ -480,6 +480,63 @@
   </div>
 </div>
 
+<div class="gn-overlay" id="globalNoticeOverlay" onclick="closeGlobalNotice()">
+  <div class="gn-card" onclick="event.stopPropagation()">
+    <div class="gn-banner">
+      <div class="gn-tag-pill"><i class="ti ti-speakerphone"></i><span id="globalNoticeTag">重要通知</span></div>
+      <button class="gn-close-btn" onclick="closeGlobalNotice()" aria-label="关闭"><i class="ti ti-x"></i></button>
+      <i class="ti ti-speakerphone gn-banner-icon"></i>
+    </div>
+    <div class="gn-body">
+      <div class="gn-title" id="globalNoticeTitle"></div>
+      <div class="gn-meta-row">
+        <div class="gn-meta-date" id="globalNoticeDateWrap"><i class="ti ti-calendar"></i><span id="globalNoticeDate"></span></div>
+        <div class="gn-audience-pill" id="globalNoticeAudience"></div>
+      </div>
+      <div class="gn-content" id="globalNoticeContent"></div>
+
+      <div class="gn-attach-section" id="globalNoticeAttachSection">
+        <div class="gn-attach-head">
+          <div class="gn-attach-head-left"><i class="ti ti-paperclip"></i>附件 (<span id="globalNoticeAttachCount">0</span>)</div>
+        </div>
+        <div class="gn-attach-list" id="globalNoticeAttachList"></div>
+      </div>
+
+      <div class="gn-time-section" id="globalNoticeTimeSection">
+        <div class="gn-section-head"><i class="ti ti-clock"></i><span id="globalNoticeTimeLabel">调整后的主要时间</span></div>
+        <div class="gn-time-compare">
+          <div class="gn-time-box">
+            <div class="gn-time-box-label" id="globalNoticeFromLabel">原时间</div>
+            <div class="gn-time-box-value" id="globalNoticeFromValue"></div>
+          </div>
+          <i class="ti ti-arrow-right gn-time-arrow"></i>
+          <div class="gn-time-box gn-time-box-active">
+            <div class="gn-time-box-label" id="globalNoticeToLabel">现时间</div>
+            <div class="gn-time-box-value" id="globalNoticeToValue"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gn-location-section" id="globalNoticeLocationSection">
+        <i class="ti ti-map-pin"></i>
+        <span class="gn-location-label" id="globalNoticeLocLabel">地点</span>
+        <span class="gn-location-value" id="globalNoticeLocValue"></span>
+      </div>
+
+      <div class="gn-footer">
+        <label class="gn-dontshow-label">
+          <input type="checkbox" id="globalNoticeDontShowToday">
+          <span>不再显示此类通知（当天）</span>
+        </label>
+        <div class="gn-footer-btns">
+          <button class="gn-btn gn-btn-later" onclick="closeGlobalNotice()">暂不查看</button>
+          <button class="gn-btn gn-btn-ok" onclick="closeGlobalNotice()">我知道了</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="monthOverviewOverlay" onclick="closeMonthOverview(event)">
   <div class="bookmarks-panel modal-has-close-btn" onclick="event.stopPropagation()">
     <button class="modal-close-btn" onclick="closeMonthOverview()" aria-label="关闭"><i class="ti ti-x"></i></button>
@@ -698,6 +755,79 @@
           <input class="form-input" id="headerSloganInput" type="text" maxlength="24" autocomplete="off"
                  placeholder="与主同行 每天更近一步" onchange="saveHeaderSlogan(this.value)">
           <div class="header-bg-field-desc">空格处会自动换行；清空并保存则不显示标语。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 全局通知弹窗（仅管理员） -->
+    <div class="settings-section admin-only-section" id="globalNoticeSection" style="display:none">
+      <div class="settings-section-title">📢 全局通知弹窗（管理员）</div>
+      <div class="settings-card" style="padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+        <div style="font-size:12px;color:#999;line-height:1.6">
+          开启后，所有用户每次打开网页都会看到这条通知（居中弹窗，非抽屉样式）。用户可以勾选"今天不再显示"，仅对当天生效，第二天会重新显示。管理员可随时关闭。
+        </div>
+        <div class="settings-row" style="padding:0">
+          <div class="settings-row-body">
+            <div class="settings-row-label">开启全局通知弹窗</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="gnEnabledToggle">
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <input class="form-input" id="gnTagInput" type="text" maxlength="12" placeholder="顶部徽章文字，如：重要通知">
+        <input class="form-input" id="gnTitleInput" type="text" maxlength="40" placeholder="标题，如：本周日聚会时间调整通知">
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="gnDateInput" type="text" style="flex:1" placeholder="日期/时间文字，如：2025-09-20 14:32">
+          <input class="form-input" id="gnAudienceInput" type="text" style="flex:1" placeholder="标签，如：全体同工">
+        </div>
+        <textarea id="gnContentInput" placeholder="正文内容，支持换行" style="width:100%;box-sizing:border-box;min-height:100px;padding:8px 10px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+
+        <div style="border-top:1px solid #eee;padding-top:10px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:13px;font-weight:600;color:#333">附件</div>
+          <div id="gnAttachEditList" style="display:flex;flex-direction:column;gap:6px"></div>
+          <button class="btn-cancel" style="flex:none;align-self:flex-start;padding:6px 14px" onclick="addGnAttachmentPrompt()"><i class="ti ti-plus" style="font-size:14px;margin-right:4px"></i>添加附件</button>
+        </div>
+
+        <div style="border-top:1px solid #eee;padding-top:10px;display:flex;flex-direction:column;gap:8px">
+          <div class="settings-row" style="padding:0">
+            <div class="settings-row-body"><div class="settings-row-label">显示时间调整对比</div></div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="gnShowTimeCompare">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <input class="form-input" id="gnTimeCompareLabel" type="text" placeholder="小标题，如：调整后的主要时间">
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="gnTimeFromLabel" type="text" style="flex:1" placeholder="左侧标签，如：原时间">
+            <input class="form-input" id="gnTimeFrom" type="text" style="flex:1" placeholder="左侧值，如：9:00">
+          </div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="gnTimeToLabel" type="text" style="flex:1" placeholder="右侧标签，如：现时间">
+            <input class="form-input" id="gnTimeTo" type="text" style="flex:1" placeholder="右侧值，如：8:30">
+          </div>
+        </div>
+
+        <div style="border-top:1px solid #eee;padding-top:10px;display:flex;flex-direction:column;gap:8px">
+          <div class="settings-row" style="padding:0">
+            <div class="settings-row-body"><div class="settings-row-label">显示地点信息</div></div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="gnShowLocation">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="gnLocationLabel" type="text" style="flex:1" placeholder="标签，如：地点">
+            <input class="form-input" id="gnLocationValue" type="text" style="flex:1" placeholder="值，如：教会主堂">
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:4px">
+          <button class="btn-save" style="flex:none;padding:6px 14px" onclick="saveGlobalNoticeSettings()"><i class="ti ti-device-floppy" style="font-size:14px;margin-right:4px"></i>保存并全局生效</button>
+          <button class="btn-cancel" style="flex:none;padding:6px 14px" onclick="previewGlobalNoticeFromSettings()"><i class="ti ti-eye" style="font-size:14px;margin-right:4px"></i>预览</button>
         </div>
       </div>
     </div>

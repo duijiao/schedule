@@ -212,6 +212,241 @@ async function saveSongLibStorageConfig() {
   showToast('✅ 诗歌库存储配置已保存');
   try { await syncRemoteField('song_lib_storage_config', songLibSupabaseConfig); } catch (e) {}
 }
+// ── 全局通知弹窗（管理员配置，全体用户可见）──────────────
+const LS_GLOBAL_NOTICE_DISMISS = 'churchGlobalNoticeDismiss';
+let globalNotice = {
+  enabled: false,
+  tag: '重要通知',
+  title: '',
+  dateText: '',
+  audience: '全体同工',
+  content: '',
+  attachments: [],
+  showTimeCompare: false,
+  timeCompareLabel: '调整后的主要时间',
+  timeFromLabel: '原时间',
+  timeFrom: '',
+  timeToLabel: '现时间',
+  timeTo: '',
+  showLocation: false,
+  locationLabel: '地点',
+  locationValue: '',
+};
+function normalizeGlobalNotice(raw) {
+  const o = raw && typeof raw === 'object' ? raw : {};
+  const att = Array.isArray(o.attachments) ? o.attachments : [];
+  return {
+    enabled: !!o.enabled,
+    tag: typeof o.tag === 'string' ? o.tag : '重要通知',
+    title: typeof o.title === 'string' ? o.title : '',
+    dateText: typeof o.dateText === 'string' ? o.dateText : '',
+    audience: typeof o.audience === 'string' ? o.audience : '全体同工',
+    content: typeof o.content === 'string' ? o.content : '',
+    attachments: att.filter(a => a && typeof a === 'object').map(a => ({
+      name: typeof a.name === 'string' ? a.name : '附件',
+      size: typeof a.size === 'string' ? a.size : '',
+      url: typeof a.url === 'string' ? a.url : '',
+    })),
+    showTimeCompare: !!o.showTimeCompare,
+    timeCompareLabel: typeof o.timeCompareLabel === 'string' ? o.timeCompareLabel : '调整后的主要时间',
+    timeFromLabel: typeof o.timeFromLabel === 'string' ? o.timeFromLabel : '原时间',
+    timeFrom: typeof o.timeFrom === 'string' ? o.timeFrom : '',
+    timeToLabel: typeof o.timeToLabel === 'string' ? o.timeToLabel : '现时间',
+    timeTo: typeof o.timeTo === 'string' ? o.timeTo : '',
+    showLocation: !!o.showLocation,
+    locationLabel: typeof o.locationLabel === 'string' ? o.locationLabel : '地点',
+    locationValue: typeof o.locationValue === 'string' ? o.locationValue : '',
+  };
+}
+function todayDateKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+// 每次进入网页都尝试显示（若已开启且有内容），除非用户今天勾选过"不再显示"
+function maybeShowGlobalNotice() {
+  if (!globalNotice || !globalNotice.enabled) return;
+  if (!globalNotice.title && !globalNotice.content) return;
+  try {
+    if (localStorage.getItem(LS_GLOBAL_NOTICE_DISMISS) === todayDateKey()) return;
+  } catch (e) {}
+  renderGlobalNotice();
+  const overlay = document.getElementById('globalNoticeOverlay');
+  if (overlay) overlay.classList.add('open');
+}
+function renderGlobalNotice() {
+  const n = globalNotice;
+  const titleEl = document.getElementById('globalNoticeTag');
+  if (titleEl) titleEl.textContent = n.tag || '重要通知';
+  const titleH = document.getElementById('globalNoticeTitle');
+  if (titleH) titleH.textContent = n.title || '';
+  const metaDate = document.getElementById('globalNoticeDate');
+  if (metaDate) metaDate.textContent = n.dateText || '';
+  const metaDateWrap = document.getElementById('globalNoticeDateWrap');
+  if (metaDateWrap) metaDateWrap.style.display = n.dateText ? '' : 'none';
+  const audienceEl = document.getElementById('globalNoticeAudience');
+  if (audienceEl) { audienceEl.textContent = n.audience || ''; audienceEl.style.display = n.audience ? '' : 'none'; }
+  const contentEl = document.getElementById('globalNoticeContent');
+  if (contentEl) contentEl.textContent = n.content || '';
+
+  const attSec = document.getElementById('globalNoticeAttachSection');
+  const attList = document.getElementById('globalNoticeAttachList');
+  const attCount = document.getElementById('globalNoticeAttachCount');
+  if (attSec && attList) {
+    if (n.attachments.length) {
+      attSec.style.display = '';
+      if (attCount) attCount.textContent = n.attachments.length;
+      attList.innerHTML = n.attachments.map(a => `
+        <div class="gn-attach-row">
+          <div class="gn-attach-icon"><i class="ti ti-file-text"></i></div>
+          <div class="gn-attach-body">
+            <div class="gn-attach-name">${escapeHtml(a.name)}</div>
+            ${a.size ? `<div class="gn-attach-size">${escapeHtml(a.size)}</div>` : ''}
+          </div>
+          ${a.url ? `<a class="gn-attach-dl" href="${escapeHtml(a.url)}" target="_blank" rel="noopener" title="下载"><i class="ti ti-download"></i></a>` : ''}
+        </div>`).join('');
+    } else {
+      attSec.style.display = 'none';
+    }
+  }
+
+  const timeSec = document.getElementById('globalNoticeTimeSection');
+  if (timeSec) {
+    if (n.showTimeCompare) {
+      timeSec.style.display = '';
+      const lbl = document.getElementById('globalNoticeTimeLabel');
+      if (lbl) lbl.textContent = n.timeCompareLabel || '调整后的主要时间';
+      const fl = document.getElementById('globalNoticeFromLabel'); if (fl) fl.textContent = n.timeFromLabel || '原时间';
+      const fv = document.getElementById('globalNoticeFromValue'); if (fv) fv.textContent = n.timeFrom || '';
+      const tl = document.getElementById('globalNoticeToLabel'); if (tl) tl.textContent = n.timeToLabel || '现时间';
+      const tv = document.getElementById('globalNoticeToValue'); if (tv) tv.textContent = n.timeTo || '';
+    } else {
+      timeSec.style.display = 'none';
+    }
+  }
+
+  const locSec = document.getElementById('globalNoticeLocationSection');
+  if (locSec) {
+    if (n.showLocation) {
+      locSec.style.display = '';
+      const ll = document.getElementById('globalNoticeLocLabel'); if (ll) ll.textContent = n.locationLabel || '地点';
+      const lv = document.getElementById('globalNoticeLocValue'); if (lv) lv.textContent = n.locationValue || '';
+    } else {
+      locSec.style.display = 'none';
+    }
+  }
+
+  const cb = document.getElementById('globalNoticeDontShowToday');
+  if (cb) cb.checked = false;
+}
+function closeGlobalNotice() {
+  const cb = document.getElementById('globalNoticeDontShowToday');
+  if (cb && cb.checked) {
+    try { localStorage.setItem(LS_GLOBAL_NOTICE_DISMISS, todayDateKey()); } catch (e) {}
+  }
+  const overlay = document.getElementById('globalNoticeOverlay');
+  if (overlay) overlay.classList.remove('open');
+}
+// ── 全局通知：管理员设置面板 ───────────────────────────
+let gnEditAttachments = [];
+function fillGlobalNoticeSettingsInputs() {
+  const n = globalNotice;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  const el = document.getElementById('gnEnabledToggle'); if (el) el.checked = !!n.enabled;
+  set('gnTagInput', n.tag);
+  set('gnTitleInput', n.title);
+  set('gnDateInput', n.dateText);
+  set('gnAudienceInput', n.audience);
+  set('gnContentInput', n.content);
+  const tc = document.getElementById('gnShowTimeCompare'); if (tc) tc.checked = !!n.showTimeCompare;
+  set('gnTimeCompareLabel', n.timeCompareLabel);
+  set('gnTimeFromLabel', n.timeFromLabel);
+  set('gnTimeFrom', n.timeFrom);
+  set('gnTimeToLabel', n.timeToLabel);
+  set('gnTimeTo', n.timeTo);
+  const sl = document.getElementById('gnShowLocation'); if (sl) sl.checked = !!n.showLocation;
+  set('gnLocationLabel', n.locationLabel);
+  set('gnLocationValue', n.locationValue);
+  gnEditAttachments = n.attachments.map(a => ({ ...a }));
+  renderGnAttachEditList();
+}
+function renderGnAttachEditList() {
+  const wrap = document.getElementById('gnAttachEditList');
+  if (!wrap) return;
+  if (!gnEditAttachments.length) {
+    wrap.innerHTML = `<div style="font-size:12px;color:var(--text-3)">暂无附件</div>`;
+    return;
+  }
+  wrap.innerHTML = gnEditAttachments.map((a, i) => `
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--bg-subtle);border-radius:8px">
+      <i class="ti ti-file-text" style="color:var(--text-3);flex-shrink:0"></i>
+      <div style="flex:1;min-width:0;font-size:12.5px;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(a.name)}${a.size ? ` · ${escapeHtml(a.size)}` : ''}</div>
+      <button type="button" class="modal-close-btn" style="position:static;width:24px;height:24px" onclick="removeGnAttachment(${i})" title="删除"><i class="ti ti-x" style="font-size:13px"></i></button>
+    </div>`).join('');
+}
+function addGnAttachmentPrompt() {
+  const name = prompt('附件名称（如：主日流程安排.pdf）');
+  if (!name) return;
+  const url = prompt('附件下载链接（可粘贴 Supabase Storage 或其它公开链接，留空则不可下载）') || '';
+  const size = prompt('附件大小说明（可选，如 2.3 MB）') || '';
+  gnEditAttachments.push({ name: name.trim(), url: url.trim(), size: size.trim() });
+  renderGnAttachEditList();
+}
+function removeGnAttachment(i) {
+  gnEditAttachments.splice(i, 1);
+  renderGnAttachEditList();
+}
+async function saveGlobalNoticeSettings() {
+  if (!isAdmin) return;
+  const val = id => (document.getElementById(id)?.value || '').trim();
+  globalNotice = normalizeGlobalNotice({
+    enabled: !!document.getElementById('gnEnabledToggle')?.checked,
+    tag: val('gnTagInput') || '重要通知',
+    title: val('gnTitleInput'),
+    dateText: val('gnDateInput'),
+    audience: val('gnAudienceInput'),
+    content: document.getElementById('gnContentInput')?.value || '',
+    attachments: gnEditAttachments,
+    showTimeCompare: !!document.getElementById('gnShowTimeCompare')?.checked,
+    timeCompareLabel: val('gnTimeCompareLabel'),
+    timeFromLabel: val('gnTimeFromLabel'),
+    timeFrom: val('gnTimeFrom'),
+    timeToLabel: val('gnTimeToLabel'),
+    timeTo: val('gnTimeTo'),
+    showLocation: !!document.getElementById('gnShowLocation')?.checked,
+    locationLabel: val('gnLocationLabel'),
+    locationValue: val('gnLocationValue'),
+  });
+  try {
+    await syncRemoteField('global_notice', globalNotice);
+    showToast('✅ 通知弹窗已保存并全局生效');
+  } catch (e) {
+    console.error('保存全局通知失败', e);
+    showToast('保存失败，请检查网络后重试');
+  }
+}
+function previewGlobalNoticeFromSettings() {
+  globalNotice = normalizeGlobalNotice({
+    enabled: true,
+    tag: (document.getElementById('gnTagInput')?.value || '').trim() || '重要通知',
+    title: (document.getElementById('gnTitleInput')?.value || '').trim(),
+    dateText: (document.getElementById('gnDateInput')?.value || '').trim(),
+    audience: (document.getElementById('gnAudienceInput')?.value || '').trim(),
+    content: document.getElementById('gnContentInput')?.value || '',
+    attachments: gnEditAttachments,
+    showTimeCompare: !!document.getElementById('gnShowTimeCompare')?.checked,
+    timeCompareLabel: (document.getElementById('gnTimeCompareLabel')?.value || '').trim(),
+    timeFromLabel: (document.getElementById('gnTimeFromLabel')?.value || '').trim(),
+    timeFrom: (document.getElementById('gnTimeFrom')?.value || '').trim(),
+    timeToLabel: (document.getElementById('gnTimeToLabel')?.value || '').trim(),
+    timeTo: (document.getElementById('gnTimeTo')?.value || '').trim(),
+    showLocation: !!document.getElementById('gnShowLocation')?.checked,
+    locationLabel: (document.getElementById('gnLocationLabel')?.value || '').trim(),
+    locationValue: (document.getElementById('gnLocationValue')?.value || '').trim(),
+  });
+  renderGlobalNotice();
+  document.getElementById('globalNoticeOverlay')?.classList.add('open');
+}
+
 async function uploadMusicMp3File(file) {
   const client = getSongLibSupabaseClient();
   if (!client) throw new Error('尚未配置诗歌库 Supabase 存储，请联系管理员在"设置"中配置');
@@ -5013,6 +5248,12 @@ function openSettings() {
     headerBgSec.style.display = isAdmin ? '' : 'none';
     if (isAdmin) renderHeaderBgSettings();
   }
+  // 全局通知弹窗设置：仅管理员可见
+  const gnSec = document.getElementById('globalNoticeSection');
+  if (gnSec) {
+    gnSec.style.display = isAdmin ? '' : 'none';
+    if (isAdmin) fillGlobalNoticeSettingsInputs();
+  }
   // 排班分类卡片背景图设置：仅管理员可见
   const roleBgSec = document.getElementById('roleBgSection');
   if (roleBgSec) {
@@ -6553,6 +6794,9 @@ function applyRemoteAppState(row) {
     songLibSongbooks = normalizeSongLibSongbookList(row.song_lib_songbooks);
     persistSongLibSongbooks();
   }
+  if (row && row.global_notice !== undefined) {
+    globalNotice = normalizeGlobalNotice(row.global_notice);
+  }
   updateLeaveBadge();
 }
 
@@ -7358,6 +7602,7 @@ async function bootstrapApp() {
   checkSundayReminder();
   checkSaturdayReminder();
   checkSongShareLinkFromUrl();
+  maybeShowGlobalNotice();
 }
 
 bootstrapApp().finally(hideAppLoader);
