@@ -14,11 +14,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="pageTitleTag">敬拜排班表</title>
-<meta name="description" id="metaDescTag" content="巴西华人基督教会敬拜排班与诗歌库">
+<meta name="description" id="metaDescTag" content="教会敬拜排班与诗歌库">
 <meta property="og:title" id="metaOgTitleTag" content="敬拜排班表">
-<meta property="og:description" id="metaOgDescTag" content="巴西华人基督教会敬拜排班与诗歌库">
-<meta property="og:image" content="https://duijiao.github.io/schedule/1788092041022.png">
+<meta property="og:description" id="metaOgDescTag" content="教会敬拜排班与诗歌库">
+<meta property="og:image" id="metaOgImageTag" content="">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="service-match.css">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body class="app-loading">
@@ -759,6 +760,24 @@
       </div>
     </div>
 
+    <!-- 服侍匹配测试 悬浮入口开关（仅管理员） -->
+    <div class="settings-section admin-only-section" id="serviceMatchAdminSection" style="display:none">
+      <div class="settings-section-title">🌟 服侍匹配测试（管理员）</div>
+      <div class="settings-card" style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;color:#999;line-height:1.6">
+          控制右下角「服侍匹配」悬浮入口是否对大家显示。就算在这里关闭了，管理员也可以随时回到这个开关重新打开，不会被锁在外面。
+        </div>
+        <div class="settings-row" style="padding:0">
+          <div class="settings-row-body"><div class="settings-row-label">开启悬浮入口</div></div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="serviceMatchEnabledToggle" onchange="window.ServiceMatch && window.ServiceMatch.setGlobalEnabled(this.checked).then(ok=>{ if(!ok){ this.checked=!this.checked; showToast('保存失败，请稍后重试'); } else { showToast(this.checked?'已开启悬浮入口':'已关闭悬浮入口'); } })">
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+      </div>
+    </div>
+
     <!-- 全局通知弹窗（仅管理员） -->
     <div class="settings-section admin-only-section" id="globalNoticeSection" style="display:none">
       <div class="settings-section-title">📢 全局通知弹窗（管理员）</div>
@@ -1423,11 +1442,14 @@
   </div>
 </div>
 <canvas id="exportCanvas"></canvas>
+<div id="serviceMatchRoot"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
+<script src="service-match-data.js"></script>
+<script src="service-match.js"></script>
 </body>
 </html>

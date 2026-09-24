@@ -5254,6 +5254,15 @@ function openSettings() {
     gnSec.style.display = isAdmin ? '' : 'none';
     if (isAdmin) fillGlobalNoticeSettingsInputs();
   }
+  // 服侍匹配测试悬浮入口开关：仅管理员可见
+  const smSec = document.getElementById('serviceMatchAdminSection');
+  if (smSec) {
+    smSec.style.display = isAdmin ? '' : 'none';
+    if (isAdmin) {
+      const smToggle = document.getElementById('serviceMatchEnabledToggle');
+      if (smToggle) smToggle.checked = !(window.ServiceMatch && window.ServiceMatch.isGlobalEnabled && window.ServiceMatch.isGlobalEnabled() === false);
+    }
+  }
   // 排班分类卡片背景图设置：仅管理员可见
   const roleBgSec = document.getElementById('roleBgSection');
   if (roleBgSec) {
