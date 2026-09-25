@@ -861,16 +861,28 @@
   // ══════════════════════════════════════════════════
   //  启动
   // ══════════════════════════════════════════════════
-  function boot() {
-    if (safeGetLS(LS_LOCAL_DISABLED) === '1') { fetchGlobalEnabled().then(function (en) { window.__smGlobalEnabled = en; }); return; } // 本设备已被管理员关闭
-    fetchGlobalEnabled().then(function (enabled) {
-      window.__smGlobalEnabled = enabled;
-      if (!enabled) { safeSetLS(LS_LOCAL_DISABLED, '1'); return; } // 管理员已为所有人关闭
-      mount();
-      // 排班推荐钩子延迟挂载，确保 app.js 里的函数都已定义完毕
-      setTimeout(hookAdminIntegration, 0);
-    });
+function boot() {
+  if (!hasHostSupabase()) {
+    // 未连接云端数据库：全局开关退化为"只影响本设备"，尊重本机上一次的选择
+    var localOff = safeGetLS(LS_LOCAL_DISABLED) === '1';
+    window.__smGlobalEnabled = !localOff;
+    if (localOff) return;
+    mount();
+    setTimeout(hookAdminIntegration, 0);
+    return;
   }
+  // 已连接云端数据库：每次启动都以云端最新状态为准，
+  // 本地缓存只是展示用，不再用来跳过挂载判断，
+  // 避免"管理员重新打开后，其他人因为本地陈旧缓存而永远看不到"的问题。
+  fetchGlobalEnabled().then(function (enabled) {
+    window.__smGlobalEnabled = enabled;
+    safeSetLS(LS_LOCAL_DISABLED, enabled ? '0' : '1');
+    if (!enabled) return; // 管理员已为所有人关闭
+    mount();
+    // 排班推荐钩子延迟挂载，确保 app.js 里的函数都已定义完毕
+    setTimeout(hookAdminIntegration, 0);
+  });
+}
 
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); } else { boot(); }
 
