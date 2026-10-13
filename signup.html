@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title id="spPageTitle">活动报名</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="signup.css">
+</head>
+<body>
+<div class="sp-shell">
+  <div class="sp-topbar" id="spTopbar">
+    <button class="sp-icon-btn" id="spBackBtn" onclick="spGoBack()"><i class="ti ti-chevron-left"></i></button>
+    <div class="sp-topbar-title" id="spTopbarTitle"></div>
+    <div class="sp-topbar-right">
+      <button class="sp-icon-btn" id="spAdminBtn" onclick="spAdminFabClick()" title="管理"><i class="ti ti-shield-lock"></i></button>
+      <button class="sp-icon-btn" id="spShareBtn" onclick="spShare()"><i class="ti ti-share-2"></i></button>
+    </div>
+  </div>
+  <div class="sp-body" id="spBody"></div>
+</div>
+
+<!-- 管理员登录 -->
+<div class="sp-overlay center" id="spLoginOverlay" onclick="spCloseOverlay(event,'spLoginOverlay')">
+  <div class="sp-sheet" onclick="event.stopPropagation()">
+    <button class="sp-sheet-close" onclick="spCloseOverlay(null,'spLoginOverlay')"><i class="ti ti-x"></i></button>
+    <div class="sp-sheet-title">管理员登录</div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">与排班表后台使用同一个管理员账号</div>
+    <div class="sp-form-row"><label>用户名</label><input type="text" id="spLoginUser" autocomplete="off"></div>
+    <div class="sp-form-row"><label>密码</label><input type="password" id="spLoginPass" onkeydown="if(event.key==='Enter')spDoLogin()"></div>
+    <div class="sp-login-err" id="spLoginErr">用户名或密码错误</div>
+    <button class="sp-btn sp-btn-primary sp-btn-block" style="margin-top:12px" onclick="spDoLogin()">登录</button>
+  </div>
+</div>
+
+<!-- 报名活动管理（列表） -->
+<div class="sp-overlay" id="spManagerOverlay" onclick="spCloseOverlay(event,'spManagerOverlay')">
+  <div class="sp-sheet" onclick="event.stopPropagation()">
+    <button class="sp-sheet-close" onclick="spCloseOverlay(null,'spManagerOverlay')"><i class="ti ti-x"></i></button>
+    <div class="sp-sheet-handle"></div>
+    <div class="sp-sheet-title">报名活动管理</div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">开启的活动所有访客打开本页都能看到；可自由增减报名要收集的信息字段</div>
+    <button class="sp-btn sp-btn-primary sp-btn-block" style="margin-bottom:14px" onclick="spOpenEditor(null)"><i class="ti ti-plus" style="margin-right:4px"></i>新建报名活动</button>
+    <div id="spManagerList"></div>
+    <button class="sp-btn sp-btn-ghost sp-btn-block" style="margin-top:6px" onclick="spLogout()">退出管理</button>
+  </div>
+</div>
+
+<!-- 活动编辑器 -->
+<div class="sp-overlay" id="spEditorOverlay" onclick="spCloseOverlay(event,'spEditorOverlay')" style="z-index:510">
+  <div class="sp-sheet" onclick="event.stopPropagation()">
+    <button class="sp-sheet-close" onclick="spCloseOverlay(null,'spEditorOverlay')"><i class="ti ti-x"></i></button>
+    <div class="sp-sheet-handle"></div>
+    <div class="sp-sheet-title" id="spEditorTitle">新建报名活动</div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin:14px 0">
+      <img id="spEditorCoverPreview" src="" style="width:72px;height:72px;border-radius:12px;object-fit:cover;background:var(--bg-subtle);display:none;flex-shrink:0">
+      <div style="flex:1;min-width:0">
+        <label class="sp-btn sp-btn-ghost" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+          <i class="ti ti-upload" style="font-size:14px"></i>上传封面图
+          <input type="file" accept="image/*" style="display:none" onchange="spUploadCover(this)">
+        </label>
+        <button class="sp-btn sp-btn-ghost" style="margin-left:6px" onclick="spRemoveCover()">移除</button>
+      </div>
+    </div>
+
+    <div class="sp-row-2">
+      <div class="sp-form-row"><label>分类标签</label><input type="text" id="spfTag" placeholder="如：聚会" maxlength="10"></div>
+      <div class="sp-form-row"><label>启用</label>
+        <label class="sp-switch" style="margin-top:6px"><input type="checkbox" id="spfEnabled"><span class="track"></span><span class="thumb"></span></label>
+      </div>
+    </div>
+    <div class="sp-form-row"><label>活动标题</label><input type="text" id="spfTitle" placeholder="如：教会主日聚会" maxlength="40"></div>
+    <div class="sp-row-2">
+      <div class="sp-form-row"><label>日期</label><input type="date" id="spfDate"></div>
+      <div class="sp-form-row"><label></label>
+        <div class="sp-row-2">
+          <input type="time" id="spfTimeStart">
+          <input type="time" id="spfTimeEnd">
+        </div>
+      </div>
+    </div>
+    <div class="sp-row-2">
+      <div class="sp-form-row"><label>地点</label><input type="text" id="spfLocation" placeholder="如：教会主堂"></div>
+      <div class="sp-form-row"><label>详细地址（选填）</label><input type="text" id="spfAddress" placeholder="如：Rua da Paz, 123"></div>
+    </div>
+    <div class="sp-form-row"><label>简介</label><textarea id="spfIntro" placeholder="欢迎你来到教会…"></textarea></div>
+    <div class="sp-form-row"><label>亮点标签（用逗号分隔）</label><input type="text" id="spfHighlights" placeholder="如：敬拜赞美,圣经讲道,团契相交"></div>
+    <div class="sp-form-row"><label>详情标题</label><input type="text" id="spfDetailTitle" placeholder="活动详情"></div>
+    <div class="sp-form-row"><label>详情内容</label><textarea id="spfDetail" placeholder="本次聚会将有…" style="min-height:90px"></textarea></div>
+    <div class="sp-row-2">
+      <div class="sp-form-row"><label>详情页按钮文字</label><input type="text" id="spfCtaText" placeholder="立即报名"></div>
+      <div class="sp-form-row"><label>表单提交按钮文字</label><input type="text" id="spfSubmitText" placeholder="提交报名"></div>
+    </div>
+
+    <hr class="sp-divider">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="sp-sheet-title" style="font-size:14.5px;margin:0">报名信息收集字段</div>
+      <button class="sp-btn sp-btn-ghost" onclick="spAddField()"><i class="ti ti-plus" style="font-size:13px;margin-right:3px"></i>添加字段</button>
+    </div>
+    <div id="spFieldEditorList"></div>
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="sp-btn sp-btn-ghost" style="flex:1" onclick="spCloseOverlay(null,'spEditorOverlay')">取消</button>
+      <button class="sp-btn sp-btn-primary" style="flex:1" onclick="spSaveEvent()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 报名数据查看 -->
+<div class="sp-overlay" id="spSubsOverlay" onclick="spCloseOverlay(event,'spSubsOverlay')" style="z-index:510">
+  <div class="sp-sheet" onclick="event.stopPropagation()">
+    <button class="sp-sheet-close" onclick="spCloseOverlay(null,'spSubsOverlay')"><i class="ti ti-x"></i></button>
+    <div class="sp-sheet-handle"></div>
+    <div class="sp-sheet-title" id="spSubsTitle">报名数据</div>
+    <div style="display:flex;gap:8px;margin:10px 0 14px">
+      <button class="sp-btn sp-btn-ghost" onclick="spExportSubsCSV()"><i class="ti ti-download" style="font-size:13px;margin-right:3px"></i>导出 CSV</button>
+      <button class="sp-btn sp-btn-ghost" onclick="spLoadSubmissions()"><i class="ti ti-refresh" style="font-size:13px;margin-right:3px"></i>刷新</button>
+    </div>
+    <div id="spSubsList"></div>
+  </div>
+</div>
+
+<div class="sp-toast" id="spToast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="signup.js"></script>
+</body>
+</html>
