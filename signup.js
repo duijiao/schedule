@@ -572,34 +572,193 @@ async function spOpenSubmissions(eventId){
   spSubsCurrentEvent = spGetEvent(eventId);
   document.getElementById('spSubsTitle').textContent = '报名数据 · ' + (spSubsCurrentEvent ? spSubsCurrentEvent.title : '');
   document.getElementById('spManagerOverlay').classList.remove('open');
+  document.getElementById('spSubsSearch').value = '';
+  if(spSelectMode) spToggleSelectMode();
+  spSwitchSubsTab('list');
   document.getElementById('spSubsOverlay').classList.add('open');
   await spLoadSubmissions();
 }
+let spSubsSortDesc = true;
+let spSelectMode = false;
+let spSelected = new Set();
+let spSubsTab = 'list';
+let spTrendDays = 14;
+let spVisibleIds = [];
+const SP_AVATAR_COLORS = ['#1D9E75','#4C8DF6','#F2994A','#9B6BDF','#E6484F','#17A2B8','#D4A017','#6C7A89'];
+
+// 根据字段名推断图标：优先匹配活动里定义的字段类型，其次按关键词猜测
+function spIconForLabel(label){
+  const ev = spSubsCurrentEvent;
+  const f = ev && ev.fields ? ev.fields.find(x=>x.label===label) : null;
+  const l = String(label||'');
+  if(/姓名|名字|称呼/.test(l)) return 'ti-user';
+  if(/手机|电话|微信|whatsapp/i.test(l)) return 'ti-phone';
+  if(/邮箱|email|mail/i.test(l)) return 'ti-mail';
+  if(/人数|几人|陪同/.test(l)) return 'ti-users';
+  if(/备注|需要|留言|说明/.test(l)) return 'ti-message-2';
+  if(/地址|地点/.test(l)) return 'ti-map-pin';
+  if(f) return spFieldIcon(f.type);
+  return 'ti-point';
+}
+function spFieldTypeOf(label){
+  const f = spSubsCurrentEvent && spSubsCurrentEvent.fields ? spSubsCurrentEvent.fields.find(x=>x.label===label) : null;
+  if(f) return f.type;
+  if(/手机|电话/.test(label)) return 'tel';
+  if(/邮箱|email/i.test(label)) return 'email';
+  return 'text';
+}
+// 找出「主要人名」「联系电话」「人数」
+function spPickKey(vals, type, regex){
+  const keys = Object.keys(vals);
+  let k = keys.find(x=>regex.test(x));
+  if(!k && spSubsCurrentEvent){
+    const f = spSubsCurrentEvent.fields.find(x=>x.type===type && keys.includes(x.label));
+    if(f) k = f.label;
+  }
+  return k;
+}
+function spSubSummary(s){
+  const vals = s.values || {};
+  const nameKey = spPickKey(vals,'text',/姓名|名字|称呼/) || Object.keys(vals)[0];
+  const telKey = spPickKey(vals,'tel',/手机|电话/);
+  const numKey = Object.keys(vals).find(k=>/人数|几人|陪同/.test(k)) || spPickKey(vals,'number',/^$/);
+  const name = String((nameKey && vals[nameKey]) || '未填写姓名');
+  const num = numKey && Number(vals[numKey]) ? Number(vals[numKey]) : null;
+  return { name, nameKey, telKey, numKey, num, tel: telKey ? String(vals[telKey]||'') : '' };
+}
+function spRelTime(iso){
+  if(!iso) return '';
+  const d = new Date(iso), diff = (Date.now()-d.getTime())/1000;
+  if(diff<60) return '刚刚';
+  if(diff<3600) return Math.floor(diff/60)+' 分钟前';
+  if(diff<86400) return Math.floor(diff/3600)+' 小时前';
+  if(diff<86400*7) return Math.floor(diff/86400)+' 天前';
+  return d.toLocaleDateString('zh-CN');
+}
+function spFmtFull(iso){ return iso ? new Date(iso).toLocaleString('zh-CN') : ''; }
+
+function spRenderSubsStats(){
+  const list = spSubsCache;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayCnt = list.filter(s=>s.created_at && new Date(s.created_at)>=today).length;
+  const people = list.reduce((n,s)=>n+(spSubSummary(s).num||0),0);
+  document.getElementById('spSubsStats').innerHTML = `
+    <div class="sp-stat accent"><div class="sp-stat-top"><i class="ti ti-clipboard-check"></i>报名总数</div><div class="sp-stat-num">${list.length}</div></div>
+    <div class="sp-stat"><div class="sp-stat-top"><i class="ti ti-calendar-plus"></i>今日新增</div><div class="sp-stat-num">${todayCnt}</div></div>
+    <div class="sp-stat"><div class="sp-stat-top"><i class="ti ti-users"></i>预计人数</div><div class="sp-stat-num">${people||'—'}</div></div>`;
+  const last = list[0] && list.length ? list.reduce((a,b)=>new Date(a.created_at)>new Date(b.created_at)?a:b) : null;
+  document.getElementById('spSubsSub').innerHTML = last ? `<i class="ti ti-clock"></i>最近报名 ${spRelTime(last.created_at)}` : '';
+}
+
+function spValueHtml(label, v){
+  const type = spFieldTypeOf(label);
+  const isEmpty = v==null || v==='' || (Array.isArray(v) && !v.length);
+  if(isEmpty) return `<div class="sp-sub-item-val empty">未填写</div>`;
+  if(Array.isArray(v)) return `<div class="sp-val-chips">${v.map(x=>`<span class="sp-val-chip">${spEscapeHtml(x)}</span>`).join('')}</div>`;
+  const t = spEscapeHtml(v);
+  if(type==='tel') return `<div class="sp-sub-item-val"><a href="tel:${t}">${t}</a></div>`;
+  if(type==='email') return `<div class="sp-sub-item-val"><a href="mailto:${t}">${t}</a></div>`;
+  if(type==='radio' || type==='select') return `<div class="sp-val-chips"><span class="sp-val-chip">${t}</span></div>`;
+  return `<div class="sp-sub-item-val">${t}</div>`;
+}
+
+function spRenderSubs(){
+  const wrap = document.getElementById('spSubsList');
+  const q = (document.getElementById('spSubsSearch').value||'').trim().toLowerCase();
+  document.getElementById('spSubsSearchClear').classList.toggle('show', !!q);
+  let list = spSubsCache.slice();
+  if(q) list = list.filter(s=>Object.values(s.values||{}).some(v=>String(Array.isArray(v)?v.join(' '):v).toLowerCase().includes(q)));
+  list.sort((a,b)=>{ const d = new Date(a.created_at)-new Date(b.created_at); return spSubsSortDesc ? -d : d; });
+  spVisibleIds = list.map(s=>String(s.id));
+  spUpdateBatchBar();
+  if(!spSubsCache.length){
+    wrap.innerHTML = `<div class="sp-subs-empty"><i class="ti ti-inbox"></i>暂无报名记录<br>分享活动链接，等待第一位报名者吧</div>`; return;
+  }
+  if(!list.length){
+    wrap.innerHTML = `<div class="sp-subs-empty"><i class="ti ti-search-off"></i>没有找到与“${spEscapeHtml(q)}”相关的记录</div>`; return;
+  }
+  spVisibleIds = list.map(s=>String(s.id));
+  const dayAgo = Date.now() - 86400000;
+  wrap.innerHTML = list.map(s=>{
+    const vals = s.values || {};
+    const sm = spSubSummary(s);
+    const color = SP_AVATAR_COLORS[(s.id!=null ? Number(s.id) : sm.name.charCodeAt(0)) % SP_AVATAR_COLORS.length] || SP_AVATAR_COLORS[0];
+    const isNew = s.created_at && new Date(s.created_at).getTime() > dayAgo;
+    const items = Object.keys(vals).map(k=>{
+      const raw = vals[k];
+      const copyable = !(raw==null||raw===''||(Array.isArray(raw)&&!raw.length));
+      const copyText = Array.isArray(raw) ? raw.join('、') : String(raw==null?'':raw);
+      return `<div class="sp-sub-item">
+        <div class="sp-sub-item-icon"><i class="ti ${spIconForLabel(k)}"></i></div>
+        <div class="sp-sub-item-body"><div class="sp-sub-item-label">${spEscapeHtml(k)}</div>${spValueHtml(k, raw)}</div>
+        ${copyable ? `<div class="sp-sub-item-act"><button class="sp-mini-icon-btn" title="复制" onclick="spCopyText(decodeURIComponent('${encodeURIComponent(copyText)}'))"><i class="ti ti-copy"></i></button></div>` : ''}
+      </div>`;
+    }).join('');
+    const sel = spSelected.has(String(s.id));
+    return `<div class="sp-sub-card${sel?' selected':''}" id="spSub_${s.id}">
+      <div class="sp-sub-head" onclick="spToggleSub('${s.id}')">
+        ${spSelectMode?`<input type="checkbox" class="sp-sub-check" ${sel?'checked':''} onclick="event.stopPropagation()" onchange="spPickSub('${s.id}',this.checked)">`:''}
+        <div class="sp-sub-avatar" style="background:${color}">${spEscapeHtml(sm.name.trim().charAt(0).toUpperCase()||'?')}</div>
+        <div class="sp-sub-main">
+          <div class="sp-sub-name">${spEscapeHtml(sm.name)}${isNew?'<span class="sp-sub-new">NEW</span>':''}</div>
+          <div class="sp-sub-time"><i class="ti ti-clock"></i>${spRelTime(s.created_at)}${sm.tel?` · <i class="ti ti-phone"></i>${spEscapeHtml(sm.tel)}`:''}</div>
+        </div>
+        ${sm.num?`<span class="sp-sub-badge"><i class="ti ti-users"></i>${sm.num}人</span>`:''}
+        <i class="ti ti-chevron-down sp-sub-chevron"></i>
+      </div>
+      <div class="sp-sub-detail">
+        ${items}
+        <div class="sp-sub-item"><div class="sp-sub-item-icon"><i class="ti ti-calendar-time"></i></div>
+          <div class="sp-sub-item-body"><div class="sp-sub-item-label">提交时间</div><div class="sp-sub-item-val">${spFmtFull(s.created_at)}</div></div></div>
+        <div class="sp-sub-foot">
+          ${sm.tel?`<a class="sp-btn sp-btn-ghost" href="tel:${spEscapeHtml(sm.tel)}" style="text-decoration:none"><i class="ti ti-phone-call"></i>拨打电话</a>`:''}
+          <button class="sp-btn sp-btn-danger" onclick="spDeleteSubmission(${s.id})"><i class="ti ti-trash"></i>删除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function spToggleSub(id){
+  if(spSelectMode){ spPickSub(String(id), !spSelected.has(String(id))); spRenderSubs(); return; }
+  const el = document.getElementById('spSub_'+id); if(el) el.classList.toggle('open');
+}
+function spClearSubsSearch(){ const i = document.getElementById('spSubsSearch'); i.value=''; spRenderSubs(); i.focus(); }
+function spToggleSubsSort(){
+  spSubsSortDesc = !spSubsSortDesc;
+  document.querySelector('#spSubsSortBtn i').className = 'ti ' + (spSubsSortDesc ? 'ti-sort-descending' : 'ti-sort-ascending');
+  spToast(spSubsSortDesc ? '按时间：最新优先' : '按时间：最早优先');
+  spRenderSubs();
+}
+async function spCopyText(text){
+  try{ await navigator.clipboard.writeText(text); spToast('已复制'); }
+  catch(e){
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); spToast('已复制'); }catch(_){ spToast('复制失败'); }
+    document.body.removeChild(ta);
+  }
+}
+
 async function spLoadSubmissions(){
   const wrap = document.getElementById('spSubsList');
-  wrap.innerHTML = `<div style="font-size:12.5px;color:var(--text-3);text-align:center;padding:16px 0">加载中…</div>`;
+  const refreshBtn = document.querySelector('.sp-subs-toolbar .sp-tool-btn[title="刷新"]');
+  if(refreshBtn) refreshBtn.classList.add('spin');
+  wrap.innerHTML = '<div class="sp-skel"></div><div class="sp-skel"></div><div class="sp-skel"></div>';
   try{
     const client = spInitClient();
     const { data, error } = await client.from(SP_CONFIG.submissionsTable)
       .select('*').eq('event_id', spSubsCurrentEvent.id).order('created_at', { ascending:false }).limit(500);
     if(error) throw error;
     spSubsCache = data || [];
-    if(!spSubsCache.length){ wrap.innerHTML = `<div style="font-size:12.5px;color:var(--text-3);text-align:center;padding:16px 0">暂无报名记录</div>`; return; }
-    wrap.innerHTML = spSubsCache.map(s=>{
-      const vals = s.values || {};
-      const rows = Object.keys(vals).map(k=>`<div class="sp-sub-row-val"><b>${spEscapeHtml(k)}：</b>${spEscapeHtml(Array.isArray(vals[k])?vals[k].join('、'):vals[k])}</div>`).join('');
-      const t = s.created_at ? new Date(s.created_at).toLocaleString('zh-CN') : '';
-      return `<div class="sp-sub-row">
-        <div style="flex:1;min-width:0">
-          <div class="sp-sub-row-time">${t}</div>
-          ${rows}
-        </div>
-        <button class="sp-mini-icon-btn danger" onclick="spDeleteSubmission(${s.id})"><i class="ti ti-trash"></i></button>
-      </div>`;
-    }).join('');
+    spRenderSubsStats();
+    spRenderSubs();
+    if(spSubsTab==='chart') spRenderSubsCharts();
   }catch(err){
     console.error(err);
-    wrap.innerHTML = `<div style="font-size:12.5px;color:var(--text-3);text-align:center;padding:16px 0">加载失败，请检查后台是否已建好 ${SP_CONFIG.submissionsTable} 表</div>`;
+    spSubsCache = [];
+    spRenderSubsStats();
+    wrap.innerHTML = `<div class="sp-subs-empty"><i class="ti ti-cloud-off"></i>加载失败，请检查后台是否已建好 ${SP_CONFIG.submissionsTable} 表</div>`;
+  }finally{
+    if(refreshBtn) refreshBtn.classList.remove('spin');
   }
 }
 async function spDeleteSubmission(id){
@@ -611,29 +770,197 @@ async function spDeleteSubmission(id){
     spLoadSubmissions();
   }catch(err){ spToast('删除失败，请重试'); }
 }
+// ── Tab 切换 ──
+function spSwitchSubsTab(tab){
+  spSubsTab = tab;
+  document.querySelectorAll('#spSubsTabs button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  const isList = tab==='list';
+  document.getElementById('spSubsList').style.display = isList ? '' : 'none';
+  document.getElementById('spSubsCharts').style.display = isList ? 'none' : '';
+  document.querySelector('.sp-subs-toolbar').style.display = isList ? '' : 'none';
+  document.getElementById('spSelectModeBtn').style.display = isList ? '' : 'none';
+  if(!isList){ if(spSelectMode) spToggleSelectMode(); spRenderSubsCharts(); }
+}
+
+// ── 批量选择 / 删除 ──
+function spToggleSelectMode(){
+  spSelectMode = !spSelectMode;
+  spSelected.clear();
+  document.getElementById('spSelectModeBtn').classList.toggle('active', spSelectMode);
+  document.querySelector('#spSelectModeBtn span').textContent = spSelectMode ? '取消' : '批量';
+  document.getElementById('spBatchBar').classList.toggle('show', spSelectMode);
+  spRenderSubs();
+}
+function spPickSub(id, on){
+  id = String(id);
+  if(on) spSelected.add(id); else spSelected.delete(id);
+  const el = document.getElementById('spSub_'+id);
+  if(el) el.classList.toggle('selected', on);
+  spUpdateBatchBar();
+}
+function spSelectAllToggle(on){
+  spVisibleIds.forEach(id=> on ? spSelected.add(id) : spSelected.delete(id));
+  spRenderSubs();
+}
+function spUpdateBatchBar(){
+  const n = spSelected.size;
+  const c = document.getElementById('spBatchCount'); if(c) c.textContent = '已选 ' + n + ' 条';
+  const btn = document.getElementById('spBatchDelBtn'); if(btn) btn.disabled = n===0;
+  const all = document.getElementById('spSelectAll');
+  if(all){ all.checked = spVisibleIds.length>0 && spVisibleIds.every(id=>spSelected.has(id)); }
+}
+async function spBatchDelete(){
+  const ids = [...spSelected];
+  if(!ids.length) return;
+  if(!confirm('确定删除选中的 ' + ids.length + ' 条报名记录吗？此操作无法恢复。')) return;
+  const btn = document.getElementById('spBatchDelBtn');
+  btn.disabled = true;
+  try{
+    const client = spInitClient();
+    const { error } = await client.from(SP_CONFIG.submissionsTable).delete().in('id', ids.map(x=>isNaN(x)?x:Number(x)));
+    if(error) throw error;
+    spToast('已删除 ' + ids.length + ' 条记录');
+    spSelected.clear();
+    await spLoadSubmissions();
+  }catch(err){
+    console.error(err);
+    spToast('批量删除失败，请重试');
+    btn.disabled = false;
+  }
+}
+
+// ── 图表 ──
+function spRenderSubsCharts(){
+  const box = document.getElementById('spSubsCharts');
+  const list = spSubsCache;
+  if(!list.length){ box.innerHTML = '<div class="sp-subs-empty"><i class="ti ti-chart-bar-off"></i>暂无数据，报名后这里会生成图表</div>'; return; }
+  const colors = ['#1D9E75','#4C8DF6','#F2994A','#9B6BDF','#E6484F','#17A2B8','#D4A017','#6C7A89'];
+  let html = '';
+
+  // 1) 报名趋势
+  const days = [];
+  const today = new Date(); today.setHours(0,0,0,0);
+  for(let i=spTrendDays-1;i>=0;i--){ const d = new Date(today); d.setDate(d.getDate()-i); days.push(d); }
+  const counts = days.map(d=>{
+    const end = new Date(d); end.setDate(end.getDate()+1);
+    return list.filter(s=>{ const t = new Date(s.created_at); return t>=d && t<end; }).length;
+  });
+  const max = Math.max(1, ...counts);
+  const inRange = counts.reduce((a,b)=>a+b,0);
+  html += `<div class="sp-chart-card">
+    <div class="sp-chart-title"><i class="ti ti-chart-line"></i>报名趋势
+      <div class="sp-range">
+        <button class="${spTrendDays===7?'active':''}" onclick="spSetTrendDays(7)">7天</button>
+        <button class="${spTrendDays===14?'active':''}" onclick="spSetTrendDays(14)">14天</button>
+        <button class="${spTrendDays===30?'active':''}" onclick="spSetTrendDays(30)">30天</button>
+      </div></div>
+    <div class="sp-trend">${days.map((d,i)=>{
+      const c = counts[i];
+      const showLbl = spTrendDays<=14 || i%5===0 || i===days.length-1;
+      return `<div class="sp-trend-col"><div class="sp-trend-bar${c?'':' zero'}" style="height:${c?Math.max(6,c/max*100):2}%">${c&&spTrendDays<=14?`<span>${c}</span>`:''}</div><div class="sp-trend-label">${showLbl?(d.getMonth()+1)+'/'+d.getDate():''}</div></div>`;
+    }).join('')}</div>
+    <div style="font-size:11.5px;color:var(--text-3);margin-top:8px;text-align:right">近 ${spTrendDays} 天共 ${inRange} 条</div>
+  </div>`;
+
+  // 2) 时段分布（按小时分成 4 段）
+  const slots = [['凌晨 0-6点','ti-moon-stars',0,6],['上午 6-12点','ti-sun-low',6,12],['下午 12-18点','ti-sun',12,18],['晚上 18-24点','ti-moon',18,24]];
+  const slotCnt = slots.map(([,,a,b])=>list.filter(s=>{ const hr = new Date(s.created_at).getHours(); return hr>=a && hr<b; }).length);
+  const slotMax = Math.max(1, ...slotCnt);
+  html += `<div class="sp-chart-card"><div class="sp-chart-title"><i class="ti ti-clock-hour-4"></i>报名时段</div>
+    ${slots.map((s,i)=>`<div class="sp-dist-row"><div class="sp-dist-top"><span><i class="ti ${s[1]}" style="margin-right:5px;color:var(--text-3)"></i>${s[0]}</span><span>${slotCnt[i]} 条</span></div>
+      <div class="sp-dist-track"><div class="sp-dist-fill" style="width:${slotCnt[i]/slotMax*100}%;background:${colors[i]}"></div></div></div>`).join('')}
+  </div>`;
+
+  // 3) 选择类字段分布（单选 / 下拉 / 多选）
+  const fields = (spSubsCurrentEvent && spSubsCurrentEvent.fields || []).filter(f=>['select','radio','checkbox'].includes(f.type));
+  fields.forEach(f=>{
+    const tally = {};
+    let answered = 0;
+    list.forEach(s=>{
+      const v = (s.values||{})[f.label];
+      const arr = Array.isArray(v) ? v : (v ? [v] : []);
+      if(arr.length) answered++;
+      arr.forEach(x=>{ tally[x] = (tally[x]||0)+1; });
+    });
+    const entries = Object.entries(tally).sort((a,b)=>b[1]-a[1]);
+    if(!entries.length) return;
+    const total = entries.reduce((n,e)=>n+e[1],0);
+    if(f.type!=='checkbox' && entries.length<=6){
+      // 环形图
+      let acc = 0;
+      const stops = entries.map((e,i)=>{ const from = acc/total*100; acc += e[1]; return `${colors[i%colors.length]} ${from}% ${acc/total*100}%`; }).join(',');
+      html += `<div class="sp-chart-card"><div class="sp-chart-title"><i class="ti ${spFieldIcon(f.type)}"></i>${spEscapeHtml(f.label)}<small>${answered} 人作答</small></div>
+        <div class="sp-donut-wrap"><div class="sp-donut" style="background:conic-gradient(${stops})"><div class="sp-donut-center"><b>${total}</b><small>票</small></div></div>
+        <div class="sp-legend">${entries.map((e,i)=>`<div class="sp-legend-item"><i style="background:${colors[i%colors.length]}"></i><span>${spEscapeHtml(e[0])}</span><em>${e[1]} · ${Math.round(e[1]/total*100)}%</em></div>`).join('')}</div></div></div>`;
+    }else{
+      const m = entries[0][1];
+      html += `<div class="sp-chart-card"><div class="sp-chart-title"><i class="ti ${spFieldIcon(f.type)}"></i>${spEscapeHtml(f.label)}<small>${answered} 人作答</small></div>
+        ${entries.map((e,i)=>`<div class="sp-dist-row"><div class="sp-dist-top"><span>${spEscapeHtml(e[0])}</span><span>${e[1]} 人 · ${Math.round(e[1]/answered*100)}%</span></div><div class="sp-dist-track"><div class="sp-dist-fill" style="width:${e[1]/m*100}%;background:${colors[i%colors.length]}"></div></div></div>`).join('')}</div>`;
+    }
+  });
+
+  // 4) 人数汇总
+  const peopleVals = list.map(s=>spSubSummary(s).num).filter(n=>n);
+  if(peopleVals.length){
+    const sum = peopleVals.reduce((a,b)=>a+b,0);
+    html += `<div class="sp-chart-card"><div class="sp-chart-title"><i class="ti ti-users"></i>人数概览</div>
+      <div class="sp-stats" style="margin:0">
+        <div class="sp-stat accent"><div class="sp-stat-top"><i class="ti ti-sum"></i>总人数</div><div class="sp-stat-num">${sum}</div></div>
+        <div class="sp-stat"><div class="sp-stat-top"><i class="ti ti-chart-arrows"></i>平均每组</div><div class="sp-stat-num">${(sum/peopleVals.length).toFixed(1)}</div></div>
+        <div class="sp-stat"><div class="sp-stat-top"><i class="ti ti-trophy"></i>最大一组</div><div class="sp-stat-num">${Math.max(...peopleVals)}</div></div>
+      </div></div>`;
+  }
+  box.innerHTML = html;
+}
+function spSetTrendDays(n){ spTrendDays = n; spRenderSubsCharts(); }
+
+// ── 导出菜单 / Excel ──
+function spToggleExportMenu(ev){
+  ev.stopPropagation();
+  document.getElementById('spExportMenu').classList.toggle('open');
+}
+document.addEventListener('click', ()=>{ const m = document.getElementById('spExportMenu'); if(m) m.classList.remove('open'); });
+
+function spSubsTable(){
+  const cols = [];
+  const seen = new Set();
+  // 先按活动里字段定义的顺序，再补充历史数据里出现过的其他列
+  ((spSubsCurrentEvent && spSubsCurrentEvent.fields) || []).forEach(f=>{ if(!seen.has(f.label)){ seen.add(f.label); cols.push(f.label); } });
+  spSubsCache.forEach(s=>Object.keys(s.values||{}).forEach(k=>{ if(!seen.has(k)){ seen.add(k); cols.push(k); } }));
+  const header = ['提交时间', ...cols];
+  const rows = spSubsCache.map(s=>{
+    const vals = s.values || {};
+    return [spFmtFull(s.created_at), ...cols.map(c=>{ const v = vals[c]; return Array.isArray(v) ? v.join('、') : (v==null?'':v); })];
+  });
+  return { header, rows, cols };
+}
+function spExportSubsXLSX(){
+  if(!spSubsCache.length){ spToast('暂无数据可导出'); return; }
+  if(!window.XLSX){ spToast('Excel 组件未加载，已改为导出 CSV'); spExportSubsCSV(); return; }
+  const { header, rows } = spSubsTable();
+  const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+  ws['!cols'] = header.map((h,i)=>{
+    const w = Math.max(String(h).length*2, ...rows.map(r=>String(r[i]==null?'':r[i]).length*1.6));
+    return { wch: Math.min(40, Math.max(10, Math.ceil(w))) };
+  });
+  const wb = XLSX.utils.book_new();
+  const title = (spSubsCurrentEvent ? spSubsCurrentEvent.title : '报名数据').replace(/[\\\/\?\*\[\]:]/g,'').slice(0,28) || '报名数据';
+  XLSX.utils.book_append_sheet(wb, ws, title);
+  XLSX.writeFile(wb, `报名数据_${spSubsCurrentEvent?spSubsCurrentEvent.title:'export'}_${Date.now()}.xlsx`);
+  spToast('已导出 Excel');
+}
 function spExportSubsCSV(){
   if(!spSubsCache.length){ spToast('暂无数据可导出'); return; }
-  const cols = new Set();
-  spSubsCache.forEach(s=>Object.keys(s.values||{}).forEach(k=>cols.add(k)));
-  const colList = ['提交时间', ...cols];
-  const rows = [colList.join(',')];
-  spSubsCache.forEach(s=>{
-    const t = s.created_at ? new Date(s.created_at).toLocaleString('zh-CN') : '';
-    const vals = s.values || {};
-    const row = [t, ...[...cols].map(c=>{
-      const v = vals[c];
-      const str = Array.isArray(v) ? v.join('、') : (v==null?'':String(v));
-      return '"'+str.replace(/"/g,'""')+'"';
-    })];
-    rows.push(row.join(','));
-  });
-  const csv = '\uFEFF' + rows.join('\n');
+  const { header, rows } = spSubsTable();
+  const esc = v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"';
+  const csv = '\uFEFF' + [header, ...rows].map(r=>r.map(esc).join(',')).join('\n');
   const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = `报名数据_${spSubsCurrentEvent?spSubsCurrentEvent.title:'export'}_${Date.now()}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  spToast('已导出 CSV');
 }
 
 // ── 启动 ──

@@ -109,14 +109,53 @@
 
 <!-- 报名数据查看 -->
 <div class="sp-overlay" id="spSubsOverlay" onclick="spCloseOverlay(event,'spSubsOverlay')" style="z-index:510">
-  <div class="sp-sheet" onclick="event.stopPropagation()">
+  <div class="sp-sheet sp-subs-sheet" onclick="event.stopPropagation()">
     <button class="sp-sheet-close" onclick="spCloseOverlay(null,'spSubsOverlay')"><i class="ti ti-x"></i></button>
     <div class="sp-sheet-handle"></div>
-    <div class="sp-sheet-title" id="spSubsTitle">报名数据</div>
-    <div style="display:flex;gap:8px;margin:10px 0 14px">
-      <button class="sp-btn sp-btn-ghost" onclick="spExportSubsCSV()"><i class="ti ti-download" style="font-size:13px;margin-right:3px"></i>导出 CSV</button>
-      <button class="sp-btn sp-btn-ghost" onclick="spLoadSubmissions()"><i class="ti ti-refresh" style="font-size:13px;margin-right:3px"></i>刷新</button>
+    <div class="sp-subs-head">
+      <div class="sp-subs-head-icon"><i class="ti ti-users-group"></i></div>
+      <div style="min-width:0">
+        <div class="sp-sheet-title" id="spSubsTitle">报名数据</div>
+        <div class="sp-subs-sub" id="spSubsSub"></div>
+      </div>
     </div>
+
+    <div class="sp-stats" id="spSubsStats"></div>
+
+    <div class="sp-subs-toolbar">
+      <div class="sp-search">
+        <i class="ti ti-search"></i>
+        <input type="text" id="spSubsSearch" placeholder="搜索姓名、电话等…" oninput="spRenderSubs()">
+        <button class="sp-search-clear" id="spSubsSearchClear" onclick="spClearSubsSearch()"><i class="ti ti-x"></i></button>
+      </div>
+      <button class="sp-tool-btn" title="切换排序" id="spSubsSortBtn" onclick="spToggleSubsSort()"><i class="ti ti-sort-descending"></i></button>
+      <button class="sp-tool-btn" title="刷新" onclick="spLoadSubmissions()"><i class="ti ti-refresh"></i></button>
+    </div>
+
+    <div class="sp-subs-bar2">
+      <div class="sp-seg" id="spSubsTabs">
+        <button class="active" data-tab="list" onclick="spSwitchSubsTab('list')"><i class="ti ti-list-details"></i>列表</button>
+        <button data-tab="chart" onclick="spSwitchSubsTab('chart')"><i class="ti ti-chart-bar"></i>图表</button>
+      </div>
+      <div class="sp-bar2-right">
+        <button class="sp-chip-btn" id="spSelectModeBtn" onclick="spToggleSelectMode()"><i class="ti ti-checkbox"></i><span>批量</span></button>
+        <div class="sp-menu-wrap">
+          <button class="sp-chip-btn primary" onclick="spToggleExportMenu(event)"><i class="ti ti-download"></i><span>导出</span><i class="ti ti-chevron-down" style="font-size:12px"></i></button>
+          <div class="sp-menu" id="spExportMenu">
+            <button onclick="spExportSubsXLSX()"><i class="ti ti-file-spreadsheet" style="color:#1D7A46"></i>导出 Excel (.xlsx)</button>
+            <button onclick="spExportSubsCSV()"><i class="ti ti-file-type-csv" style="color:#5c5c54"></i>导出 CSV</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sp-batch-bar" id="spBatchBar">
+      <label class="sp-batch-all"><input type="checkbox" id="spSelectAll" onchange="spSelectAllToggle(this.checked)"><span>全选</span></label>
+      <span class="sp-batch-count" id="spBatchCount">已选 0 条</span>
+      <button class="sp-btn sp-btn-danger" id="spBatchDelBtn" onclick="spBatchDelete()" disabled><i class="ti ti-trash"></i>删除所选</button>
+    </div>
+
+    <div id="spSubsCharts" style="display:none"></div>
     <div id="spSubsList"></div>
   </div>
 </div>
@@ -124,6 +163,7 @@
 <div class="sp-toast" id="spToast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="signup.js"></script>
 </body>
 </html>
