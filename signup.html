@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title id="spPageTitle">活动报名</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="signup.css">
+<link rel="stylesheet" href="signup.css?v=20261014f">
 </head>
 <body>
 <div class="sp-shell">
@@ -84,6 +84,7 @@
       <div class="sp-form-row"><label>地点</label><input type="text" id="spfLocation" placeholder="如：教会主堂"></div>
       <div class="sp-form-row"><label>详细地址（选填）</label><input type="text" id="spfAddress" placeholder="如：Rua da Paz, 123"></div>
     </div>
+    <div class="sp-form-row"><label>简介标题（选填，如：欢迎参加）</label><input type="text" id="spfIntroTitle" placeholder="填写后会显示为带图标的小标题" maxlength="20"></div>
     <div class="sp-form-row"><label>简介</label><textarea id="spfIntro" placeholder="欢迎你来到教会…"></textarea></div>
     <div class="sp-form-row"><label>亮点标签（用逗号分隔）</label><input type="text" id="spfHighlights" placeholder="如：敬拜赞美,圣经讲道,团契相交"></div>
     <div class="sp-form-row"><label>详情标题</label><input type="text" id="spfDetailTitle" placeholder="活动详情"></div>
@@ -91,6 +92,21 @@
     <div class="sp-row-2">
       <div class="sp-form-row"><label>详情页按钮文字</label><input type="text" id="spfCtaText" placeholder="立即报名"></div>
       <div class="sp-form-row"><label>表单提交按钮文字</label><input type="text" id="spfSubmitText" placeholder="提交报名"></div>
+    </div>
+
+    <hr class="sp-divider">
+    <div class="sp-sheet-title" style="font-size:14.5px;margin:0 0 10px"><i class="ti ti-ticket" style="color:var(--primary);margin-right:5px"></i>名额与截止时间</div>
+    <div class="sp-row-2">
+      <div class="sp-form-row"><label>人数上限（0 = 不限）</label><input type="number" id="spfCapacity" min="0" inputmode="numeric" placeholder="0"></div>
+      <div class="sp-form-row"><label>名额计算方式</label>
+        <select id="spfCapacityMode"><option value="count">按报名份数</option><option value="people">按总人数（累加“人数”字段）</option></select>
+      </div>
+    </div>
+    <div class="sp-row-2">
+      <div class="sp-form-row"><label>报名截止时间（选填）</label><input type="datetime-local" id="spfDeadline"></div>
+      <div class="sp-form-row"><label>向访客显示剩余名额</label>
+        <label class="sp-switch" style="margin-top:6px"><input type="checkbox" id="spfShowRemaining"><span class="track"></span><span class="thumb"></span></label>
+      </div>
     </div>
 
     <hr class="sp-divider">
@@ -120,17 +136,8 @@
       </div>
     </div>
 
+    <div class="sp-schema-warn" id="spSchemaWarn"></div>
     <div class="sp-stats" id="spSubsStats"></div>
-
-    <div class="sp-subs-toolbar">
-      <div class="sp-search">
-        <i class="ti ti-search"></i>
-        <input type="text" id="spSubsSearch" placeholder="搜索姓名、电话等…" oninput="spRenderSubs()">
-        <button class="sp-search-clear" id="spSubsSearchClear" onclick="spClearSubsSearch()"><i class="ti ti-x"></i></button>
-      </div>
-      <button class="sp-tool-btn" title="切换排序" id="spSubsSortBtn" onclick="spToggleSubsSort()"><i class="ti ti-sort-descending"></i></button>
-      <button class="sp-tool-btn" title="刷新" onclick="spLoadSubmissions()"><i class="ti ti-refresh"></i></button>
-    </div>
 
     <div class="sp-subs-bar2">
       <div class="sp-seg" id="spSubsTabs">
@@ -141,18 +148,51 @@
         <button class="sp-chip-btn" id="spSelectModeBtn" onclick="spToggleSelectMode()"><i class="ti ti-checkbox"></i><span>批量</span></button>
         <div class="sp-menu-wrap">
           <button class="sp-chip-btn primary" onclick="spToggleExportMenu(event)"><i class="ti ti-download"></i><span>导出</span><i class="ti ti-chevron-down" style="font-size:12px"></i></button>
-          <div class="sp-menu" id="spExportMenu">
+          <div class="sp-menu" id="spExportMenu" onclick="event.stopPropagation()">
+            <div class="sp-menu-scope" id="spExportScope"></div>
             <button onclick="spExportSubsXLSX()"><i class="ti ti-file-spreadsheet" style="color:#1D7A46"></i>导出 Excel (.xlsx)</button>
             <button onclick="spExportSubsCSV()"><i class="ti ti-file-type-csv" style="color:#5c5c54"></i>导出 CSV</button>
+            <button onclick="spPrintSignSheet()"><i class="ti ti-printer" style="color:#4C8DF6"></i>打印签到表 / 存为 PDF</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="sp-list-tools" id="spSubsListTools">
+      <div class="sp-subs-toolbar">
+        <div class="sp-search">
+          <i class="ti ti-search"></i>
+          <input type="text" id="spSubsSearch" placeholder="搜索姓名、电话、备注…" oninput="spOnFilterChange()">
+          <button class="sp-search-clear" id="spSubsSearchClear" onclick="spClearSubsSearch()"><i class="ti ti-x"></i></button>
+        </div>
+        <button class="sp-tool-btn" title="切换排序" aria-label="切换排序" id="spSubsSortBtn" onclick="spToggleSubsSort()"><i class="ti ti-sort-descending"></i></button>
+        <button class="sp-tool-btn" title="刷新" aria-label="刷新" onclick="spLoadSubmissions()"><i class="ti ti-refresh"></i></button>
+      </div>
+      <div class="sp-chips" id="spSubsChips"></div>
+      <div class="sp-date-row">
+        <i class="ti ti-calendar-event"></i>
+        <input type="date" id="spSubsFrom" onchange="spOnFilterChange()" aria-label="开始日期">
+        <span>至</span>
+        <input type="date" id="spSubsTo" onchange="spOnFilterChange()" aria-label="结束日期">
+        <button class="sp-date-quick" onclick="spQuickRange(1)">今天</button>
+        <button class="sp-date-quick" onclick="spQuickRange(7)">近7天</button>
+        <button class="sp-date-quick" id="spDateClear" onclick="spClearDates()" style="display:none">清除</button>
       </div>
     </div>
 
     <div class="sp-batch-bar" id="spBatchBar">
       <label class="sp-batch-all"><input type="checkbox" id="spSelectAll" onchange="spSelectAllToggle(this.checked)"><span>全选</span></label>
       <span class="sp-batch-count" id="spBatchCount">已选 0 条</span>
-      <button class="sp-btn sp-btn-danger" id="spBatchDelBtn" onclick="spBatchDelete()" disabled><i class="ti ti-trash"></i>删除所选</button>
+      <select id="spBatchStatus" onchange="spBatchSetStatus(this.value)" aria-label="批量设置状态">
+        <option value="">设为…</option>
+        <option value="pending">待确认</option>
+        <option value="confirmed">已确认</option>
+        <option value="checked_in">已到场</option>
+        <option value="cancelled">已取消</option>
+      </select>
+      <button class="sp-btn sp-btn-danger" id="spBatchDelBtn" onclick="spBatchDelete()" disabled><i class="ti ti-trash"></i>删除</button>
+      <button class="sp-btn sp-btn-ghost" id="spBatchRestoreBtn" onclick="spBatchRestore()" style="display:none" disabled><i class="ti ti-arrow-back-up"></i>恢复</button>
+      <button class="sp-btn sp-btn-danger" id="spBatchPurgeBtn" onclick="spBatchPurge()" style="display:none" disabled><i class="ti ti-trash-x"></i>彻底删除</button>
     </div>
 
     <div id="spSubsCharts" style="display:none"></div>
@@ -163,7 +203,6 @@
 <div class="sp-toast" id="spToast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="signup.js"></script>
+<script src="signup.js?v=20261014f"></script>
 </body>
 </html>
