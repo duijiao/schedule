@@ -4,20 +4,64 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title id="spPageTitle">活动报名</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="signup.css?v=20261015a">
+<!-- 提前与后台、CDN 建立连接 -->
+<link rel="preconnect" href="https://citorcvisrfqkflwortx.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<!-- 首屏加载动画的样式内联，不用等外部 CSS -->
+<style id="spCritical">
+.sp-loading{padding:0 0 24px}
+.sp-sk{background:linear-gradient(90deg,#eceef1 25%,#f6f7f9 50%,#eceef1 75%); background-size:200% 100%; animation:spLoadShimmer 1.3s ease-in-out infinite; border-radius:8px}
+.sp-loading-hero{aspect-ratio:16/10; max-height:320px; border-radius:0 0 26px 26px}
+.sp-loading-card{position:relative; margin:-24px 12px 0; background:#fff; border-radius:22px; padding:22px 18px 20px; box-shadow:0 4px 20px rgba(28,26,20,.06)}
+.sp-loading-card .sp-sk{margin-bottom:13px}
+.sp-loading-state{display:flex; align-items:center; justify-content:center; gap:10px; margin:22px 0 6px; font-size:13px; color:#8f8f86}
+.sp-spinner{width:22px; height:22px; border-radius:50%; border:3px solid #d0ede4; border-top-color:#1D9E75; animation:spLoadSpin .8s linear infinite; flex-shrink:0}
+.sp-loading-err{display:flex; flex-direction:column; align-items:center; gap:8px; padding:96px 24px; text-align:center; color:#8f8f86}
+.sp-loading-err svg{width:54px; height:54px; stroke:#b6b6ac}
+.sp-loading-err .t{font-size:16px; font-weight:800; color:#1a1a1a; margin-top:6px}
+.sp-loading-err .s{font-size:13px; line-height:1.7; margin-bottom:10px}
+@keyframes spLoadShimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+@keyframes spLoadSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.sp-sk,.sp-spinner{animation-duration:2.4s}}
+</style>
+<!-- 与脚本下载并行，提前发起活动数据请求（signup.js 会直接取用结果；配置不一致时会自动忽略） -->
+<script>
+(function(){
+  var URL_='https://citorcvisrfqkflwortx.supabase.co', KEY_='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpdG9yY3Zpc3JmcWtmbHdvcnR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4OTk4NjQsImV4cCI6MjA5NzQ3NTg2NH0.I1G-oO1T3wfWJ5GcmYejT6Y0x2wAJ0xXRQsIcPVPjos';
+  var o = window.__spPre = { key: URL_+'|church_app_state|1' };
+  o.p = fetch(URL_+'/rest/v1/church_app_state?id=eq.1&select=id,signup_events', { headers:{ apikey:KEY_, Authorization:'Bearer '+KEY_ }, cache:'no-store' })
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+  o.p.catch(function(){});
+})();
+</script>
+<!-- 图标字体不阻塞首屏：先出内容，图标随后加载 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
+<link rel="stylesheet" href="signup.css?v=20261015b">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="signup.js?v=20261015b"></script>
 </head>
 <body>
 <div class="sp-shell">
   <div class="sp-topbar" id="spTopbar">
-    <button class="sp-icon-btn" id="spBackBtn" onclick="spGoBack()"><i class="ti ti-chevron-left"></i></button>
+    <button class="sp-icon-btn ghost" id="spBackBtn" aria-label="返回" onclick="spGoBack()"><i class="ti ti-chevron-left"></i></button>
     <div class="sp-topbar-title" id="spTopbarTitle"></div>
     <div class="sp-topbar-right">
       <button class="sp-icon-btn" id="spAdminBtn" onclick="spAdminFabClick()" title="管理"><i class="ti ti-shield-lock"></i></button>
-      <button class="sp-icon-btn" id="spShareBtn" aria-label="分享" onclick="spShare()"><i class="ti ti-share-2"></i></button>
+      <button class="sp-icon-btn ghost" id="spShareBtn" aria-label="分享" onclick="spShare()"><i class="ti ti-share-2"></i></button>
     </div>
   </div>
-  <div class="sp-body" id="spBody"></div>
+  <div class="sp-body" id="spBody"><div class="sp-loading" id="spLoading" role="status" aria-live="polite">
+    <div class="sp-sk sp-loading-hero"></div>
+    <div class="sp-loading-card">
+      <div class="sp-sk" style="width:74px;height:24px;border-radius:999px"></div>
+      <div class="sp-sk" style="width:86%;height:26px"></div>
+      <div class="sp-sk" style="width:58%;height:26px;margin-bottom:20px"></div>
+      <div class="sp-sk" style="width:64%;height:16px"></div>
+      <div class="sp-sk" style="width:80%;height:16px;margin-bottom:0"></div>
+    </div>
+    <div class="sp-loading-state"><div class="sp-spinner"></div><span id="spLoadingText">正在加载活动…</span></div>
+  </div></div>
 </div>
 
 <!-- 管理员登录 -->
@@ -202,7 +246,6 @@
 
 <div class="sp-toast" id="spToast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="signup.js?v=20261015a"></script>
+<noscript><div style="padding:60px 20px;text-align:center;color:#8f8f86">请开启浏览器的 JavaScript 后再打开本页面。</div></noscript>
 </body>
 </html>

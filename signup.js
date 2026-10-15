@@ -181,17 +181,45 @@ function spNormField(f){
   };
 }
 
+// ── 活动数据加载：并行预取 + 本地缓存（先显示上次的内容，再静默更新） ──
+const SP_CACHE_KEY = 'sp_events_cache_v1';
+function spReadCache(){
+  try{ const o = JSON.parse(localStorage.getItem(SP_CACHE_KEY) || 'null'); if(o && Array.isArray(o.events)) return o; }catch(_){}
+  return null;
+}
+function spWriteCache(events){
+  try{ localStorage.setItem(SP_CACHE_KEY, JSON.stringify({ t: Date.now(), events })); }catch(_){}
+}
+function spWithTimeout(p, ms){
+  return new Promise((resolve, reject)=>{
+    const tm = setTimeout(()=>reject(new Error('请求超时')), ms);
+    p.then(v=>{ clearTimeout(tm); resolve(v); }, err=>{ clearTimeout(tm); reject(err); });
+  });
+}
+function spRestFetch(){
+  const ctrl = ('AbortController' in window) ? new AbortController() : null;
+  const tm = ctrl ? setTimeout(()=>ctrl.abort(), 15000) : null;
+  return fetch(`${SP_CONFIG.url}/rest/v1/${SP_CONFIG.table}?id=eq.${encodeURIComponent(SP_CONFIG.rowId)}&select=id,signup_events`, {
+    headers: { apikey: SP_CONFIG.anonKey, Authorization: 'Bearer ' + SP_CONFIG.anonKey },
+    cache: 'no-store', signal: ctrl ? ctrl.signal : undefined,
+  }).then(r=>{ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .finally(()=>{ if(tm) clearTimeout(tm); });
+}
+// 返回原始活动数组；优先使用 HTML 头部提前发起的请求
+function spFetchEventsRemote(){
+  const key = SP_CONFIG.url + '|' + SP_CONFIG.table + '|' + SP_CONFIG.rowId;
+  const pre = window.__spPre;
+  let p;
+  if(pre && pre.key === key && !pre.used){ pre.used = true; p = pre.p; } else p = spRestFetch();
+  return p.then(rows=>{
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    return (row && Array.isArray(row.signup_events)) ? row.signup_events : [];
+  });
+}
 async function spLoadState(){
-  const client = spInitClient();
-  if(!client) return;
-  try{
-    const { data, error } = await client.from(SP_CONFIG.table).select('id,signup_events').eq('id', SP_CONFIG.rowId).maybeSingle();
-    if(error) throw error;
-    spEvents = (data && Array.isArray(data.signup_events)) ? data.signup_events.map(spNormEvent) : [];
-  }catch(e){
-    console.error('加载报名活动失败', e);
-    spEvents = [];
-  }
+  const raw = await spFetchEventsRemote();
+  spEvents = raw.map(spNormEvent);
+  spWriteCache(raw);
 }
 async function spSaveEventsRemote(){
   const client = spInitClient();
@@ -199,6 +227,7 @@ async function spSaveEventsRemote(){
   const payload = { id: SP_CONFIG.rowId, signup_events: spEvents, updated_at: new Date().toISOString() };
   const { error } = await client.from(SP_CONFIG.table).upsert(payload, { onConflict:'id' });
   if(error) throw error;
+  spWriteCache(spEvents);
 }
 
 // ── 日期格式化 ──
@@ -216,6 +245,7 @@ function spEnabledEvents(){
 }
 function spGetEvent(id){ return spEvents.find(e=>e.id===id); }
 
+let spAdminPrompted = false;
 function spBoot(){
   const params = new URLSearchParams(location.search);
   const idParam = params.get('id');
@@ -230,7 +260,7 @@ function spBoot(){
     spView='empty';
   }
   spRender();
-  if(params.get('admin')==='1' && !spIsAdmin) spOpenLogin();
+  if(params.get('admin')==='1' && !spIsAdmin && !spAdminPrompted){ spAdminPrompted = true; spOpenLogin(); }
 }
 
 function spGoBack(){
@@ -273,7 +303,7 @@ function spRenderList(body){
     <div class="sp-list-header">报名活动</div>
     ${list.map(e=>`
       <div class="sp-list-card" onclick="spGoDetail('${e.id}')">
-        <img class="sp-list-card-img" src="${spEscapeHtml(e.coverImage)}" onerror="this.style.visibility='hidden'">
+        <img class="sp-list-card-img" src="${spEscapeHtml(e.coverImage)}" alt="" loading="lazy" decoding="async" onload="this.classList.add('loaded')" onerror="this.style.visibility='hidden'">
         <div class="sp-list-card-body">
           ${e.tag?`<span class="sp-tag-pill small">${spEscapeHtml(e.tag)}</span>`:''}
           <div class="sp-list-card-title">${spEscapeHtml(e.title)}</div>
@@ -303,7 +333,7 @@ function spRenderDetail(body){
   const timeStr = `${spFormatDate(e.date)} ${spEscapeHtml(e.timeStart)}${e.timeEnd?'-'+spEscapeHtml(e.timeEnd):''}`.trim();
   const hasIntro = !!(e.introTitle || e.intro || e.highlights.length);
   body.innerHTML = `
-    <div class="sp-cover-wrap${e.coverImage?'':' empty'}">${e.coverImage?`<img class="sp-cover" src="${spEscapeHtml(e.coverImage)}" alt="">`:''}</div>
+    <div class="sp-cover-wrap${e.coverImage?'':' empty'}">${e.coverImage?`<img class="sp-cover" src="${spEscapeHtml(e.coverImage)}" alt="" fetchpriority="high" decoding="async" onload="this.classList.add('loaded')" onerror="this.style.display='none'">`:''}</div>
     <div class="sp-detail-card">
       ${e.tag?`<span class="sp-tag-pill">${spEscapeHtml(e.tag)}</span>`:''}
       <h1 class="sp-title">${spEscapeHtml(e.title)}</h1>
@@ -324,6 +354,7 @@ function spRenderDetail(body){
   `;
   document.getElementById('spBody').insertAdjacentHTML('beforeend', `<div class="sp-cta-bar" id="spCtaBar"></div>`);
   spPaintCta(e, null);
+  body.querySelectorAll('.sp-cover').forEach(i=>{ if(i.complete && i.naturalWidth) i.classList.add('loaded'); });
   spLoadCapacity(e);
 }
 
@@ -1041,7 +1072,7 @@ async function spSaveNote(id, el){
   if(await spUpdateSubs(id, { admin_note: val || null })){ el.dataset.orig = val; spToast('备注已保存'); }
 }
 let spUndoTm = null;
-const SP_BUILD = '20261015a';
+const SP_BUILD = '20261015b';
 // 撤销提示条：由 JS 动态创建、样式全部内联，不依赖 HTML 结构和 CSS 文件是否为最新
 function spEnsureUndoEl(){
   let box = document.getElementById('spUndoToast');
@@ -1691,8 +1722,53 @@ async function spShareTextNative(){
 
 
 // ── 启动 ──
+// ── 启动：缓存秒开 → 后台更新；失败给出重试 ──
+const SP_LOADING_TPL = (document.getElementById('spBody') || {}).innerHTML || '';
+let spSlowTm = null;
+function spShowLoading(){
+  const b = document.getElementById('spBody'); if(!b) return;
+  if(!document.getElementById('spLoading')) b.innerHTML = SP_LOADING_TPL;
+  clearTimeout(spSlowTm);
+  spSlowTm = setTimeout(()=>{ const t = document.getElementById('spLoadingText'); if(t) t.textContent = '网络较慢，仍在加载，请稍候…'; }, 6000);
+}
+function spShowLoadError(msg){
+  clearTimeout(spSlowTm);
+  const b = document.getElementById('spBody'); if(!b) return;
+  document.getElementById('spTopbarTitle').textContent = '';
+  b.innerHTML = `<div class="sp-loading-err" role="alert">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.58 9.58A5 5 0 0 0 7 14a4 4 0 0 0 .5 8M3 3l18 18M17.6 17.6A4 4 0 0 0 17 9.99a6 6 0 0 0-8.4-4.6"/></svg>
+    <div class="t">加载失败</div>
+    <div class="s">${spEscapeHtml(msg || '网络似乎不太稳定，请检查网络后重试')}</div>
+    <button class="sp-btn sp-btn-primary" style="padding:11px 30px" onclick="spRetryLoad()">重新加载</button></div>`;
+}
+// 后台拿到新数据后，在不打断用户操作的前提下刷新界面
+function spApplyFresh(raw){
+  spEvents = raw.map(spNormEvent);
+  if(spView === 'form' || spView === 'success') return;       // 正在填写/刚提交，不重绘，避免丢失输入
+  if(spView === 'list' || spView === 'empty'){ spBoot(); return; }   // 重新判断该显示列表、单个活动还是“暂无活动”
+  const cur = spCurrentId && spGetEvent(spCurrentId);
+  if(cur && cur.enabled) spRender(); else spBoot();
+}
+async function spStartLoad(){
+  const cached = spReadCache();
+  let shown = false;
+  if(cached){ spEvents = cached.events.map(spNormEvent); spBoot(); shown = true; }
+  else spShowLoading();
+  try{
+    const fresh = await spWithTimeout(spFetchEventsRemote(), 18000);
+    clearTimeout(spSlowTm);
+    const changed = !cached || JSON.stringify(fresh) !== JSON.stringify(cached.events);
+    spWriteCache(fresh);
+    if(!shown){ spEvents = fresh.map(spNormEvent); spBoot(); }
+    else if(changed){ spApplyFresh(fresh); }
+  }catch(err){
+    console.error('加载报名活动失败', err);
+    if(!shown) spShowLoadError();
+  }
+}
+function spRetryLoad(){ spShowLoading(); spStartLoad(); }
+
 (async function spInit(){
-  spInitClient();
-  await spLoadState();
-  spBoot();
+  spInitClient();            // supabase-js 若已就绪则创建；未就绪时在需要用到时再创建
+  spStartLoad();
 })();
