@@ -342,3 +342,32 @@ body{
 .sp-note:focus{border-color:var(--primary)}
 .sp-sub-foot{flex-wrap:wrap}
 .sp-more-btn{width:100%; border:none; background:var(--bg-subtle); color:var(--text-2); font-size:13px; font-weight:700; font-family:inherit; padding:11px; border-radius:12px; cursor:pointer; margin:2px 0 10px}
+
+/* ── 分享面板 ───────────────────────── */
+.sp-share-sheet{padding-top:14px}
+.sp-share-head{display:flex; align-items:center; gap:12px; margin:2px 40px 14px 0}
+.sp-share-head-icon{width:42px; height:42px; border-radius:13px; background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:21px; flex-shrink:0}
+.sp-share-sub{font-size:12px; color:var(--text-3); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%}
+.sp-share-wx{display:flex; gap:8px; align-items:flex-start; background:#fff7e6; color:#8a5300; border-radius:12px; padding:10px 12px; font-size:12.5px; line-height:1.6; margin-bottom:12px}
+.sp-share-wx i{font-size:18px; color:#1aad19; margin-top:1px}
+.sp-share-tabs{display:flex; width:100%; margin-bottom:14px}
+.sp-share-tabs button{flex:1; justify-content:center}
+.sp-poster-box{background:var(--bg-subtle); border-radius:16px; padding:12px; display:flex; align-items:center; justify-content:center; min-height:200px}
+.sp-poster-box img{display:block; width:100%; max-width:300px; height:auto; border-radius:12px; box-shadow:0 6px 22px rgba(20,70,50,.18); -webkit-touch-callout:default; user-select:auto}
+.sp-poster-skel{display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--text-3); font-size:12.5px; text-align:center; padding:50px 12px}
+.sp-poster-skel i{font-size:30px; color:var(--text-4)}
+.sp-spin{animation:spSpin .8s linear infinite}
+.sp-share-actions{display:flex; gap:8px; margin-top:14px}
+.sp-share-actions .sp-btn{flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:12px 10px; font-size:13.5px}
+.sp-btn:disabled{opacity:.5; cursor:default}
+.sp-share-tip{font-size:12px; color:var(--text-3); line-height:1.7; margin-top:10px; text-align:center}
+.sp-share-tip b{color:var(--text-2)}
+.sp-qr-card{background:#fff; border:1px solid var(--border-soft); border-radius:16px; padding:10px; display:flex; justify-content:center; box-shadow:var(--shadow-sm)}
+.sp-qr-card img{display:block; width:100%; max-width:300px; height:auto; -webkit-touch-callout:default}
+.sp-share-label{font-size:12px; font-weight:700; color:var(--text-3); margin-bottom:6px}
+.sp-link-row{display:flex; gap:8px}
+.sp-link-row input{flex:1; min-width:0; border:1px solid var(--border-soft); border-radius:10px; padding:9px 11px; font-size:12.5px; font-family:inherit; color:var(--text-2); background:var(--bg-subtle); outline:none}
+.sp-link-row .sp-btn{display:inline-flex; align-items:center; gap:4px; padding:9px 14px; font-size:13px}
+.sp-share-text{width:100%; border:1px solid var(--border-soft); border-radius:12px; padding:10px 12px; font-size:13px; line-height:1.7; font-family:inherit; color:var(--text-1); background:var(--bg-subtle); resize:none; outline:none}
+.sp-admin-share{margin-top:6px; border:none; background:var(--primary-light); color:var(--primary-dark); font-size:11.5px; font-weight:700; font-family:inherit; padding:4px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:4px; cursor:pointer}
+.sp-admin-share i{font-size:13px}
