@@ -1325,7 +1325,7 @@ function spFilteredSubs(){
   const q = (document.getElementById('spSubsSearch').value||'').trim().toLowerCase();
   if(q) list = list.filter(s=>{
     const vals = Object.values(s.values||{}).map(v=>Array.isArray(v)?v.join(' '):String(v==null?'':v));
-    return vals.concat([s.admin_note||'']).some(v=>v.toLowerCase().includes(q));
+    return vals.concat([s.admin_note||'', s.query_code||'']).some(v=>v.toLowerCase().includes(q));
   });
   list.sort((a,b)=>{ const d = new Date(a.created_at)-new Date(b.created_at); return spSubsSortDesc ? -d : d; });
   return list;
@@ -1404,6 +1404,15 @@ function spRenderSubs(){
         ${copyable ? `<div class="sp-sub-item-act"><button class="sp-mini-icon-btn" title="复制" aria-label="复制" onclick="spCopyText(decodeURIComponent('${encodeURIComponent(copyText)}'))"><i class="ti ti-copy"></i></button></div>` : ''}
       </div>`;
     }).join('');
+    const qc = s.query_code ? String(s.query_code) : '';
+    const codeBlock = (!inTrash && spHasCol('query_code')) ? `
+      <div class="sp-sub-item"><div class="sp-sub-item-icon"><i class="ti ti-key"></i></div>
+        <div class="sp-sub-item-body"><div class="sp-sub-item-label">查询码（访客查询 / 修改 / 取消用）</div>
+          <div class="sp-sub-item-val sp-qcode${qc?'':' empty'}">${qc ? spEscapeHtml(qc) : '暂无（旧数据，可点右侧生成）'}</div></div>
+        <div class="sp-sub-item-act">
+          ${qc ? `<button class="sp-mini-icon-btn" title="复制查询码" aria-label="复制查询码" onclick="spCopyText('${spEscapeHtml(qc)}')"><i class="ti ti-copy"></i></button>` : ''}
+          <button class="sp-mini-icon-btn" title="修改查询码" aria-label="修改查询码" onclick="spEditCode('${sid}')"><i class="ti ti-edit"></i></button>
+        </div></div>` : '';
     const pill = inTrash
       ? `<span class="sp-st-pill st-trash"><i class="ti ti-trash"></i>已删除</span>`
       : (hasStatus ? `<span class="sp-st-pill st-${st}"><i class="ti ${SP_STATUS[st].icon}"></i>${SP_STATUS[st].label}</span>` : '');
@@ -1434,6 +1443,7 @@ function spRenderSubs(){
       </div>
       <div class="sp-sub-detail">
         ${items}
+        ${codeBlock}
         <div class="sp-sub-item"><div class="sp-sub-item-icon"><i class="ti ti-calendar-time"></i></div>
           <div class="sp-sub-item-body"><div class="sp-sub-item-label">提交时间</div><div class="sp-sub-item-val">${spFmtFull(s.created_at)}${s.updated_at?` <span style="color:var(--text-3)">· 访客于 ${spFmtFull(s.updated_at)} 修改过</span>`:''}</div></div></div>
         ${checkInfo}
@@ -1524,6 +1534,43 @@ async function spUpdateSubs(ids, patch){
   }
   spSubsCache.forEach(s=>{ if(ids.includes(String(s.id))) Object.assign(s, patch); });
   return true;
+}
+
+// ── 管理员：修改 / 重新生成某条报名的查询码 ──
+function spRandomCode(){
+  const a = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let c = '';
+  for(let i=0;i<6;i++) c += a[Math.floor(Math.random()*a.length)];
+  return c;
+}
+async function spCodeTaken(eventId, id, code){
+  const client = spInitClient(); if(!client) throw new Error('未连接后台');
+  const { data, error } = await client.from(SP_CONFIG.submissionsTable).select('id').eq('event_id', eventId).eq('query_code', code).neq('id', spNormId(id)).limit(1);
+  if(error) throw error;
+  return !!(data && data.length);
+}
+async function spEditCode(sid){
+  const s = spSubsCache.find(x=>String(x.id)===String(sid)); if(!s) return;
+  if(!spIsAdmin){ spToast('请先登录管理员'); return; }
+  const cur = s.query_code ? String(s.query_code) : '';
+  const input = prompt(
+    '请输入新的查询码（4–6 位，只能是字母或数字，不分大小写）。\n留空并确定 = 随机重新生成。\n\n注意：修改后，访客手里的旧查询码会立即失效，请把新的告诉对方。', cur);
+  if(input === null) return;
+  let code = input.trim().toUpperCase();
+  try{
+    if(code === ''){
+      for(let i=0;i<10;i++){ const c = spRandomCode(); if(!(await spCodeTaken(s.event_id, sid, c))){ code = c; break; } }
+      if(!code){ spToast('生成失败，请重试'); return; }
+    } else {
+      if(!/^[A-Z0-9]{4,6}$/.test(code)){ spToast('查询码需为 4–6 位字母或数字'); return; }
+      if(code === cur.toUpperCase()){ spToast('查询码没有变化'); return; }
+      if(await spCodeTaken(s.event_id, sid, code)){ spToast('这个查询码已被本活动的其他报名使用'); return; }
+    }
+  }catch(err){
+    console.error('检查查询码失败', err);
+    spToast(/column|does not exist/i.test(err.message||'') ? '请先在 Supabase 执行 signup_upgrade.sql 升级数据库' : '检查失败，请检查网络后重试');
+    return;
+  }
+  if(await spUpdateSubs(sid, { query_code: code })){ spAfterChange(); spToast('查询码已改为 ' + code); }
 }
 function spAfterChange(){ spRenderSubsStats(); spRenderSubs(); if(spSubsTab==='chart') spRenderSubsCharts(); spLoadCounts(); }
 async function spSetStatus(id, st){
@@ -1761,12 +1808,14 @@ function spSubsTable(list){
   ((spSubsCurrentEvent && spSubsCurrentEvent.fields) || []).forEach(f=>{ if(!seen.has(f.label)){ seen.add(f.label); cols.push(f.label); } });
   list.forEach(s=>Object.keys(s.values||{}).forEach(k=>{ if(!seen.has(k)){ seen.add(k); cols.push(k); } }));
   const hasStatus = spHasCol('status');
-  const header = ['提交时间', ...(hasStatus?['状态']:[]), ...cols, ...(hasStatus?['签到时间','管理员备注']:[])];
+  const hasCode = spHasCol('query_code');
+  const header = ['提交时间', ...(hasStatus?['状态']:[]), ...cols, ...(hasCode?['查询码']:[]), ...(hasStatus?['签到时间','管理员备注']:[])];
   const rows = list.map(s=>{
     const vals = s.values || {};
     return [spFmtFull(s.created_at),
       ...(hasStatus ? [spIsDeleted(s) ? '已删除' : SP_STATUS[spStatusOf(s)].label] : []),
       ...cols.map(c=>{ const v = vals[c]; return Array.isArray(v) ? v.join('、') : (v==null?'':v); }),
+      ...(hasCode ? [s.query_code||''] : []),
       ...(hasStatus ? [s.checked_in_at ? spFmtFull(s.checked_in_at) : '', s.admin_note||''] : [])];
   });
   return { header, rows, cols };

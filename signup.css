@@ -416,3 +416,5 @@ body{
 .sp-merge-hint i{font-size:14px; margin-top:2px; flex-shrink:0}
 .sp-lk-tag{display:flex; align-items:flex-start; gap:6px; font-size:12.5px; line-height:1.6; color:#8a5a00; background:#FFF8E8; border:1px solid #F6E3B4; border-radius:10px; padding:7px 10px; margin:0 0 10px}
 .sp-sub-merge{display:inline-block; margin-left:6px; padding:1px 7px; border-radius:20px; font-size:11px; font-weight:700; color:#8a5a00; background:#FFF1CC; vertical-align:middle}
+.sp-qcode{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:16px; font-weight:800; letter-spacing:3px; color:var(--primary-dark)}
+.sp-qcode.empty{font-family:inherit; font-size:13px; font-weight:400; letter-spacing:0; color:var(--text-4)}
