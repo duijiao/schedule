@@ -88,6 +88,9 @@ body{
 .sp-mini-title{font-size:14px; font-weight:700; color:var(--text-1)}
 .sp-mini-sub{font-size:11.5px; color:var(--text-3); margin-top:2px}
 .sp-section-title{font-size:15px; font-weight:800; margin-bottom:14px}
+.sp-form-notice{display:flex; align-items:flex-start; gap:9px; background:#FFF8E8; border:1px solid #F6E3B4; border-radius:14px; padding:12px 14px; margin:-6px 0 20px; color:#8a5a00}
+.sp-form-notice>i{font-size:17px; line-height:1.5; flex-shrink:0; color:#E0A100}
+.sp-form-notice-text{flex:1; min-width:0; font-size:13px; line-height:1.75; white-space:pre-wrap; word-break:break-word}
 .sp-field{margin-bottom:18px}
 .sp-field-label{display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:700; color:var(--text-1); margin-bottom:8px}
 .sp-field-label i{color:var(--text-3); font-size:15px}

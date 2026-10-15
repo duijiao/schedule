@@ -37,9 +37,9 @@
 <!-- 图标字体不阻塞首屏：先出内容，图标随后加载 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
-<link rel="stylesheet" href="signup.css?v=20261015b">
+<link rel="stylesheet" href="signup.css?v=20261015c">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script defer src="signup.js?v=20261015b"></script>
+<script defer src="signup.js?v=20261015c"></script>
 </head>
 <body>
 <div class="sp-shell">
@@ -137,6 +137,7 @@
       <div class="sp-form-row"><label>详情页按钮文字</label><input type="text" id="spfCtaText" placeholder="立即报名"></div>
       <div class="sp-form-row"><label>表单提交按钮文字</label><input type="text" id="spfSubmitText" placeholder="提交报名"></div>
     </div>
+    <div class="sp-form-row"><label>报名页提示语（选填，显示在报名表单上方，可换行）</label><textarea id="spfFormNotice" placeholder="如：请如实填写信息；报名成功后请留意微信群通知；如需取消请提前联系负责人" style="min-height:80px" maxlength="500"></textarea></div>
 
     <hr class="sp-divider">
     <div class="sp-sheet-title" style="font-size:14.5px;margin:0 0 10px"><i class="ti ti-ticket" style="color:var(--primary);margin-right:5px"></i>名额与截止时间</div>

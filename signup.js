@@ -74,6 +74,7 @@ function spNormEvent(raw){
     detail: src.detail || '',
     ctaText: src.ctaText || '立即报名',
     submitText: src.submitText || '提交报名',
+    formNotice: typeof src.formNotice==='string' ? src.formNotice : '',
     capacity: Math.max(0, parseInt(src.capacity,10) || 0),
     capacityMode: src.capacityMode==='people' ? 'people' : 'count',
     deadline: src.deadline || '',
@@ -423,6 +424,7 @@ function spRenderForm(body){
           <div class="sp-mini-sub">${spFormatDate(e.date)} ${spEscapeHtml(e.timeStart)}${e.timeEnd?'-'+spEscapeHtml(e.timeEnd):''}${e.location?' · '+spEscapeHtml(e.location):''}</div>
         </div>
       </div>
+      ${(e.formNotice||'').trim() ? `<div class="sp-form-notice"><i class="ti ti-info-circle"></i><div class="sp-form-notice-text">${spEscapeHtml(e.formNotice.trim())}</div></div>` : ''}
       <div class="sp-section-title">个人信息</div>
       <div id="spFieldsWrap">${e.fields.map(spRenderFieldHtml).join('')}</div>
     </div>
@@ -611,6 +613,7 @@ function spOpenEditor(id){
   document.getElementById('spfDetail').value = e.detail;
   document.getElementById('spfCtaText').value = e.ctaText;
   document.getElementById('spfSubmitText').value = e.submitText;
+  document.getElementById('spfFormNotice').value = e.formNotice || '';
   document.getElementById('spfCapacity').value = e.capacity || '';
   document.getElementById('spfCapacityMode').value = e.capacityMode;
   document.getElementById('spfDeadline').value = e.deadline || '';
@@ -716,6 +719,7 @@ async function spSaveEvent(){
     detail: document.getElementById('spfDetail').value,
     ctaText: document.getElementById('spfCtaText').value.trim() || '立即报名',
     submitText: document.getElementById('spfSubmitText').value.trim() || '提交报名',
+    formNotice: document.getElementById('spfFormNotice').value.trim(),
     capacity: Math.max(0, parseInt(document.getElementById('spfCapacity').value,10) || 0),
     capacityMode: document.getElementById('spfCapacityMode').value,
     deadline: document.getElementById('spfDeadline').value || '',
