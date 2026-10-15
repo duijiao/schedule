@@ -517,7 +517,7 @@ function spRenderForm(body){
       </div>
       ${(e.formNotice||'').trim() ? `<div class="sp-form-notice"><i class="ti ti-info-circle"></i><div class="sp-form-notice-text">${spEscapeHtml(e.formNotice.trim())}</div></div>` : ''}
       ${spCanMerge(e) ? `<label class="sp-merge-opt"><input type="checkbox" id="spMergeChk" onchange="spToggleMerge()"><div><b>我没有手机号，并入同行人员一起报名</b><span>按 2 人计。请填写同行人员的手机号，由对方代为联系。</span></div></label>
-      <div class="sp-merge-extra" id="spMergeExtra" style="display:none"><div class="sp-field-label"><i class="ti ti-user-plus"></i>同行人员姓名<span class="sp-required-dot">*</span></div><input class="sp-input" type="text" id="spMergeName" placeholder="手机号的主人是谁" maxlength="30" autocomplete="off"></div>` : ''}
+      <div class="sp-merge-extra" id="spMergeExtra" style="display:none"><div class="sp-field-label"><i class="ti ti-user-plus"></i>同行人员姓名（手机号的主人）<span class="sp-required-dot">*</span></div><input class="sp-input" type="text" id="spMergeName" placeholder="请输入对方的名字" maxlength="30" autocomplete="off"></div>` : ''}
       <div class="sp-section-title">个人信息</div>
       <div id="spFieldsWrap">${e.fields.map(spRenderFieldHtml).join('')}</div>
       <div class="sp-hp" aria-hidden="true"><label>请勿填写此项<input type="text" id="spHp" name="website" tabindex="-1" autocomplete="off"></label></div>
@@ -577,6 +577,15 @@ const SP_STATUS_TEXT = { pending:'待确认', confirmed:'已确认', checked_in:
 
 // ── 没有手机号：并入同行人员，按 2 人计 ──
 let spMergeMode = false;
+const SP_MERGE_TAG = '无手机号，并入同行人员';
+function spIsMergedVals(v){ return !!v && v['报名方式'] === SP_MERGE_TAG; }
+// 查询页按「表单字段顺序」展示（数据库返回的顺序是乱的），表单里没有的附加项排在最后
+function spOrderedEntries(e, vals){
+  const labels = (e.fields||[]).map(f=>f.label), out = [];
+  labels.forEach(l=>{ if(Object.prototype.hasOwnProperty.call(vals, l)) out.push([l, vals[l]]); });
+  Object.keys(vals).forEach(k=>{ if(!labels.includes(k)) out.push([k, vals[k]]); });
+  return out;
+}
 function spCanMerge(e){ return !!(e && spPhoneKey(e) && spPeopleKey(e)); }
 function spToggleMerge(){
   const e = spGetEvent(spCurrentId); if(!e) return;
@@ -594,6 +603,13 @@ function spToggleMerge(){
     if(!input.dataset.ph) input.dataset.ph = input.getAttribute('placeholder') || '';
     input.setAttribute('placeholder', spMergeMode ? '请填写同行人员的手机号' : input.dataset.ph);
   }
+  const wrap = phf && document.querySelector(`[data-field-id="${phf.id}"]`);
+  if(wrap){
+    let h = wrap.querySelector('.sp-merge-hint');
+    if(spMergeMode && !h){ h = document.createElement('div'); h.className = 'sp-merge-hint'; h.innerHTML = '<i class="ti ti-info-circle"></i>这里填「同行人员」的手机号，不是你自己的'; wrap.appendChild(h); }
+    else if(!spMergeMode && h){ h.remove(); }
+  }
+  if(spMergeMode){ const ni = document.getElementById('spMergeName'); if(ni && !ni.value) setTimeout(()=>ni.focus(), 0); }
 }
 
 async function spSubmit(eventId){
@@ -612,7 +628,7 @@ async function spSubmit(eventId){
     const mn = (document.getElementById('spMergeName')||{value:''}).value.trim();
     if(!mn){ spToast('请填写同行人员姓名'); return; }
     if((Number(values[spPeopleKey(e)])||0) < 2) values[spPeopleKey(e)] = 2;     // 并入同行人员，至少按 2 人计
-    values['报名方式'] = '无手机号，并入同行人员';
+    values['报名方式'] = SP_MERGE_TAG;
     values['同行人员'] = mn;
   }
 
@@ -660,7 +676,7 @@ async function spSubmit(eventId){
         if(r && r.reason==='duplicate'){
           resetBtn();
           spToast('该手机号已报名');
-          spGoLookup(e.id, { phone: values[phoneKey], dup:true, merge: merging });
+          spGoLookup(e.id, { phone: values[phoneKey], dup:true, merge: merging, mergedExists: !!r.merged });
           return;
         }
         if(r && r.reason==='rate_limited'){ spToast('提交次数过多，请 10 分钟后再试'); resetBtn(); return; }
@@ -714,7 +730,7 @@ function spGoLookup(id, opt){
   opt = opt || {};
   const prevView = spView;
   spCurrentId = id; spView = 'lookup';
-  spLookupState = { dup: !!opt.dup, merge: !!opt.merge, phone: opt.phone || '', result: null, msg: '', busy: false, code: spMyCode(id) };
+  spLookupState = { dup: !!opt.dup, merge: !!opt.merge, mergedExists: !!opt.mergedExists, phone: opt.phone || '', result: null, msg: '', busy: false, code: spMyCode(id) };
   spRender(); window.scrollTo(0,0);
   spHistPush(prevView==='success' || (prevView==='form' && !!opt.dup));
   if(opt.phone) spDoLookup(true);
@@ -730,7 +746,7 @@ function spRenderLookup(body){
     resultHtml = `<div class="sp-lk-msg">查询中…</div>`;
   } else if(r && r.found){
     const stKey = r.status || 'pending';
-    const vals = r.values ? Object.entries(r.values).map(([k,v])=>{
+    const vals = r.values ? spOrderedEntries(e, r.values).map(([k,v])=>{
       const t = Array.isArray(v) ? v.join('、') : String(v==null?'':v);
       return t==='' ? '' : `<div class="sp-lk-row"><span>${spEscapeHtml(k)}</span><b>${spEscapeHtml(t)}</b></div>`;
     }).join('') : '';
@@ -740,6 +756,7 @@ function spRenderLookup(body){
     resultHtml = `<div class="sp-lk-card">
       <div class="sp-lk-status s-${spEscapeHtml(stKey)}"><i class="ti ${stKey==='cancelled'?'ti-circle-x':'ti-circle-check'}"></i>${SP_STATUS_TEXT[stKey]||stKey}</div>
       <div class="sp-lk-time">报名时间：${r.created_at ? new Date(r.created_at).toLocaleString() : '—'}${r.updated_at ? `<br>最近修改：${new Date(r.updated_at).toLocaleString()}` : ''}</div>
+      ${spIsMergedVals(r.values) ? `<div class="sp-lk-tag"><i class="ti ti-users"></i>并入「${spEscapeHtml(String(r.values['同行人员']||''))}」同行报名，手机号为对方的号码</div>` : ''}
       ${vals ? `<div class="sp-lk-rows">${vals}</div>` : `<div class="sp-lk-hint">为保护隐私，仅凭手机号只能查看状态。需要修改或取消请输入报名成功时的查询码。</div>`}
       ${editable && !editClosed ? `<button class="sp-btn sp-btn-primary" style="width:100%;margin-top:14px;padding:12px" onclick="spGoEdit()"><i class="ti ti-edit"></i> 修改报名信息</button>` : ''}
       ${editClosed ? `<div class="sp-lk-hint">报名已截止，无法自助修改；如需调整请联系负责人。</div>` : ''}
@@ -758,7 +775,7 @@ function spRenderLookup(body){
         <div class="sp-mini-icon"><i class="ti ti-building"></i></div>
         <div><div class="sp-mini-title">${spEscapeHtml(e.title)}</div><div class="sp-mini-sub">${spFormatDate(e.date)} ${spEscapeHtml(e.timeStart||'')}</div></div>
       </div>
-      ${st.dup && st.merge ? `<div class="sp-form-notice"><i class="ti ti-info-circle"></i><div class="sp-form-notice-text">这个手机号已经有人报过名了。如果是你的同行人员报的名，请让对方用他的查询码，点「修改报名信息」，把人数改成包含你在内的总人数即可，不需要重复提交。</div></div>` : st.dup ? `<div class="sp-form-notice"><i class="ti ti-info-circle"></i><div class="sp-form-notice-text">该手机号已经报过名了，无需重复提交。下面是你的报名状态；如需修改、取消或查看详情，请输入查询码。</div></div>` : ''}
+      ${st.dup && st.mergedExists && !st.merge ? `<div class="sp-form-notice"><i class="ti ti-info-circle"></i><div class="sp-form-notice-text">这个手机号已经有一份报名了（含无手机号的同行人员，已按多人计），无需重复报名。如需修改，请找当时提交的人要查询码。</div></div>` : st.dup && st.merge ? `<div class="sp-form-notice"><i class="ti ti-info-circle"></i><div class="sp-form-notice-text">这个手机号已经有人报过名了。如果是你的同行人员报的名，请让对方用他的查询码，点「修改报名信息」，把人数改成包含你在内的总人数即可，不需要重复提交。</div></div>` : st.dup ? `<div class="sp-form-notice"><i class="ti ti-info-circle"></i><div class="sp-form-notice-text">该手机号已经报过名了，无需重复提交。下面是你的报名状态；如需修改、取消或查看详情，请输入查询码。</div></div>` : ''}
       ${hasPhone ? `<div class="sp-section-title">用手机号查询</div>
       <div class="sp-lk-line"><input class="sp-input" type="tel" id="spLkPhone" placeholder="请输入报名时的手机号" value="${spEscapeHtml(st.phone||'')}" autocomplete="off" onkeydown="if(event.key==='Enter')spDoLookup(true)"><button class="sp-btn sp-btn-primary" onclick="spDoLookup(true)">查询</button></div>` : ''}
       <div class="sp-section-title" style="margin-top:20px">用查询码查询 / 修改 / 取消</div>
@@ -815,7 +832,7 @@ function spGoEdit(){
   if(!e || !st.result || !st.result.found || st.result.by!=='code') return;
   if(spDeadlinePassed(e)){ spToast('报名已截止，无法修改'); return; }
   spEditState = { eventId: e.id, code: st.result.code || st.code, orig: st.result.values || {} };
-  spView = 'edit'; spNumberVals = {}; spMergeMode = false;
+  spView = 'edit'; spNumberVals = {}; spMergeMode = spIsMergedVals(spEditState.orig);
   spRender(); window.scrollTo(0,0); spHistPush();
 }
 // 把已有内容填回表单（按字段标签匹配）
@@ -854,6 +871,7 @@ function spRenderEdit(body){
         </div>
       </div>
       <div class="sp-form-notice"><i class="ti ti-edit"></i><div class="sp-form-notice-text">你正在修改查询码 <b>${spEscapeHtml(spEditState.code)}</b> 对应的报名信息，保存后将覆盖原有内容。</div></div>
+      ${spMergeMode ? `<div class="sp-merge-extra"><div class="sp-field-label"><i class="ti ti-user-plus"></i>同行人员姓名（手机号的主人）<span class="sp-required-dot">*</span></div><input class="sp-input" type="text" id="spMergeName" maxlength="30" autocomplete="off" value="${spEscapeHtml(String((spEditState.orig||{})['同行人员']||''))}"><div class="sp-merge-hint" style="margin-top:6px"><i class="ti ti-info-circle"></i>并入同行的报名最少按 2 人计，手机号请填对方的</div></div>` : ''}
       <div class="sp-section-title">个人信息</div>
       <div id="spFieldsWrap">${e.fields.map(spRenderFieldHtml).join('')}</div>
     </div>
@@ -874,8 +892,15 @@ async function spSaveEdit(){
     if(d.length < 7 || d.length > 15){ spToast('请填写正确的手机号'); return; }
   }
   if(spDeadlinePassed(e)){ spToast('报名已截止，无法修改'); return; }
-  // 表单里没有的附加信息（如「同行人员」）原样保留
+  let mergeName = '';
+  if(spMergeMode){
+    mergeName = (document.getElementById('spMergeName')||{value:''}).value.trim();
+    if(!mergeName){ spToast('请填写同行人员姓名'); return; }
+    if((Number(values[spPeopleKey(e)])||0) < 2) values[spPeopleKey(e)] = 2;
+  }
+  // 表单里没有的附加信息（如「报名方式」）原样保留
   Object.keys(es.orig || {}).forEach(k=>{ if(!e.fields.some(f=>f.label===k)) values[k] = es.orig[k]; });
+  if(spMergeMode) values['同行人员'] = mergeName;
   const sameVals = (a,b)=>{ const ka = Object.keys(a).sort(), kb = Object.keys(b).sort(); return ka.length===kb.length && ka.every((k,i)=>k===kb[i] && JSON.stringify(a[k])===JSON.stringify(b[k])); };
   if(sameVals(values, es.orig || {})){ spToast('内容没有变化'); return; }
 
@@ -1401,7 +1426,7 @@ function spRenderSubs(){
         ${spSelectMode?`<input type="checkbox" class="sp-sub-check" aria-label="选择" ${sel?'checked':''} onclick="event.stopPropagation()" onchange="spPickSub('${sid}',this.checked)">`:''}
         <div class="sp-sub-avatar" style="background:${color}">${spEscapeHtml(sm.name.trim().charAt(0).toUpperCase()||'?')}</div>
         <div class="sp-sub-main">
-          <div class="sp-sub-name">${spEscapeHtml(sm.name)}${isNew?'<span class="sp-sub-new">NEW</span>':''}</div>
+          <div class="sp-sub-name">${spEscapeHtml(sm.name)}${isNew?'<span class="sp-sub-new">NEW</span>':''}${spIsMergedVals(s.values)?'<span class="sp-sub-merge">并入同行</span>':''}</div>
           <div class="sp-sub-time">${pill}<i class="ti ti-clock"></i>${inTrash&&s.deleted_at?'删除于 '+spRelTime(s.deleted_at):spRelTime(s.created_at)}${sm.tel?` · <i class="ti ti-phone"></i>${spEscapeHtml(sm.tel)}`:''}</div>
         </div>
         ${sm.num?`<span class="sp-sub-badge"><i class="ti ti-users"></i>${sm.num}人</span>`:''}
@@ -1804,7 +1829,7 @@ function spBuildSignSheetHtml(list){
   const ev = spSubsCurrentEvent || {};
   const rows = list.map((s,i)=>{
     const sm = spSubSummary(s);
-    return `<tr><td class="c">${i+1}</td><td>${spEscapeHtml(sm.name)}</td><td>${spEscapeHtml(sm.tel)}</td><td class="c">${sm.num||''}</td><td>${spEscapeHtml(s.admin_note||'')}</td><td></td></tr>`;
+    return `<tr><td class="c">${i+1}</td><td>${spEscapeHtml(sm.name)}</td><td>${spEscapeHtml(sm.tel)}</td><td class="c">${sm.num||''}</td><td>${spEscapeHtml([spIsMergedVals(s.values) ? '并入「'+(((s.values||{})['同行人员'])||'')+'」同行' : '', s.admin_note||''].filter(Boolean).join('；'))}</td><td></td></tr>`;
   }).join('');
   const total = list.reduce((n,s)=>n+(spSubSummary(s).num||0),0);
   return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>签到表 - ${spEscapeHtml(ev.title||'')}</title>
