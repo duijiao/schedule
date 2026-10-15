@@ -267,7 +267,7 @@ function spBoot(){
 function spGoBack(){
   if(spView==='form'){ spView='detail'; spRender(); return; }
   if(spView==='detail' && spEnabledEvents().length>1){ spView='list'; spCurrentId=null; spRender(); return; }
-  if(spView==='success'){ spView='detail'; spRender(); return; }
+  if(spView==='success' || spView==='lookup'){ spView='detail'; spRender(); window.scrollTo(0,0); return; }
 }
 function spGoList(){ spView='list'; spCurrentId=null; spRender(); }
 function spGoDetail(id){ spCurrentId=id; spView='detail'; spRender(); window.scrollTo(0,0); }
@@ -278,13 +278,14 @@ function spRender(){
   const title = document.getElementById('spTopbarTitle');
   const body = document.getElementById('spBody');
   const shell = document.querySelector('.sp-shell'); if(shell) shell.dataset.view = spView;
-  const canBack = (spView==='form') || (spView==='detail' && spEnabledEvents().length>1) || (spView==='success');
+  const canBack = (spView==='form') || (spView==='lookup') || (spView==='detail' && spEnabledEvents().length>1) || (spView==='success');
   back.classList.toggle('ghost', !canBack);
   share.classList.toggle('ghost', spView!=='detail');
   const curEv = spGetEvent(spCurrentId);
   title.textContent = spView==='detail' ? ((curEv && curEv.title) || '活动报名')
     : spView==='form' ? '报名参与'
     : spView==='success' ? '报名成功'
+    : spView==='lookup' ? '查询我的报名'
     : '报名活动';
 
   if(spView==='empty'){
@@ -295,6 +296,7 @@ function spRender(){
   if(spView==='detail'){ spRenderDetail(body); return; }
   if(spView==='form'){ spRenderForm(body); return; }
   if(spView==='success'){ spRenderSuccess(body); return; }
+  if(spView==='lookup'){ spRenderLookup(body); return; }
 }
 
 function spRenderList(body){
@@ -352,6 +354,7 @@ function spRenderDetail(body){
       <div class="sp-sec-underline"></div>
       <p class="sp-detail-text">${spEscapeHtml(e.detail)}</p>
     </div>`:''}
+    <div class="sp-lookup-entry"><button type="button" onclick="spGoLookup('${e.id}')"><i class="ti ti-search"></i>已报名？查询 / 取消我的报名</button></div>
   `;
   document.getElementById('spBody').insertAdjacentHTML('beforeend', `<div class="sp-cta-bar" id="spCtaBar"></div>`);
   spPaintCta(e, null);
@@ -427,8 +430,10 @@ function spRenderForm(body){
       ${(e.formNotice||'').trim() ? `<div class="sp-form-notice"><i class="ti ti-info-circle"></i><div class="sp-form-notice-text">${spEscapeHtml(e.formNotice.trim())}</div></div>` : ''}
       <div class="sp-section-title">个人信息</div>
       <div id="spFieldsWrap">${e.fields.map(spRenderFieldHtml).join('')}</div>
+      <div class="sp-hp" aria-hidden="true"><label>请勿填写此项<input type="text" id="spHp" name="website" tabindex="-1" autocomplete="off"></label></div>
     </div>
   `;
+  spFormOpenAt = Date.now();
   document.getElementById('spBody').insertAdjacentHTML('beforeend', `
     <div class="sp-cta-bar"><button class="sp-cta-btn" id="spSubmitBtn" onclick="spSubmit('${e.id}')">${spEscapeHtml(e.submitText||'提交报名')}</button></div>
   `);
@@ -453,12 +458,57 @@ function spCollectValues(e){
   return { values, missing };
 }
 
+// ── 防重复 / 防刷 / 查询码 ──
+let spFormOpenAt = 0;
+const SP_MIN_FILL_MS = 2500;        // 打开表单后少于 2.5 秒就提交，视为机器人
+const SP_COOLDOWN_MS = 30000;       // 同一浏览器两次提交的最短间隔
+function spClientId(){
+  try{
+    let id = localStorage.getItem('sp_client_id');
+    if(!id){ id = 'c_' + spUid() + Math.random().toString(36).slice(2,8); localStorage.setItem('sp_client_id', id); }
+    return id;
+  }catch(_){ return null; }
+}
+function spLsGet(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)||'null'); return v==null ? d : v; }catch(_){ return d; } }
+function spLsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(_){} }
+function spMyCode(eventId){ return (spLsGet('sp_my_codes_v1', {})[eventId]||{}).code || ''; }
+function spSaveMyCode(eventId, code){ const o = spLsGet('sp_my_codes_v1', {}); o[eventId] = { code, t: Date.now() }; spLsSet('sp_my_codes_v1', o); }
+function spForgetMyCode(eventId){ const o = spLsGet('sp_my_codes_v1', {}); delete o[eventId]; spLsSet('sp_my_codes_v1', o); }
+// 手机号字段：优先「电话号码」类型字段，其次按标签名猜
+function spPhoneKey(e){
+  const f = (e.fields||[]).find(f=>f.type==='tel') || (e.fields||[]).find(f=>/手机|电话/.test(f.label));
+  return f ? f.label : '';
+}
+function spPhoneDigits(v){ return String(v||'').replace(/\D/g,'').replace(/^00/,''); }
+function spRpcMissing(err){
+  return !!err && (err.code==='PGRST202' || err.code==='42883' || /could not find the function|does not exist/i.test(err.message||''));
+}
+const SP_STATUS_TEXT = { pending:'待确认', confirmed:'已确认', checked_in:'已到场', cancelled:'已取消' };
+
 async function spSubmit(eventId){
   const e = spGetEvent(eventId);
   if(!e) return;
   const { values, missing } = spCollectValues(e);
   if(missing){ spToast('请填写：'+missing); return; }
+  const phoneKey = spPhoneKey(e);
+  if(phoneKey){
+    const d = spPhoneDigits(values[phoneKey]);
+    if(d.length < 7 || d.length > 15){ spToast('请填写正确的手机号'); return; }
+  }
   if(spDeadlinePassed(e)){ spToast('报名已截止'); return; }
+
+  // 防刷（前端层）：蜜罐被填 / 填写过快 → 假装成功，不提交
+  const hp = document.getElementById('spHp');
+  const tooFast = spFormOpenAt && (Date.now() - spFormOpenAt) < SP_MIN_FILL_MS;
+  if((hp && hp.value) || tooFast){
+    if(hp && hp.value){ spView='success'; spLastCode=''; spRender(); return; }
+    spToast('提交太快了，请稍后再试'); return;
+  }
+  const last = spLsGet('sp_last_submit', 0);
+  if(Date.now() - last < SP_COOLDOWN_MS){
+    spToast(`提交过于频繁，请 ${Math.ceil((SP_COOLDOWN_MS-(Date.now()-last))/1000)} 秒后再试`); return;
+  }
+
   const btn = document.getElementById('spSubmitBtn');
   if(btn){ btn.disabled = true; btn.textContent = '提交中…'; }
   const resetBtn = ()=>{ if(btn){ btn.disabled=false; btn.textContent = e.submitText||'提交报名'; } };
@@ -475,29 +525,162 @@ async function spSubmit(eventId){
   try{
     const client = spInitClient();
     if(!client) throw new Error('未连接后台');
-    const { error } = await client.from(SP_CONFIG.submissionsTable).insert({
-      event_id: e.id, event_title: e.title, values,
+    let code = '';
+    const { data, error } = await client.rpc('sp_submit', {
+      p_event: String(e.id), p_title: e.title, p_values: values,
+      p_phone_key: phoneKey || null, p_client: spClientId(), p_hp: hp ? hp.value : '',
     });
-    if(error) throw error;
+    if(error && spRpcMissing(error)){
+      // 数据库还没升级：退回旧的直接写入（没有去重 / 查询码）
+      const r2 = await client.from(SP_CONFIG.submissionsTable).insert({ event_id: e.id, event_title: e.title, values });
+      if(r2.error) throw r2.error;
+    } else {
+      if(error) throw error;
+      const r = typeof data==='string' ? JSON.parse(data) : data;
+      if(!r || !r.ok){
+        if(r && r.reason==='duplicate'){
+          resetBtn();
+          spToast('该手机号已报名');
+          spGoLookup(e.id, { phone: values[phoneKey], dup:true });
+          return;
+        }
+        if(r && r.reason==='rate_limited'){ spToast('提交次数过多，请 10 分钟后再试'); resetBtn(); return; }
+        if(r && r.reason==='busy'){ spToast('当前报名人数较多，请稍后再试'); resetBtn(); return; }
+        throw new Error('提交被拒绝');
+      }
+      code = r.code || '';
+    }
+    spLsSet('sp_last_submit', Date.now());
+    if(code) spSaveMyCode(e.id, code);
+    spLastCode = code;
     spView='success'; spRender();
   }catch(err){
     console.error('提交报名失败', err);
     spToast('提交失败，请检查网络后重试');
-    if(btn){ btn.disabled=false; btn.textContent = e.submitText||'提交报名'; }
+    resetBtn();
   }
 }
 
+let spLastCode = '';
 function spRenderSuccess(body){
   const e = spGetEvent(spCurrentId);
+  const id = e ? e.id : '';
   body.innerHTML = `
     <div class="sp-success">
       <div class="sp-success-icon"><i class="ti ti-circle-check"></i></div>
       <div class="sp-success-title">报名成功！</div>
       <div class="sp-success-sub">我们已收到你的报名信息，期待与你相见。</div>
-      <button class="sp-btn sp-btn-primary" style="padding:11px 28px" onclick="spGoDetail('${e?e.id:''}')">返回活动详情</button>
-      <button class="sp-btn sp-btn-ghost" style="padding:11px 24px;margin-top:10px;display:inline-flex;align-items:center;gap:6px" onclick="spOpenShare('${e?e.id:''}')"><i class="ti ti-share-3"></i>邀请朋友一起来</button>
+      ${spLastCode ? `<div class="sp-code-card">
+        <div class="sp-code-label">你的查询码</div>
+        <div class="sp-code-val" id="spCodeVal">${spEscapeHtml(spLastCode)}</div>
+        <button class="sp-btn sp-btn-ghost" type="button" onclick="spCopyCode()"><i class="ti ti-copy"></i>复制</button>
+        <div class="sp-code-tip">请截图或记下查询码，之后可用它查询报名状态或取消报名。</div>
+      </div>` : ''}
+      <button class="sp-btn sp-btn-primary" style="padding:11px 28px" onclick="spGoDetail('${id}')">返回活动详情</button>
+      <button class="sp-btn sp-btn-ghost" style="padding:11px 24px;margin-top:10px;display:inline-flex;align-items:center;gap:6px" onclick="spGoLookup('${id}')"><i class="ti ti-search"></i>查询我的报名</button>
+      <button class="sp-btn sp-btn-ghost" style="padding:11px 24px;margin-top:10px;display:inline-flex;align-items:center;gap:6px" onclick="spOpenShare('${id}')"><i class="ti ti-share-3"></i>邀请朋友一起来</button>
     </div>
   `;
+}
+function spCopyCode(){
+  const t = spLastCode; if(!t) return;
+  const done = ()=>spToast('已复制查询码');
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, ()=>spToast('请长按手动复制'));
+  else { try{ const r=document.createRange(); r.selectNodeContents(document.getElementById('spCodeVal')); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand('copy'); done(); }catch(_){ spToast('请长按手动复制'); } }
+}
+
+// ── 访客：查询 / 取消我的报名 ──
+let spLookupState = { dup:false, phone:'', result:null, msg:'', busy:false };
+function spGoLookup(id, opt){
+  opt = opt || {};
+  spCurrentId = id; spView = 'lookup';
+  spLookupState = { dup: !!opt.dup, phone: opt.phone || '', result: null, msg: '', busy: false, code: spMyCode(id) };
+  spRender(); window.scrollTo(0,0);
+  if(opt.phone) spDoLookup(true);
+  else if(spLookupState.code) spDoLookup(false, spLookupState.code);
+}
+function spRenderLookup(body){
+  const e = spGetEvent(spCurrentId);
+  if(!e){ body.innerHTML = `<div class="sp-empty"><i class="ti ti-calendar-off"></i><div>活动不存在</div></div>`; return; }
+  const st = spLookupState, r = st.result;
+  const hasPhone = !!spPhoneKey(e);
+  let resultHtml = '';
+  if(st.busy){
+    resultHtml = `<div class="sp-lk-msg">查询中…</div>`;
+  } else if(r && r.found){
+    const stKey = r.status || 'pending';
+    const vals = r.values ? Object.entries(r.values).map(([k,v])=>{
+      const t = Array.isArray(v) ? v.join('、') : String(v==null?'':v);
+      return t==='' ? '' : `<div class="sp-lk-row"><span>${spEscapeHtml(k)}</span><b>${spEscapeHtml(t)}</b></div>`;
+    }).join('') : '';
+    const canCancel = r.by==='code' && (stKey==='pending' || stKey==='confirmed');
+    resultHtml = `<div class="sp-lk-card">
+      <div class="sp-lk-status s-${spEscapeHtml(stKey)}"><i class="ti ${stKey==='cancelled'?'ti-circle-x':'ti-circle-check'}"></i>${SP_STATUS_TEXT[stKey]||stKey}</div>
+      <div class="sp-lk-time">报名时间：${r.created_at ? new Date(r.created_at).toLocaleString() : '—'}</div>
+      ${vals ? `<div class="sp-lk-rows">${vals}</div>` : `<div class="sp-lk-hint">为保护隐私，仅凭手机号只能查看状态。需要取消请输入报名成功时的查询码。</div>`}
+      ${canCancel ? `<button class="sp-btn sp-btn-danger" style="width:100%;margin-top:14px;padding:12px" onclick="spDoCancel()"><i class="ti ti-user-minus"></i> 取消我的报名</button>` : ''}
+      ${r.by==='code' && stKey==='checked_in' ? `<div class="sp-lk-hint">你已到场，无法自助取消。</div>` : ''}
+      ${r.by==='code' && stKey==='cancelled' ? `<button class="sp-btn sp-btn-primary" style="width:100%;margin-top:14px;padding:12px" onclick="spGoForm('${e.id}')">重新报名</button>` : ''}
+    </div>`;
+  } else if(r && !r.found){
+    resultHtml = `<div class="sp-lk-msg">没有找到报名记录，请检查${hasPhone?'手机号或':''}查询码是否正确。</div>`;
+  } else if(st.msg){
+    resultHtml = `<div class="sp-lk-msg">${spEscapeHtml(st.msg)}</div>`;
+  }
+  body.innerHTML = `
+    <div class="sp-form-wrap">
+      <div class="sp-event-mini-card">
+        <div class="sp-mini-icon"><i class="ti ti-building"></i></div>
+        <div><div class="sp-mini-title">${spEscapeHtml(e.title)}</div><div class="sp-mini-sub">${spFormatDate(e.date)} ${spEscapeHtml(e.timeStart||'')}</div></div>
+      </div>
+      ${st.dup ? `<div class="sp-form-notice"><i class="ti ti-info-circle"></i><div class="sp-form-notice-text">该手机号已经报过名了，无需重复提交。下面是你的报名状态；如需取消或查看详情，请输入查询码。</div></div>` : ''}
+      ${hasPhone ? `<div class="sp-section-title">用手机号查询</div>
+      <div class="sp-lk-line"><input class="sp-input" type="tel" id="spLkPhone" placeholder="请输入报名时的手机号" value="${spEscapeHtml(st.phone||'')}" autocomplete="off" onkeydown="if(event.key==='Enter')spDoLookup(true)"><button class="sp-btn sp-btn-primary" onclick="spDoLookup(true)">查询</button></div>` : ''}
+      <div class="sp-section-title" style="margin-top:20px">用查询码查询 / 取消</div>
+      <div class="sp-lk-line"><input class="sp-input" type="text" id="spLkCode" placeholder="6 位查询码" maxlength="6" value="${spEscapeHtml(st.code||'')}" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:3px" onkeydown="if(event.key==='Enter')spDoLookup(false)"><button class="sp-btn sp-btn-primary" onclick="spDoLookup(false)">查询</button></div>
+      <div id="spLkResult" style="margin-top:18px">${resultHtml}</div>
+    </div>`;
+}
+async function spDoLookup(byPhone, codeArg){
+  const e = spGetEvent(spCurrentId); if(!e) return;
+  const st = spLookupState;
+  const phoneEl = document.getElementById('spLkPhone'), codeEl = document.getElementById('spLkCode');
+  const phone = byPhone ? (phoneEl ? phoneEl.value.trim() : st.phone) : '';
+  const code = byPhone ? '' : (codeArg || (codeEl ? codeEl.value.trim().toUpperCase() : ''));
+  if(byPhone && spPhoneDigits(phone).length < 7){ spToast('请输入正确的手机号'); return; }
+  if(!byPhone && code.length < 4){ spToast('请输入查询码'); return; }
+  st.phone = phone; st.code = code || st.code; st.busy = true; st.result = null; st.msg = '';
+  spRenderLookupKeepInputs();
+  try{
+    const client = spInitClient(); if(!client) throw new Error('未连接后台');
+    const { data, error } = await client.rpc('sp_lookup', {
+      p_event: String(e.id), p_code: code || null, p_phone: phone || null, p_phone_key: spPhoneKey(e) || null,
+    });
+    if(error){ if(spRpcMissing(error)){ st.msg = '数据库尚未升级，暂时无法查询。请联系负责人。'; st.result = null; } else throw error; }
+    else { st.result = typeof data==='string' ? JSON.parse(data) : data; if(st.result && st.result.code) spSaveMyCode(e.id, st.result.code); }
+  }catch(err){ console.error('查询报名失败', err); st.msg = '查询失败，请检查网络后重试'; }
+  st.busy = false;
+  if(spView==='lookup') spRenderLookupKeepInputs();
+}
+function spRenderLookupKeepInputs(){
+  if(spView!=='lookup') return;
+  const p = document.getElementById('spLkPhone'), c = document.getElementById('spLkCode');
+  if(p) spLookupState.phone = p.value; if(c && !spLookupState.busy) spLookupState.code = c.value;
+  spRenderLookup(document.getElementById('spBody'));
+}
+async function spDoCancel(){
+  const e = spGetEvent(spCurrentId); const st = spLookupState; if(!e || !st.result) return;
+  const code = st.result.code || st.code;
+  if(!confirm('确定要取消报名吗？取消后名额将被释放。')) return;
+  try{
+    const client = spInitClient(); if(!client) throw new Error('未连接后台');
+    const { data, error } = await client.rpc('sp_cancel', { p_event: String(e.id), p_code: code });
+    if(error) throw error;
+    const r = typeof data==='string' ? JSON.parse(data) : data;
+    if(r && r.ok){ spToast('已取消报名'); st.dup = false; await spDoLookup(false, code); }
+    else if(r && r.reason==='checked_in') spToast('你已到场，无法自助取消');
+    else spToast('取消失败，请联系负责人');
+  }catch(err){ console.error('取消报名失败', err); spToast('取消失败，请检查网络后重试'); }
 }
 
 // ── 管理员：登录 ──
@@ -1748,7 +1931,7 @@ function spShowLoadError(msg){
 // 后台拿到新数据后，在不打断用户操作的前提下刷新界面
 function spApplyFresh(raw){
   spEvents = raw.map(spNormEvent);
-  if(spView === 'form' || spView === 'success') return;       // 正在填写/刚提交，不重绘，避免丢失输入
+  if(spView === 'form' || spView === 'success' || spView === 'lookup') return;       // 正在填写/刚提交，不重绘，避免丢失输入
   if(spView === 'list' || spView === 'empty'){ spBoot(); return; }   // 重新判断该显示列表、单个活动还是“暂无活动”
   const cur = spCurrentId && spGetEvent(spCurrentId);
   if(cur && cur.enabled) spRender(); else spBoot();

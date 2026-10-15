@@ -378,3 +378,29 @@ body{
 .sp-admin-share i{font-size:13px}
 
 .sp-list-card-img.loaded{opacity:1}
+
+/* ── 防刷蜜罐：对真人完全不可见，机器人会照常填写 ── */
+.sp-hp{position:absolute !important; left:-9999px !important; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none}
+
+/* ── 查询入口 / 查询码 / 查询页 ── */
+.sp-lookup-entry{text-align:center; padding:6px 16px 110px}
+.sp-lookup-entry button{background:none; border:none; color:var(--primary); font-size:13.5px; font-weight:700; font-family:inherit; cursor:pointer; padding:10px 14px; display:inline-flex; align-items:center; gap:6px}
+.sp-code-card{width:100%; max-width:300px; background:var(--primary-light); border:1px dashed var(--primary); border-radius:16px; padding:16px 14px 14px; margin:-8px 0 22px}
+.sp-code-label{font-size:12px; color:var(--text-3); margin-bottom:6px}
+.sp-code-val{font-size:32px; font-weight:800; letter-spacing:6px; color:var(--primary-dark); font-family:ui-monospace,Menlo,Consolas,monospace; user-select:all; margin-bottom:10px}
+.sp-code-tip{font-size:12px; color:var(--text-3); line-height:1.7; margin-top:10px}
+.sp-lk-line{display:flex; gap:8px; align-items:stretch}
+.sp-lk-line .sp-input{flex:1; min-width:0}
+.sp-lk-line .sp-btn{flex-shrink:0; padding:0 20px}
+.sp-lk-msg{text-align:center; font-size:13.5px; color:var(--text-3); padding:18px 10px; line-height:1.7}
+.sp-lk-card{background:#fff; border:1px solid var(--border-soft); border-radius:16px; padding:16px; box-shadow:0 2px 12px rgba(28,26,20,.04)}
+.sp-lk-status{display:flex; align-items:center; gap:8px; font-size:17px; font-weight:800; color:var(--primary)}
+.sp-lk-status i{font-size:24px}
+.sp-lk-status.s-cancelled{color:var(--text-3)}
+.sp-lk-status.s-pending{color:#c98400}
+.sp-lk-time{font-size:12px; color:var(--text-3); margin:6px 0 10px}
+.sp-lk-rows{border-top:1px solid var(--border-soft); padding-top:6px}
+.sp-lk-row{display:flex; justify-content:space-between; gap:14px; padding:7px 0; font-size:13.5px}
+.sp-lk-row span{color:var(--text-3); flex-shrink:0}
+.sp-lk-row b{font-weight:600; text-align:right; word-break:break-word}
+.sp-lk-hint{font-size:12.5px; color:var(--text-3); line-height:1.7; margin-top:8px}
