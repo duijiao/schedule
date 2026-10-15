@@ -586,7 +586,7 @@ function spOrderedEntries(e, vals){
   Object.keys(vals).forEach(k=>{ if(!labels.includes(k)) out.push([k, vals[k]]); });
   return out;
 }
-function spCanMerge(e){ return !!(e && spPhoneKey(e) && spPeopleKey(e)); }
+function spCanMerge(e){ return !!(e && spPhoneKey(e)); }
 function spToggleMerge(){
   const e = spGetEvent(spCurrentId); if(!e) return;
   const chk = document.getElementById('spMergeChk');
@@ -627,7 +627,8 @@ async function spSubmit(eventId){
   if(merging){
     const mn = (document.getElementById('spMergeName')||{value:''}).value.trim();
     if(!mn){ spToast('请填写同行人员姓名'); return; }
-    if((Number(values[spPeopleKey(e)])||0) < 2) values[spPeopleKey(e)] = 2;     // 并入同行人员，至少按 2 人计
+    const pk = spPeopleKey(e) || '人数';
+    if((Number(values[pk])||0) < 2) values[pk] = 2;     // 并入同行人员，至少按 2 人计
     values['报名方式'] = SP_MERGE_TAG;
     values['同行人员'] = mn;
   }
@@ -896,7 +897,8 @@ async function spSaveEdit(){
   if(spMergeMode){
     mergeName = (document.getElementById('spMergeName')||{value:''}).value.trim();
     if(!mergeName){ spToast('请填写同行人员姓名'); return; }
-    if((Number(values[spPeopleKey(e)])||0) < 2) values[spPeopleKey(e)] = 2;
+    const pk = spPeopleKey(e) || '人数';
+    if((Number(values[pk])||0) < 2) values[pk] = 2;
   }
   // 表单里没有的附加信息（如「报名方式」）原样保留
   Object.keys(es.orig || {}).forEach(k=>{ if(!e.fields.some(f=>f.label===k)) values[k] = es.orig[k]; });
@@ -1590,7 +1592,7 @@ async function spSaveNote(id, el){
   if(await spUpdateSubs(id, { admin_note: val || null })){ el.dataset.orig = val; spToast('备注已保存'); }
 }
 let spUndoTm = null;
-const SP_BUILD = '20261015b';
+const SP_BUILD = '20261015g';
 // 撤销提示条：由 JS 动态创建、样式全部内联，不依赖 HTML 结构和 CSS 文件是否为最新
 function spEnsureUndoEl(){
   let box = document.getElementById('spUndoToast');
