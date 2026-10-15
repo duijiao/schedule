@@ -251,7 +251,15 @@ function spBoot(){
   const params = new URLSearchParams(location.search);
   const idParam = params.get('id');
   const enabled = spEnabledEvents();
-  if(idParam && spGetEvent(idParam) && spGetEvent(idParam).enabled){
+  const hs = spHistReady ? null : spHistState();      // 刷新页面时，回到刷新前所在的那一层
+  const hsEv = hs && hs.id ? spGetEvent(hs.id) : null;
+  if(hs && hs.v==='list' && enabled.length>1){
+    spView='list'; spCurrentId=null;
+  } else if(hs && hs.v && hs.v!=='list' && hsEv && hsEv.enabled){
+    spCurrentId = hs.id; spView = hs.v;               // detail / form / success / lookup 原样恢复
+    if(spView==='form') spNumberVals = {};
+    if(spView==='lookup') spLookupState = { dup:false, phone:'', result:null, msg:'', busy:false, code: spMyCode(hs.id) };
+  } else if(idParam && spGetEvent(idParam) && spGetEvent(idParam).enabled){
     spCurrentId = idParam; spView='detail';
   } else if(enabled.length===1){
     spCurrentId = enabled[0].id; spView='detail';
@@ -261,17 +269,91 @@ function spBoot(){
     spView='empty';
   }
   spRender();
+  spHistSync();
+  if(hs && spView==='lookup' && spLookupState.code) spDoLookup(false, spLookupState.code);
   if(params.get('admin')==='1' && !spIsAdmin && !spAdminPrompted){ spAdminPrompted = true; spOpenLogin(); }
 }
 
-function spGoBack(){
-  if(spView==='form'){ spView='detail'; spRender(); return; }
-  if(spView==='detail' && spEnabledEvents().length>1){ spView='list'; spCurrentId=null; spRender(); return; }
-  if(spView==='success' || spView==='lookup'){ spView='detail'; spRender(); window.scrollTo(0,0); return; }
+// ── 浏览器历史：让手机/浏览器的“返回键”先退回上一层页面，而不是直接退出整个页面 ──
+// 每次进入新的一层（列表→详情→表单/查询、打开弹层）都 pushState 一条记录；
+// 点返回键触发 popstate，在这里还原到上一层。
+let spHistReady = false;
+try{ if('scrollRestoration' in history) history.scrollRestoration = 'manual'; }catch(_){}
+function spHistState(){ const s = history.state; return (s && s.sp) ? s : null; }
+// 把当前记录改写成与当前视图一致（不新增记录）
+function spHistSync(){
+  const s = spHistState() || {};
+  const ov = spHistReady ? (s.ov || null) : null;   // 刷新后弹层都已关闭，所以首次同步清掉 ov
+  try{ history.replaceState(Object.assign({}, s, { sp:1, v:spView, id:spCurrentId, ov:ov, d:s.d||0 }), ''); }catch(_){}
+  spHistReady = true;
 }
-function spGoList(){ spView='list'; spCurrentId=null; spRender(); }
-function spGoDetail(id){ spCurrentId=id; spView='detail'; spRender(); window.scrollTo(0,0); }
-function spGoForm(id){ spCurrentId=id; spView='form'; spNumberVals={}; spRender(); window.scrollTo(0,0); }
+// 进入新的一层。replace=true 表示替换当前记录（如：提交成功后不应再退回已填完的表单）
+function spHistPush(replace){
+  const s = spHistState() || { sp:1, d:0 };
+  const ns = { sp:1, v:spView, id:spCurrentId, ov:null, d: replace ? (s.d||0) : (s.d||0)+1 };
+  try{
+    if(replace) history.replaceState(ns, '');
+    else { history.replaceState(Object.assign({}, s, { y: window.scrollY }), ''); history.pushState(ns, ''); }
+  }catch(_){}
+}
+// 打开弹层：同样占一条历史记录，返回键会先关闭弹层
+function spOvOpen(id, replace){
+  const el = document.getElementById(id); if(!el) return;
+  el.classList.add('open');
+  const s = spHistState() || { sp:1, d:0 };
+  if(s.ov === id) return;
+  const ns = { sp:1, v:spView, id:spCurrentId, ov:id, d: replace ? (s.d||0) : (s.d||0)+1 };
+  try{
+    if(replace) history.replaceState(ns, '');
+    else { history.replaceState(Object.assign({}, s, { y: window.scrollY }), ''); history.pushState(ns, ''); }
+  }catch(_){}
+}
+// 关闭弹层：当前记录正是这个弹层时走 history.back()，保证记录栈和界面一致
+function spOvClose(id){
+  const s = spHistState();
+  if(s && s.ov === id && s.d > 0){ history.back(); return; }
+  const el = document.getElementById(id); if(el) el.classList.remove('open');
+}
+window.addEventListener('popstate', function(ev){
+  const s = ev.state; if(!s || !s.sp) return;
+  // 1) 弹层：只保留记录里指定的那一个
+  let ov = s.ov;
+  if(ov && ov!=='spLoginOverlay' && ov!=='spShareOverlay' && !spIsAdmin) ov = null;   // 刷新后未登录，不恢复管理弹层
+  document.querySelectorAll('.sp-overlay').forEach(el=>{
+    const want = el.id === ov, was = el.classList.contains('open');
+    if(want === was) return;
+    el.classList.toggle('open', want);
+    if(want && el.id==='spManagerOverlay'){ spRenderManagerList(); spLoadCounts(); }
+  });
+  const menu = document.getElementById('spExportMenu'); if(menu) menu.classList.remove('open');
+  // 2) 页面视图
+  const v = s.v, e = s.id ? spGetEvent(s.id) : null;
+  const valid = v==='list' ? spEnabledEvents().length>1 : (v && v!=='empty' && !!(e && e.enabled));
+  if(!valid){ spBoot(); return; }                      // 记录里的活动已被删除/关闭：重新判断该显示什么
+  if(v !== spView || (s.id||null) !== (spCurrentId||null)){
+    spView = v; spCurrentId = v==='list' ? null : s.id;
+    if(v==='form') spNumberVals = {};
+    spRender(); window.scrollTo(0, s.y || 0);
+  }
+});
+
+function spGoBack(){
+  const s = spHistState();
+  if(s && s.d > 0 && !s.ov){ history.back(); return; }   // 本页内有上一层：直接走浏览器返回，与返回键一致
+  if(spView==='form'){ spView='detail'; }
+  else if(spView==='detail' && spEnabledEvents().length>1){ spView='list'; spCurrentId=null; }
+  else if(spView==='success' || spView==='lookup'){ spView='detail'; }
+  else return;
+  spRender(); window.scrollTo(0,0); spHistSync();
+}
+function spGoList(){ spView='list'; spCurrentId=null; spRender(); spHistPush(); }
+function spGoDetail(id){
+  const s = spHistState();
+  // 从成功页/查询页点“返回活动详情”：等同于按返回键，避免记录栈越积越长
+  if(spView!=='list' && spView!=='detail' && s && s.d>0 && !s.ov){ history.back(); return; }
+  spCurrentId=id; spView='detail'; spRender(); window.scrollTo(0,0); spHistPush();
+}
+function spGoForm(id){ spCurrentId=id; spView='form'; spNumberVals={}; spRender(); window.scrollTo(0,0); spHistPush(); }
 function spRender(){
   const back = document.getElementById('spBackBtn');
   const share = document.getElementById('spShareBtn');
@@ -501,7 +583,7 @@ async function spSubmit(eventId){
   const hp = document.getElementById('spHp');
   const tooFast = spFormOpenAt && (Date.now() - spFormOpenAt) < SP_MIN_FILL_MS;
   if((hp && hp.value) || tooFast){
-    if(hp && hp.value){ spView='success'; spLastCode=''; spRender(); return; }
+    if(hp && hp.value){ spView='success'; spLastCode=''; spRender(); spHistPush(true); return; }
     spToast('提交太快了，请稍后再试'); return;
   }
   const last = spLsGet('sp_last_submit', 0);
@@ -553,7 +635,7 @@ async function spSubmit(eventId){
     spLsSet('sp_last_submit', Date.now());
     if(code) spSaveMyCode(e.id, code);
     spLastCode = code;
-    spView='success'; spRender();
+    spView='success'; spRender(); spHistPush(true);   // 替换掉表单这一层：返回键回到详情，而不是回到已提交的空表单
   }catch(err){
     console.error('提交报名失败', err);
     spToast('提交失败，请检查网络后重试');
@@ -593,9 +675,11 @@ function spCopyCode(){
 let spLookupState = { dup:false, phone:'', result:null, msg:'', busy:false };
 function spGoLookup(id, opt){
   opt = opt || {};
+  const prevView = spView;
   spCurrentId = id; spView = 'lookup';
   spLookupState = { dup: !!opt.dup, phone: opt.phone || '', result: null, msg: '', busy: false, code: spMyCode(id) };
   spRender(); window.scrollTo(0,0);
+  spHistPush(prevView==='success' || (prevView==='form' && !!opt.dup));
   if(opt.phone) spDoLookup(true);
   else if(spLookupState.code) spDoLookup(false, spLookupState.code);
 }
@@ -688,10 +772,10 @@ function spOpenLogin(){
   document.getElementById('spLoginUser').value='';
   document.getElementById('spLoginPass').value='';
   document.getElementById('spLoginErr').classList.remove('show');
-  document.getElementById('spLoginOverlay').classList.add('open');
+  spOvOpen('spLoginOverlay');
 }
 function spCloseOverlay(ev, id){
-  if(!ev || ev.target===document.getElementById(id)) document.getElementById(id).classList.remove('open');
+  if(!ev || ev.target===document.getElementById(id)) spOvClose(id);
 }
 function spDoLogin(){
   const u=document.getElementById('spLoginUser').value.trim(), p=document.getElementById('spLoginPass').value;
@@ -699,7 +783,7 @@ function spDoLogin(){
     spIsAdmin=true;
     document.getElementById('spLoginOverlay').classList.remove('open');
     spUpdateAdminUI();
-    spOpenManager();
+    spOpenManager(true);
   } else {
     document.getElementById('spLoginErr').classList.add('show');
   }
@@ -707,7 +791,7 @@ function spDoLogin(){
 function spLogout(){
   spIsAdmin=false;
   spUpdateAdminUI();
-  document.getElementById('spManagerOverlay').classList.remove('open');
+  spOvClose('spManagerOverlay');
 }
 function spUpdateAdminUI(){
   const btn = document.getElementById('spAdminBtn');
@@ -731,13 +815,13 @@ async function spLoadCounts(){
     spCounts = c; spRenderManagerList();
   }catch(err){ console.error('统计报名数失败', err); }
 }
-function spOpenManager(){
+function spOpenManager(replace){
   spRenderManagerList();
   const mw = document.getElementById('spManagerList');
   let bt = document.getElementById('spBuildTag');
   if(!bt && mw && mw.parentNode){ bt = document.createElement('div'); bt.id='spBuildTag'; bt.style.cssText='text-align:center;font-size:10.5px;color:#b0b4bd;padding:10px 0 2px'; mw.parentNode.insertBefore(bt, mw.nextSibling); }
   if(bt) bt.textContent = '页面版本 ' + SP_BUILD;
-  document.getElementById('spManagerOverlay').classList.add('open');
+  spOvOpen('spManagerOverlay', replace===true);
   spLoadCounts();
 }
 function spRenderManagerList(){
@@ -807,7 +891,7 @@ function spOpenEditor(id){
   spEditorFields = e.fields.map(f=>Object.assign({}, f));
   spRenderFieldEditorList();
   document.getElementById('spManagerOverlay').classList.remove('open');
-  document.getElementById('spEditorOverlay').classList.add('open');
+  spOvOpen('spEditorOverlay');
 }
 function spRemoveCover(){
   const prev = document.getElementById('spEditorCoverPreview');
@@ -920,8 +1004,8 @@ async function spSaveEvent(){
   }
   try{
     await spSaveEventsRemote();
-    document.getElementById('spEditorOverlay').classList.remove('open');
-    spOpenManager();
+    if((spHistState()||{}).ov==='spEditorOverlay') spOvClose('spEditorOverlay');   // 返回到下面的管理列表（会自动刷新）
+    else { document.getElementById('spEditorOverlay').classList.remove('open'); spOpenManager(); }
     spToast('✅ 已保存并对所有人发布');
     if(spCurrentId===norm.id || !spCurrentId) spBoot();
   }catch(err){
@@ -941,7 +1025,7 @@ async function spOpenSubmissions(eventId){
   spStatusFilter = 'all'; spShown = SP_PAGE; spOpenIds.clear(); spSelected.clear();
   if(spSelectMode) spToggleSelectMode();
   spSwitchSubsTab('list');
-  document.getElementById('spSubsOverlay').classList.add('open');
+  spOvOpen('spSubsOverlay');
   await spLoadSubmissions();
 }
 let spSubsSortDesc = true;
@@ -1232,10 +1316,27 @@ async function spLoadSubmissions(){
 async function spUpdateSubs(ids, patch){
   ids = [].concat(ids).map(String);
   const client = spInitClient();
-  const { error } = await client.from(SP_CONFIG.submissionsTable).update(patch).in('id', ids.map(spNormId));
+  // .select('id')：让后台返回真正被修改的行。没有 UPDATE 权限（RLS）时后台不报错但一行也没改，
+  // 以前会误以为成功，界面变了、刷新后又变回去，这里改为按实际改到的行数判断。
+  const { data, error } = await client.from(SP_CONFIG.submissionsTable).update(patch).in('id', ids.map(spNormId)).select('id');
+  const msg = (error && error.message) || '';
   if(error){
     console.error(error);
-    spToast(/column|schema|does not exist/i.test(error.message||'') ? '请先在 Supabase 执行 signup_upgrade.sql 升级数据库' : '操作失败，请检查权限或网络');
+    spToast(
+      /column|schema|does not exist/i.test(msg) ? '请先在 Supabase 执行 signup_upgrade.sql 升级数据库'
+      : (error.code==='23505' || /duplicate key|unique/i.test(msg)) ? '该手机号已有另一条有效报名，不能再恢复这一条（请先取消或删除另一条）'
+      : (error.code==='42501' || /permission|policy/i.test(msg)) ? '没有修改权限，请在 Supabase 执行 signup_upgrade.sql 的第 6 步'
+      : '操作失败，请检查权限或网络');
+    return false;
+  }
+  const done = (data||[]).length;
+  if(done < ids.length){
+    console.error('更新行数不符', { expect: ids.length, done });
+    spToast(done===0 ? '写入失败：没有修改权限。请在 Supabase 执行 signup_upgrade.sql 的第 6 步' : `只成功修改了 ${done}/${ids.length} 条，请刷新后检查`);
+    if(done===0) return false;
+    const okIds = (data||[]).map(r=>String(r.id));
+    spSubsCache.forEach(s=>{ if(okIds.includes(String(s.id))) Object.assign(s, patch); });
+    spAfterChange();
     return false;
   }
   spSubsCache.forEach(s=>{ if(ids.includes(String(s.id))) Object.assign(s, patch); });
@@ -1814,7 +1915,7 @@ function spOpenShare(id){
       </div>
       <div id="spShareBody"></div>
     </div>`;
-  ov.classList.add('open');
+  spOvOpen('spShareOverlay');
   spRenderShareTab();
   const seq = ++spPosterSeq;
   spBuildPoster(ev).then(blob=>{
