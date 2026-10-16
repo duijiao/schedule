@@ -685,6 +685,7 @@ async function spSubmit(eventId){
         }
         if(r && r.reason==='rate_limited'){ spToast('提交次数过多，请 10 分钟后再试'); resetBtn(); return; }
         if(r && r.reason==='busy'){ spToast('当前报名人数较多，请稍后再试'); resetBtn(); return; }
+        if(r && r.reason==='too_large'){ spToast('内容过长，请精简后再提交'); resetBtn(); return; }
         throw new Error('提交被拒绝');
       }
       code = r.code || '';
@@ -803,7 +804,11 @@ async function spDoLookup(byPhone, codeArg){
       p_event: String(e.id), p_code: code || null, p_phone: phone || null, p_phone_key: spPhoneKey(e) || null,
     });
     if(error){ if(spRpcMissing(error)){ st.msg = '数据库尚未升级，暂时无法查询。请联系负责人。'; st.result = null; } else throw error; }
-    else { st.result = typeof data==='string' ? JSON.parse(data) : data; if(st.result && st.result.code) spSaveMyCode(e.id, st.result.code); }
+    else {
+      st.result = typeof data==='string' ? JSON.parse(data) : data;
+      if(st.result && st.result.reason==='rate_limited'){ st.msg = '尝试次数过多，请 10 分钟后再试'; st.result = null; }
+      else if(st.result && st.result.code) spSaveMyCode(e.id, st.result.code);
+    }
   }catch(err){ console.error('查询报名失败', err); st.msg = '查询失败，请检查网络后重试'; }
   st.busy = false;
   if(spView==='lookup') spRenderLookupKeepInputs();
@@ -825,6 +830,7 @@ async function spDoCancel(){
     const r = typeof data==='string' ? JSON.parse(data) : data;
     if(r && r.ok){ spToast('已取消报名'); st.dup = false; await spDoLookup(false, code); }
     else if(r && r.reason==='checked_in') spToast('你已到场，无法自助取消');
+    else if(r && r.reason==='rate_limited') spToast('尝试次数过多，请稍后再试');
     else spToast('取消失败，请联系负责人');
   }catch(err){ console.error('取消报名失败', err); spToast('取消失败，请检查网络后重试'); }
 }
@@ -937,6 +943,8 @@ async function spSaveEdit(){
       else if(why==='cancelled') spToast('该报名已取消，请重新报名');
       else if(why==='checked_in') spToast('你已到场，无法修改');
       else if(why==='not_found') spToast('找不到该报名，请检查查询码');
+      else if(why==='rate_limited') spToast('尝试次数过多，请稍后再试');
+      else if(why==='too_large') spToast('内容过长，请精简后再保存');
       else spToast('修改失败，请联系负责人');
       resetBtn(); return;
     }
@@ -965,21 +973,60 @@ function spOpenLogin(){
 function spCloseOverlay(ev, id){
   if(!ev || ev.target===document.getElementById(id)) spOvClose(id);
 }
-function spDoLogin(){
-  const u=document.getElementById('spLoginUser').value.trim(), p=document.getElementById('spLoginPass').value;
-  if(u==='admin' && p==='church2026'){
-    spIsAdmin=true;
+// 管理员身份由 Supabase 登录 + 数据库里的管理员名单（sp_admins）决定，页面里不再保存任何账号密码
+async function spAdminCheck(client){
+  try{
+    const { data: { session } } = await client.auth.getSession();
+    if(!session) return 'no';
+    const { data, error } = await client.rpc('sp_is_admin');
+    if(error) return spRpcMissing(error) ? 'missing' : 'no';
+    return data === true ? 'ok' : 'no';
+  }catch(_){ return 'no'; }
+}
+async function spEnsureAuth(){
+  const client = spInitClient();
+  try{ if(client && (await client.auth.getSession()).data.session) return true; }catch(_){}
+  spIsAdmin = false; spUpdateAdminUI(); spToast('登录已失效，请重新登录'); spOpenLogin();
+  return false;
+}
+async function spRestoreAdmin(tries){
+  tries = tries || 0;
+  const client = spInitClient();
+  if(!client){ if(tries < 20) setTimeout(()=>spRestoreAdmin(tries + 1), 500); return; }
+  if((await spAdminCheck(client)) === 'ok'){ spIsAdmin = true; spUpdateAdminUI(); }
+}
+let spLoginBusy = false;
+async function spDoLogin(){
+  if(spLoginBusy) return;
+  const u = document.getElementById('spLoginUser').value.trim(), p = document.getElementById('spLoginPass').value;
+  const errEl = document.getElementById('spLoginErr');
+  const fail = msg=>{ errEl.textContent = msg; errEl.classList.add('show'); };
+  if(!u || !p){ fail('请输入管理员邮箱和密码'); return; }
+  const client = spInitClient();
+  if(!client){ fail('后台还没连上，请稍后再试'); return; }
+  spLoginBusy = true;
+  try{
+    const { error } = await client.auth.signInWithPassword({ email: u, password: p });
+    if(error){ fail('邮箱或密码错误'); return; }
+    const st = await spAdminCheck(client);
+    if(st !== 'ok'){
+      await client.auth.signOut();
+      fail(st === 'missing' ? '数据库还没有执行 signup_security.sql（A 部分）' : '该账号不是管理员');
+      return;
+    }
+    errEl.classList.remove('show');
+    spIsAdmin = true;
     document.getElementById('spLoginOverlay').classList.remove('open');
     spUpdateAdminUI();
     spOpenManager(true);
-  } else {
-    document.getElementById('spLoginErr').classList.add('show');
-  }
+  }catch(err){ console.error('管理员登录失败', err); fail('登录失败，请检查网络后重试'); }
+  finally{ spLoginBusy = false; }
 }
-function spLogout(){
-  spIsAdmin=false;
+async function spLogout(){
+  spIsAdmin = false;
   spUpdateAdminUI();
   spOvClose('spManagerOverlay');
+  try{ const c = spInitClient(); if(c) await c.auth.signOut(); }catch(_){}
 }
 function spUpdateAdminUI(){
   const btn = document.getElementById('spAdminBtn');
@@ -1487,6 +1534,7 @@ async function spLoadSubmissions(){
   const wrap = document.getElementById('spSubsList');
   const refreshBtn = document.querySelector('.sp-subs-toolbar .sp-tool-btn[title="刷新"]');
   if(refreshBtn) refreshBtn.classList.add('spin');
+  if(!(await spEnsureAuth())){ if(refreshBtn) refreshBtn.classList.remove('spin'); wrap.innerHTML = ''; return; }
   wrap.innerHTML = '<div class="sp-skel"></div><div class="sp-skel"></div><div class="sp-skel"></div>';
   try{
     const client = spInitClient();
@@ -1515,6 +1563,7 @@ async function spLoadSubmissions(){
 }
 async function spUpdateSubs(ids, patch){
   ids = [].concat(ids).map(String);
+  if(!(await spEnsureAuth())) return false;
   const client = spInitClient();
   // .select('id')：让后台返回真正被修改的行。没有 UPDATE 权限（RLS）时后台不报错但一行也没改，
   // 以前会误以为成功，界面变了、刷新后又变回去，这里改为按实际改到的行数判断。
@@ -1525,14 +1574,14 @@ async function spUpdateSubs(ids, patch){
     spToast(
       /column|schema|does not exist/i.test(msg) ? '请先在 Supabase 执行 signup_upgrade.sql 升级数据库'
       : (error.code==='23505' || /duplicate key|unique/i.test(msg)) ? '该手机号已有另一条有效报名，不能再恢复这一条（请先取消或删除另一条）'
-      : (error.code==='42501' || /permission|policy/i.test(msg)) ? '没有修改权限，请在 Supabase 执行 signup_upgrade.sql 的第 6 步'
+      : (error.code==='42501' || /permission|policy/i.test(msg)) ? '没有修改权限，请重新登录管理员（或确认已执行 signup_security.sql）'
       : '操作失败，请检查权限或网络');
     return false;
   }
   const done = (data||[]).length;
   if(done < ids.length){
     console.error('更新行数不符', { expect: ids.length, done });
-    spToast(done===0 ? '写入失败：没有修改权限。请在 Supabase 执行 signup_upgrade.sql 的第 6 步' : `只成功修改了 ${done}/${ids.length} 条，请刷新后检查`);
+    spToast(done===0 ? '写入失败：没有修改权限，请重新登录管理员后再试' : `只成功修改了 ${done}/${ids.length} 条，请刷新后检查`);
     if(done===0) return false;
     const okIds = (data||[]).map(r=>String(r.id));
     spSubsCache.forEach(s=>{ if(okIds.includes(String(s.id))) Object.assign(s, patch); });
@@ -1558,6 +1607,7 @@ async function spCodeTaken(eventId, id, code){
 async function spEditCode(sid){
   const s = spSubsCache.find(x=>String(x.id)===String(sid)); if(!s) return;
   if(!spIsAdmin){ spToast('请先登录管理员'); return; }
+  if(!(await spEnsureAuth())) return;
   const cur = s.query_code ? String(s.query_code) : '';
   const input = prompt(
     '请输入新的查询码（4–6 位，只能是字母或数字，不分大小写）。\n留空并确定 = 随机重新生成。\n\n注意：修改后，访客手里的旧查询码会立即失效，请把新的告诉对方。', cur);
@@ -1597,7 +1647,7 @@ async function spSaveNote(id, el){
   if(await spUpdateSubs(id, { admin_note: val || null })){ el.dataset.orig = val; spToast('备注已保存'); }
 }
 let spUndoTm = null;
-const SP_BUILD = '20261016a';
+const SP_BUILD = '20261016c';
 // 撤销提示条：由 JS 动态创建、样式全部内联，不依赖 HTML 结构和 CSS 文件是否为最新
 function spEnsureUndoEl(){
   let box = document.getElementById('spUndoToast');
@@ -1644,6 +1694,7 @@ async function spRestoreSubs(ids){
 }
 async function spPurgeSubs(ids, skipConfirm){
   if(!skipConfirm && !confirm(`彻底删除 ${ids.length} 条记录后无法恢复，确定吗？`)) return;
+  if(!(await spEnsureAuth())) return;
   try{
     const client = spInitClient();
     const { error } = await client.from(SP_CONFIG.submissionsTable).delete().in('id', ids.map(spNormId));
@@ -1938,7 +1989,11 @@ let spShareEv = null, spShareTab = 'poster', spPoster = null, spQrCard = null, s
 const SP_FONT = "'PingFang SC','Noto Sans SC','Microsoft YaHei','Hiragino Sans GB',sans-serif";
 
 function spInWeChat(){ return /MicroMessenger/i.test(navigator.userAgent); }
-function spShareUrl(ev){ return location.origin + location.pathname + (ev ? ('?id=' + encodeURIComponent(ev.id)) : ''); }
+function spShareUrl(ev){
+  const local = /^(localhost|127\.|10\.|192\.168\.)/.test(location.hostname);
+  const proto = (location.protocol === 'http:' && !local) ? 'https:' : location.protocol;
+  return proto + '//' + location.host + location.pathname + (ev ? ('?id=' + encodeURIComponent(ev.id)) : '');
+}
 function spEventTimeText(ev){
   return [spFormatDate(ev.date), (ev.timeStart||'') + (ev.timeEnd ? '-' + ev.timeEnd : '')].map(s=>String(s||'').trim()).filter(Boolean).join(' ');
 }
@@ -2186,10 +2241,14 @@ async function spWxShare(title, desc, link, img){
     wx.updateTimelineShareData({ title, link, imgUrl: cfg.imgUrl });
   }catch(err){ console.warn('微信分享设置失败', err); }
 }
+let spShareMetaKey = '', spThumbTm = null;
 function spApplyShareMeta(ev){
   const title = ev ? (ev.title || '活动报名') : '活动报名';
   const desc = spShareDesc(ev), link = spShareUrl(ev);
   const img = (ev && ev.coverImage && /^https?:/i.test(ev.coverImage)) ? ev.coverImage : '';
+  const key = [title, desc, link, img].join('|');
+  if(key === spShareMetaKey) return;
+  spShareMetaKey = key;
   document.title = title;
   spSetMeta('name', 'description', desc);
   spSetMeta('property', 'og:type', 'website');
@@ -2199,14 +2258,17 @@ function spApplyShareMeta(ev){
   spSetMeta('property', 'og:image', img);
   spSetMeta('name', 'twitter:card', img ? 'summary_large_image' : 'summary');
   // 微信在没有 JS-SDK 时，会取页面里靠前的一张大图做分享配图
-  let box = document.getElementById('spShareThumb');
-  if(img){
-    if(!box){ box = document.createElement('div'); box.id = 'spShareThumb'; box.setAttribute('aria-hidden', 'true');
-      box.style.cssText = 'position:absolute;left:-9999px;top:0;width:300px;height:300px;overflow:hidden;pointer-events:none';
-      box.innerHTML = '<img alt="" width="300" height="300" style="width:300px;height:300px;object-fit:cover">';
-      document.body.insertBefore(box, document.body.firstChild); }
-    const im = box.firstChild; if(im.getAttribute('src') !== img) im.setAttribute('src', img);
-  } else if(box){ box.remove(); }
+  clearTimeout(spThumbTm);
+  spThumbTm = setTimeout(()=>{          // 延后到页面主体加载完再放，避免与可见的封面图同时抢带宽
+    let box = document.getElementById('spShareThumb');
+    if(img){
+      if(!box){ box = document.createElement('div'); box.id = 'spShareThumb'; box.setAttribute('aria-hidden', 'true');
+        box.style.cssText = 'position:absolute;left:-9999px;top:0;width:300px;height:300px;overflow:hidden;pointer-events:none';
+        box.innerHTML = '<img alt="" width="300" height="300" style="width:300px;height:300px;object-fit:cover">';
+        document.body.insertBefore(box, document.body.firstChild); }
+      const im = box.firstChild; if(im.getAttribute('src') !== img) im.setAttribute('src', img);
+    } else if(box){ box.remove(); }
+  }, 1500);
   spWxShare(title, desc, link, img);
 }
 
@@ -2351,10 +2413,23 @@ function spShowLoadError(msg){
     <div class="s">${spEscapeHtml(msg || '网络似乎不太稳定，请检查网络后重试')}</div>
     <button class="sp-btn sp-btn-primary" style="padding:11px 30px" onclick="spRetryLoad()">重新加载</button></div>`;
 }
+function spStable(v){
+  if(Array.isArray(v)) return '[' + v.map(spStable).join(',') + ']';
+  if(v && typeof v === 'object') return '{' + Object.keys(v).sort().map(k=>JSON.stringify(k) + ':' + spStable(v[k])).join(',') + '}';
+  return JSON.stringify(v);
+}
 // 后台拿到新数据后，在不打断用户操作的前提下刷新界面
-function spApplyFresh(raw){
+// prevRaw：刷新前（缓存里）的原始数据。当前正在看的内容没有变化时不重绘，避免封面图、名额等被重新加载一遍（看起来像“二次加载”）
+function spApplyFresh(raw, prevRaw){
   spEvents = raw.map(spNormEvent);
   if(spView === 'form' || spView === 'edit' || spView === 'success' || spView === 'lookup') return;       // 正在填写/刚提交，不重绘，避免丢失输入
+  if(prevRaw){
+    const on = x=>x && x.enabled;
+    if(spView === 'detail' && spCurrentId){
+      const a = prevRaw.find(x=>x && x.id === spCurrentId), b = raw.find(x=>x && x.id === spCurrentId);
+      if(a && b && spStable(a) === spStable(b)) return;
+    } else if(spView === 'list' && spStable(prevRaw.filter(on)) === spStable(raw.filter(on))) return;
+  }
   if(spView === 'list' || spView === 'empty'){ spBoot(); return; }   // 重新判断该显示列表、单个活动还是“暂无活动”
   const cur = spCurrentId && spGetEvent(spCurrentId);
   if(cur && cur.enabled) spRender(); else spBoot();
@@ -2371,10 +2446,10 @@ async function spStartLoad(){
   try{
     const fresh = await spWithTimeout(spFetchEventsRemote(), 18000);
     clearTimeout(spSlowTm);
-    const changed = !cached || JSON.stringify(fresh) !== JSON.stringify(cached.events);
+    const changed = !cached || spStable(fresh) !== spStable(cached.events);
     spWriteCache(fresh);
     if(!shown){ spEvents = fresh.map(spNormEvent); spBoot(); }
-    else if(changed){ spApplyFresh(fresh); }
+    else if(changed){ spApplyFresh(fresh, cached && cached.events); }
   }catch(err){
     console.error('加载报名活动失败', err);
     if(!shown) spShowLoadError();
@@ -2385,4 +2460,5 @@ function spRetryLoad(){ spShowLoading(); spStartLoad(); }
 (async function spInit(){
   spInitClient();            // supabase-js 若已就绪则创建；未就绪时在需要用到时再创建
   spStartLoad();
+  spRestoreAdmin();          // 恢复之前的管理员登录（Supabase 会话）
 })();

@@ -41,9 +41,9 @@
 <!-- 图标字体不阻塞首屏：先出内容，图标随后加载 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
-<link rel="stylesheet" href="signup.css?v=20261016a">
+<link rel="stylesheet" href="signup.css?v=20261016c">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script defer src="signup.js?v=20261016a"></script>
+<script defer src="signup.js?v=20261016c"></script>
 </head>
 <body>
 <div class="sp-shell">
@@ -74,9 +74,9 @@
     <button class="sp-sheet-close" onclick="spCloseOverlay(null,'spLoginOverlay')"><i class="ti ti-x"></i></button>
     <div class="sp-sheet-title">管理员登录</div>
     <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">与排班表后台使用同一个管理员账号</div>
-    <div class="sp-form-row"><label>用户名</label><input type="text" id="spLoginUser" autocomplete="off"></div>
-    <div class="sp-form-row"><label>密码</label><input type="password" id="spLoginPass" onkeydown="if(event.key==='Enter')spDoLogin()"></div>
-    <div class="sp-login-err" id="spLoginErr">用户名或密码错误</div>
+    <div class="sp-form-row"><label>管理员邮箱</label><input type="email" id="spLoginUser" autocomplete="username" autocapitalize="none" inputmode="email"></div>
+    <div class="sp-form-row"><label>密码</label><input type="password" id="spLoginPass" autocomplete="current-password" onkeydown="if(event.key==='Enter')spDoLogin()"></div>
+    <div class="sp-login-err" id="spLoginErr">登录失败</div>
     <button class="sp-btn sp-btn-primary sp-btn-block" style="margin-top:12px" onclick="spDoLogin()">登录</button>
   </div>
 </div>
