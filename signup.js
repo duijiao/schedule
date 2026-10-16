@@ -79,6 +79,7 @@ function spNormEvent(raw){
     capacityMode: src.capacityMode==='people' ? 'people' : 'count',
     deadline: src.deadline || '',
     showRemaining: src.showRemaining!==false,
+    allowMerge: src.allowMerge===true,
     fields: Array.isArray(src.fields) && src.fields.length ? src.fields.map(spNormField) : spDefaultFields(),
     createdAt: src.createdAt || new Date().toISOString(),
     updatedAt: src.updatedAt || new Date().toISOString(),
@@ -586,7 +587,7 @@ function spOrderedEntries(e, vals){
   Object.keys(vals).forEach(k=>{ if(!labels.includes(k)) out.push([k, vals[k]]); });
   return out;
 }
-function spCanMerge(e){ return !!(e && spPhoneKey(e)); }
+function spCanMerge(e){ return !!(e && e.allowMerge && spPhoneKey(e)); }   // 需管理员在活动设置里开启
 function spToggleMerge(){
   const e = spGetEvent(spCurrentId); if(!e) return;
   const chk = document.getElementById('spMergeChk');
@@ -1070,6 +1071,7 @@ function spOpenEditor(id){
   document.getElementById('spfCapacityMode').value = e.capacityMode;
   document.getElementById('spfDeadline').value = e.deadline || '';
   document.getElementById('spfShowRemaining').checked = e.showRemaining;
+  document.getElementById('spfAllowMerge').checked = !!e.allowMerge;
   const prev = document.getElementById('spEditorCoverPreview');
   prev.dataset.url = e.coverImage || '';
   prev.src = e.coverImage || ''; prev.style.display = e.coverImage ? '' : 'none';
@@ -1176,6 +1178,7 @@ async function spSaveEvent(){
     capacityMode: document.getElementById('spfCapacityMode').value,
     deadline: document.getElementById('spfDeadline').value || '',
     showRemaining: document.getElementById('spfShowRemaining').checked,
+    allowMerge: document.getElementById('spfAllowMerge').checked,
     fields,
     createdAt: (spEditingId && spGetEvent(spEditingId)) ? spGetEvent(spEditingId).createdAt : new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -1592,7 +1595,7 @@ async function spSaveNote(id, el){
   if(await spUpdateSubs(id, { admin_note: val || null })){ el.dataset.orig = val; spToast('备注已保存'); }
 }
 let spUndoTm = null;
-const SP_BUILD = '20261015g';
+const SP_BUILD = '20261015h';
 // 撤销提示条：由 JS 动态创建、样式全部内联，不依赖 HTML 结构和 CSS 文件是否为最新
 function spEnsureUndoEl(){
   let box = document.getElementById('spUndoToast');
