@@ -1,5 +1,6 @@
 // ── 与排班表共用同一个 Supabase 后台（同一个项目 / 同一行共享状态） ──
 const SP_CONFIG = {
+  wxSignUrl: '',   // 选填：微信 JS-SDK 签名接口地址（见说明）；留空则只做页面级的分享信息设置
   url: 'https://citorcvisrfqkflwortx.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpdG9yY3Zpc3JmcWtmbHdvcnR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4OTk4NjQsImV4cCI6MjA5NzQ3NTg2NH0.I1G-oO1T3wfWJ5GcmYejT6Y0x2wAJ0xXRQsIcPVPjos',
   table: 'church_app_state',
@@ -367,6 +368,7 @@ function spRender(){
   back.classList.toggle('ghost', !canBack);
   share.classList.toggle('ghost', spView!=='detail');
   const curEv = spGetEvent(spCurrentId);
+  try{ spApplyShareMeta(spView==='list' || spView==='empty' ? null : curEv); }catch(_){}
   title.textContent = spView==='detail' ? ((curEv && curEv.title) || '活动报名')
     : spView==='form' ? '报名参与'
     : spView==='success' ? '报名成功'
@@ -1595,7 +1597,7 @@ async function spSaveNote(id, el){
   if(await spUpdateSubs(id, { admin_note: val || null })){ el.dataset.orig = val; spToast('备注已保存'); }
 }
 let spUndoTm = null;
-const SP_BUILD = '20261015h';
+const SP_BUILD = '20261016a';
 // 撤销提示条：由 JS 动态创建、样式全部内联，不依赖 HTML 结构和 CSS 文件是否为最新
 function spEnsureUndoEl(){
   let box = document.getElementById('spUndoToast');
@@ -2012,16 +2014,27 @@ function spLoadImage(src){
     im.src = /^data:|^blob:/.test(src) ? src : src + (src.includes('?') ? '&' : '?') + '_sp=1';
   });
 }
-function spCanvasBlob(c, type){
-  return new Promise((resolve, reject)=>c.toBlob(b=> b ? resolve(b) : reject(new Error('导出图片失败')), type || 'image/png'));
+function spDataUrlToBlob(u){
+  const parts = u.split(','), mime = ((parts[0].match(/:(.*?);/)) || [])[1] || 'image/png';
+  const bin = atob(parts[1]), arr = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+// 部分微信内核没有 canvas.toBlob，或导出返回 null：退回 toDataURL，保证一定能拿到图片
+function spCanvasBlob(c, type, q){
+  return new Promise((resolve, reject)=>{
+    const viaUrl = ()=>{ try{ resolve(spDataUrlToBlob(c.toDataURL(type || 'image/png', q))); }catch(err){ reject(err); } };
+    if(typeof c.toBlob !== 'function') return viaUrl();
+    try{ c.toBlob(b=> b ? resolve(b) : viaUrl(), type || 'image/png', q); }catch(_){ viaUrl(); }
+  });
 }
 
 // ── 海报卡片 ──
-async function spBuildPoster(ev){
+async function spBuildPosterCore(ev, withCover){
   const W = 1080, M = 48, CW = W - M * 2, P = 52, IW = CW - P * 2;
   const font = (w, s)=>`${w} ${s}px ${SP_FONT}`;
   const mg = document.createElement('canvas').getContext('2d');
-  const cover = await spLoadImage(ev.coverImage);
+  const cover = withCover === false ? null : await spLoadImage(ev.coverImage);
   const coverH = Math.round(CW * 10 / 16);
 
   // 1) 先排版，算出整体高度
@@ -2106,7 +2119,14 @@ async function spBuildPoster(ev){
   g.fillStyle = '#1a1a1a'; g.font = font('800', 56); g.fillText('参加活动', X, qy + 146);
   g.fillStyle = '#8f8f86'; g.font = font('400', 28);
   g.fillText(ev.capacity ? '名额有限，欢迎尽早报名' : '期待你的参与', X, qy + 232);
-  return spCanvasBlob(c, 'image/png');
+  const out = { blob: await spCanvasBlob(c, 'image/png') };
+  // 微信里 blob: 地址的图片常常无法长按保存，所以微信内改用 data: 地址（JPEG 体积也更小）
+  if(spInWeChat()){ try{ out.dataUrl = c.toDataURL('image/jpeg', 0.92); }catch(_){} }
+  return out;
+}
+async function spBuildPoster(ev){
+  try{ return await spBuildPosterCore(ev, true); }
+  catch(err){ console.warn('带封面生成海报失败，改为不带封面重试', err); return await spBuildPosterCore(ev, false); }
 }
 
 // ── 单独的二维码卡片 ──
@@ -2127,6 +2147,67 @@ function spBuildQrCard(ev){
   const t = spEventTimeText(ev);
   if(t){ g.fillStyle = '#8f8f86'; g.font = font('400', 26); g.fillText(t, W / 2, y + 46); }
   return c;
+}
+
+
+// ── 分享卡片信息（标题 / 副标题 / 配图）──
+// 微信读取「当前页面」的 title、meta description 和页面里的第一张图；配置了 wxSignUrl 时再用 JS-SDK 精确设置。
+function spShareDesc(ev){
+  if(!ev) return '在线报名 · 查询 · 修改';
+  const bits = [spEventTimeText(ev), ev.location || ev.address || ''].map(s=>String(s||'').trim()).filter(Boolean).join(' · ');
+  const intro = (ev.intro || '').split('\n').map(s=>s.trim()).filter(Boolean)[0] || '';
+  let d = [bits, intro].filter(Boolean).join('｜') || '点击立即报名参加';
+  return d.length > 60 ? d.slice(0, 59) + '…' : d;
+}
+function spSetMeta(attr, key, val){
+  let m = document.head.querySelector(`meta[${attr}="${key}"]`);
+  if(!m){ m = document.createElement('meta'); m.setAttribute(attr, key); document.head.appendChild(m); }
+  m.setAttribute('content', val || '');
+}
+let spWxCfgKey = '', spWxSdkP = null;
+function spWxLoadSdk(){
+  if(window.wx) return Promise.resolve();
+  if(!spWxSdkP) spWxSdkP = new Promise((res, rej)=>{ const s = document.createElement('script'); s.src = 'https://res.wx.qq.com/open/js/jweixin-1.6.0.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+  return spWxSdkP;
+}
+async function spWxShare(title, desc, link, img){
+  if(!spInWeChat() || !SP_CONFIG.wxSignUrl) return;
+  try{
+    await spWxLoadSdk();
+    const page = location.href.split('#')[0];
+    if(spWxCfgKey !== page){
+      const r = await fetch(SP_CONFIG.wxSignUrl + (SP_CONFIG.wxSignUrl.includes('?') ? '&' : '?') + 'url=' + encodeURIComponent(page));
+      const c = await r.json();
+      await new Promise(res=>{ wx.config({ debug:false, appId:c.appId, timestamp:c.timestamp, nonceStr:c.nonceStr, signature:c.signature, jsApiList:['updateAppMessageShareData','updateTimelineShareData'] }); wx.ready(res); wx.error(res); });
+      spWxCfgKey = page;
+    }
+    const cfg = img ? { title, desc, link, imgUrl: img } : { title, desc, link };
+    wx.updateAppMessageShareData(cfg);
+    wx.updateTimelineShareData({ title, link, imgUrl: cfg.imgUrl });
+  }catch(err){ console.warn('微信分享设置失败', err); }
+}
+function spApplyShareMeta(ev){
+  const title = ev ? (ev.title || '活动报名') : '活动报名';
+  const desc = spShareDesc(ev), link = spShareUrl(ev);
+  const img = (ev && ev.coverImage && /^https?:/i.test(ev.coverImage)) ? ev.coverImage : '';
+  document.title = title;
+  spSetMeta('name', 'description', desc);
+  spSetMeta('property', 'og:type', 'website');
+  spSetMeta('property', 'og:title', title);
+  spSetMeta('property', 'og:description', desc);
+  spSetMeta('property', 'og:url', link);
+  spSetMeta('property', 'og:image', img);
+  spSetMeta('name', 'twitter:card', img ? 'summary_large_image' : 'summary');
+  // 微信在没有 JS-SDK 时，会取页面里靠前的一张大图做分享配图
+  let box = document.getElementById('spShareThumb');
+  if(img){
+    if(!box){ box = document.createElement('div'); box.id = 'spShareThumb'; box.setAttribute('aria-hidden', 'true');
+      box.style.cssText = 'position:absolute;left:-9999px;top:0;width:300px;height:300px;overflow:hidden;pointer-events:none';
+      box.innerHTML = '<img alt="" width="300" height="300" style="width:300px;height:300px;object-fit:cover">';
+      document.body.insertBefore(box, document.body.firstChild); }
+    const im = box.firstChild; if(im.getAttribute('src') !== img) im.setAttribute('src', img);
+  } else if(box){ box.remove(); }
+  spWxShare(title, desc, link, img);
 }
 
 // ── 分享面板 ──
@@ -2154,10 +2235,14 @@ function spOpenShare(id){
     </div>`;
   spOvOpen('spShareOverlay');
   spRenderShareTab();
+  spStartPoster(ev);
+}
+function spRetryPoster(){ if(!spShareEv) return; spPoster = null; spRenderShareTab(); spStartPoster(spShareEv); }
+function spStartPoster(ev){
   const seq = ++spPosterSeq;
-  spBuildPoster(ev).then(blob=>{
+  spBuildPoster(ev).then(r=>{
     if(seq !== spPosterSeq) return;
-    spPoster = { blob, url: URL.createObjectURL(blob) };
+    spPoster = { blob: r.blob, url: r.dataUrl || URL.createObjectURL(r.blob) };
     if(spShareTab === 'poster') spRenderShareTab();
   }).catch(err=>{
     console.error('海报生成失败', err);
@@ -2182,9 +2267,9 @@ function spRenderShareTab(){
     const native = spCanShareFiles();
     body.innerHTML = `
       <div class="sp-poster-box">${ready ? `<img id="spPosterImg" src="${spPoster.url}" alt="活动海报">`
-        : failed ? `<div class="sp-poster-skel"><i class="ti ti-photo-off"></i>海报生成失败，请使用「二维码」或「链接文案」分享</div>`
+        : failed ? `<div class="sp-poster-skel"><i class="ti ti-photo-off"></i>海报生成失败<br>可以点下面重试，或改用「二维码」「链接文案」分享<button class="sp-btn sp-btn-ghost" style="margin-top:10px;padding:8px 18px" onclick="spRetryPoster()">重新生成</button></div>`
         : `<div class="sp-poster-skel"><i class="ti ti-loader-2 sp-spin"></i>正在生成海报…</div>`}</div>
-      ${wx ? `<div class="sp-share-tip">长按海报 → 选择「发送给朋友」即可转发到微信群；海报里的二维码长按也能识别报名。</div>` : `
+      ${wx ? `<div class="sp-share-tip"><b>长按海报图片</b> → 选择「保存图片」或「发送给朋友」；海报里的二维码长按也能识别报名。<br>（微信里不支持点按钮下载，请直接长按图片）</div>` : `
       <div class="sp-share-actions">
         ${native ? `<button class="sp-btn sp-btn-primary" ${ready?'':'disabled'} onclick="spSharePosterNative()"><i class="ti ti-brand-wechat"></i>分享到微信群 / 更多</button>` : ''}
         <button class="sp-btn ${native?'sp-btn-ghost':'sp-btn-primary'}" ${ready?'':'disabled'} onclick="spSavePoster()"><i class="ti ti-download"></i>保存图片</button>
@@ -2277,7 +2362,11 @@ function spApplyFresh(raw){
 async function spStartLoad(){
   const cached = spReadCache();
   let shown = false;
-  if(cached){ spEvents = cached.events.map(spNormEvent); spBoot(); shown = true; }
+  // 通过分享链接（?id=）进来、而本地缓存里还没有这个活动时，先显示加载中，等最新数据到了再一次性进入目标活动；
+  // 否则会先闪出活动列表 / 别的活动，数据更新后又自动跳一次。
+  const wantId = new URLSearchParams(location.search).get('id');
+  const cacheOk = !!cached && (!wantId || cached.events.some(e=>e && e.id===wantId && e.enabled));
+  if(cacheOk){ spEvents = cached.events.map(spNormEvent); spBoot(); shown = true; }
   else spShowLoading();
   try{
     const fresh = await spWithTimeout(spFetchEventsRemote(), 18000);
