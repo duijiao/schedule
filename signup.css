@@ -418,3 +418,16 @@ body{
 .sp-sub-merge{display:inline-block; margin-left:6px; padding:1px 7px; border-radius:20px; font-size:11px; font-weight:700; color:#8a5a00; background:#FFF1CC; vertical-align:middle}
 .sp-qcode{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:16px; font-weight:800; letter-spacing:3px; color:var(--primary-dark)}
 .sp-qcode.empty{font-family:inherit; font-size:13px; font-weight:400; letter-spacing:0; color:var(--text-4)}
+
+/* 同行人员逐个登记 */
+.sp-comp{margin:4px 0 18px}
+.sp-comp-hint{font-size:12.5px; color:var(--text-3); line-height:1.6; margin:-2px 0 10px}
+.sp-comp-row{display:flex; align-items:center; gap:8px; margin-bottom:8px}
+.sp-comp-row .sp-input{flex:1; min-width:0}
+.sp-comp-idx{width:22px; height:22px; border-radius:50%; background:var(--primary-light); color:var(--primary-dark); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0}
+.sp-comp-kind{width:78px; flex-shrink:0; padding-left:10px; padding-right:6px}
+.sp-comp-del{width:32px; height:32px; border:none; border-radius:50%; background:#f3f3ef; color:var(--text-3); display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer}
+.sp-comp-add{width:100%; padding:11px; border:1px dashed var(--primary); border-radius:12px; background:var(--primary-light); color:var(--primary-dark); font-size:14px; font-weight:600; cursor:pointer}
+.sp-comp-sum{margin-top:8px; font-size:13px; font-weight:600; color:var(--primary-dark)}
+.sp-field.sp-locked .sp-stepper{opacity:.55}
+.sp-field.sp-locked .sp-stepper-btn{pointer-events:none}

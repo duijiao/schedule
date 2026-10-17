@@ -81,6 +81,7 @@ function spNormEvent(raw){
     deadline: src.deadline || '',
     showRemaining: src.showRemaining!==false,
     allowMerge: src.allowMerge===true,
+    allowCompanions: src.allowCompanions===true,
     fields: Array.isArray(src.fields) && src.fields.length ? src.fields.map(spNormField) : spDefaultFields(),
     createdAt: src.createdAt || new Date().toISOString(),
     updatedAt: src.updatedAt || new Date().toISOString(),
@@ -489,7 +490,8 @@ function spRenderFieldHtml(f){
   </div>`;
 }
 function spStep(fieldId, delta, min, max){
-  if(spMergeMode){ const ce = spGetEvent(spCurrentId); const pf = ce && (ce.fields||[]).find(f=>f.label===spPeopleKey(ce)); if(pf && pf.id===fieldId) min = Math.max(min, 2); }
+  if(spCompanions.length){ const ce = spCurEv(), cpf = ce && spCompPeopleField(ce); if(cpf && cpf.id === fieldId){ spToast('人数由「同行人员」自动计算'); return; } }
+  if(spMergeMode){ const ce = spCurEv(); const pf = ce && (ce.fields||[]).find(f=>f.label===spPeopleKey(ce)); if(pf && pf.id===fieldId) min = Math.max(min, 2); }
   let v = (spNumberVals[fieldId]||0) + delta;
   v = Math.max(min, Math.min(max, v));
   spNumberVals[fieldId] = v;
@@ -507,7 +509,7 @@ function spPickChoice(fieldId, val, multi){
 
 function spRenderForm(body){
   const e = spGetEvent(spCurrentId);
-  spMergeMode = false;
+  spMergeMode = false; spCompanions = [];
   if(!e){ body.innerHTML = `<div class="sp-empty"><i class="ti ti-calendar-off"></i><div>活动不存在</div></div>`; return; }
   body.innerHTML = `
     <div class="sp-form-wrap">
@@ -523,6 +525,7 @@ function spRenderForm(body){
       <div class="sp-merge-extra" id="spMergeExtra" style="display:none"><div class="sp-field-label"><i class="ti ti-user-plus"></i>同行人员姓名（手机号的主人）<span class="sp-required-dot">*</span></div><input class="sp-input" type="text" id="spMergeName" placeholder="请输入对方的名字" maxlength="30" autocomplete="off"></div>` : ''}
       <div class="sp-section-title">个人信息</div>
       <div id="spFieldsWrap">${e.fields.map(spRenderFieldHtml).join('')}</div>
+      ${spCompHtml(e)}
       <div class="sp-hp" aria-hidden="true"><label>请勿填写此项<input type="text" id="spHp" name="website" tabindex="-1" autocomplete="off"></label></div>
     </div>
   `;
@@ -578,6 +581,82 @@ function spRpcMissing(err){
 }
 const SP_STATUS_TEXT = { pending:'待确认', confirmed:'已确认', checked_in:'已到场', cancelled:'已取消' };
 
+// ── 修改报名时：活动没有「人数」这类数字字段，也能增加人数 ──
+// 编辑页临时补一个内置的「人数」加减框（记在 values['人数']），不改动活动本身的字段设置
+function spAugmentEdit(e){
+  if(!e || spPeopleKey(e)) return e;
+  const synth = { id:'sp_people', type:'number', label:'人数', placeholder:'', required:false, min:1, max:20, default:1 };
+  return Object.assign({}, e, { fields: (e.fields || []).concat([synth]), _synthPeople: true });
+}
+function spCurEv(){
+  const e = spGetEvent(spCurrentId);
+  return (e && spView === 'edit' && spEditState && spEditState.eventId === e.id) ? spAugmentEdit(e) : e;
+}
+
+// ── 同行人员：逐个登记姓名 ──
+let spCompanions = [];        // [{ name, kid }]
+function spCompParse(arr){
+  return (Array.isArray(arr) ? arr : []).map(s=>{ s = String(s); const m = s.match(/^(.*)（儿童）$/); return m ? { name: m[1], kid: true } : { name: s, kid: false }; });
+}
+function spCompCount(vals){ return vals && Array.isArray(vals['随行人员']) ? vals['随行人员'].length : 0; }
+function spCompEnabled(e){
+  if(!e) return false;
+  if(e.allowCompanions) return true;
+  return spView === 'edit' && !!spEditState && spCompCount(spEditState.orig) > 0;   // 已有随行名单的记录，开关关了也要能看到、能改
+}
+function spCompBase(){ return spMergeMode ? 2 : 1; }     // 本人（+ 并入时手机号的主人）
+function spCompPeopleField(e){ return (e.fields || []).find(f=>f.type === 'number' && f.label === spPeopleKey(e)); }
+function spCompRows(){
+  return spCompanions.map((c, i)=>`<div class="sp-comp-row">
+    <span class="sp-comp-idx">${i + 1}</span>
+    <input class="sp-input" type="text" maxlength="20" placeholder="同行人员姓名" value="${spEscapeHtml(c.name)}" oninput="spCompName(${i}, this.value)" autocomplete="off">
+    <select class="sp-select sp-comp-kind" onchange="spCompKid(${i}, this.value)"><option value="0"${c.kid ? '' : ' selected'}>成人</option><option value="1"${c.kid ? ' selected' : ''}>儿童</option></select>
+    <button type="button" class="sp-comp-del" aria-label="删除" onclick="spCompDel(${i})"><i class="ti ti-x"></i></button>
+  </div>`).join('');
+}
+function spCompHtml(e){
+  if(!spCompEnabled(e)) return '';
+  return `<div class="sp-comp" id="spComp">
+    <div class="sp-section-title">同行人员（选填）</div>
+    <div class="sp-comp-hint">和你一起来的人，请逐个填写姓名；总人数会自动计算。</div>
+    <div id="spCompList">${spCompRows()}</div>
+    <button type="button" class="sp-comp-add" onclick="spCompAdd()"><i class="ti ti-user-plus"></i> 添加同行人员</button>
+    <div class="sp-comp-sum" id="spCompSum"></div>
+  </div>`;
+}
+function spCompName(i, v){ if(spCompanions[i]) spCompanions[i].name = v; }
+function spCompKid(i, v){ if(spCompanions[i]) spCompanions[i].kid = v === '1'; }
+function spCompRepaint(){ const box = document.getElementById('spCompList'); if(box) box.innerHTML = spCompRows(); spCompSync(); }
+function spCompAdd(){
+  const e = spCurEv(); if(!e) return;
+  const pf = spCompPeopleField(e), total = spCompBase() + spCompanions.length + 1;
+  if((pf && pf.max && total > pf.max) || spCompanions.length >= 30){ spToast('已达到人数上限' + (pf && pf.max ? '（最多 ' + pf.max + ' 人）' : '')); return; }
+  spCompanions.push({ name: '', kid: false });
+  spCompRepaint();
+  const ins = document.querySelectorAll('#spCompList input'); if(ins.length) ins[ins.length - 1].focus();
+}
+function spCompDel(i){ spCompanions.splice(i, 1); spCompRepaint(); }
+// 有同行人员时，把「人数」字段自动设为 本人 + 同行人员，并锁定加减按钮
+function spCompSync(){
+  const e = spCurEv(); if(!e || !document.getElementById('spComp')) return;
+  const n = spCompanions.length, total = spCompBase() + n, pf = spCompPeopleField(e);
+  if(pf){
+    if(n > 0){ spNumberVals[pf.id] = total; const el = document.getElementById('spf_' + pf.id); if(el) el.textContent = total; }
+    const wrap = document.querySelector(`[data-field-id="${pf.id}"]`); if(wrap) wrap.classList.toggle('sp-locked', n > 0);
+  }
+  const sum = document.getElementById('spCompSum');
+  if(sum) sum.textContent = n > 0 ? `共 ${total} 人（${spMergeMode ? '你、手机号的主人' : '你'} + ${n} 位同行人员）` : '';
+}
+function spCompCollect(){
+  const list = [];
+  for(const c of spCompanions){
+    const nm = (c.name || '').trim();
+    if(!nm) return { error: '请填写每位同行人员的姓名（或删除空行）' };
+    list.push(nm + (c.kid ? '（儿童）' : ''));
+  }
+  return { list };
+}
+
 // ── 没有手机号：并入同行人员，按 2 人计 ──
 let spMergeMode = false;
 const SP_MERGE_TAG = '无手机号，并入同行人员';
@@ -613,6 +692,7 @@ function spToggleMerge(){
     else if(!spMergeMode && h){ h.remove(); }
   }
   if(spMergeMode){ const ni = document.getElementById('spMergeName'); if(ni && !ni.value) setTimeout(()=>ni.focus(), 0); }
+  spCompSync();
 }
 
 async function spSubmit(eventId){
@@ -634,6 +714,10 @@ async function spSubmit(eventId){
     if((Number(values[pk])||0) < 2) values[pk] = 2;     // 并入同行人员，至少按 2 人计
     values['报名方式'] = SP_MERGE_TAG;
     values['同行人员'] = mn;
+  }
+  if(spCompEnabled(e)){
+    const cc = spCompCollect(); if(cc.error){ spToast(cc.error); return; }
+    if(cc.list.length){ values['随行人员'] = cc.list; values[spPeopleKey(e) || '人数'] = spCompBase() + cc.list.length; }
   }
 
   // 防刷（前端层）：蜜罐被填 / 填写过快 → 假装成功，不提交
@@ -868,9 +952,10 @@ function spFillForm(e, vals){
   });
 }
 function spRenderEdit(body){
-  const e = spGetEvent(spCurrentId);
+  const e = spCurEv();
   if(!e){ body.innerHTML = `<div class="sp-empty"><i class="ti ti-calendar-off"></i><div>活动不存在</div></div>`; return; }
-  if(!spEditState || spEditState.eventId !== e.id){ spView = 'lookup'; spRenderLookup(body); return; }   // 没有可修改的报名（如刷新后），回到查询页
+  if(!spEditState || spEditState.eventId !== e.id){ spView = 'lookup'; spRenderLookup(body); return; }
+  spCompanions = spCompParse((spEditState.orig || {})['随行人员']);   // 没有可修改的报名（如刷新后），回到查询页
   body.innerHTML = `
     <div class="sp-form-wrap">
       <div class="sp-event-mini-card">
@@ -884,15 +969,23 @@ function spRenderEdit(body){
       ${spMergeMode ? `<div class="sp-merge-extra"><div class="sp-field-label"><i class="ti ti-user-plus"></i>同行人员姓名（手机号的主人）<span class="sp-required-dot">*</span></div><input class="sp-input" type="text" id="spMergeName" maxlength="30" autocomplete="off" value="${spEscapeHtml(String((spEditState.orig||{})['同行人员']||''))}"><div class="sp-merge-hint" style="margin-top:6px"><i class="ti ti-info-circle"></i>并入同行的报名最少按 2 人计，手机号请填对方的</div></div>` : ''}
       <div class="sp-section-title">个人信息</div>
       <div id="spFieldsWrap">${e.fields.map(spRenderFieldHtml).join('')}</div>
+      ${e._synthPeople ? `<div class="sp-comp-hint" style="margin-top:-6px">「人数」包含你自己；同行的人变多时，把它调大即可。</div>` : ''}
+      ${spCompHtml(e)}
     </div>
   `;
   spFillForm(e, spEditState.orig || {});
+  if(e._synthPeople && !Object.prototype.hasOwnProperty.call(spEditState.orig || {}, '人数')){
+    // 原来没有记录过人数：默认 本人（并入的是 本人 + 手机号的主人）+ 已登记的同行人员
+    const n0 = spCompBase() + spCompanions.length, el0 = document.getElementById('spf_sp_people');
+    spNumberVals['sp_people'] = n0; if(el0) el0.textContent = n0;
+  }
+  spCompSync();
   document.getElementById('spBody').insertAdjacentHTML('beforeend', `
     <div class="sp-cta-bar"><button class="sp-cta-btn" id="spSaveEditBtn" onclick="spSaveEdit()">保存修改</button></div>
   `);
 }
 async function spSaveEdit(){
-  const e = spGetEvent(spCurrentId); const es = spEditState;
+  const eo = spGetEvent(spCurrentId); const e = spCurEv(); const es = spEditState;   // eo：活动原样；e：编辑页用的（可能补了内置人数框）
   if(!e || !es) return;
   const { values, missing } = spCollectValues(e);
   if(missing){ spToast('请填写：'+missing); return; }
@@ -912,6 +1005,14 @@ async function spSaveEdit(){
   // 表单里没有的附加信息（如「报名方式」）原样保留
   Object.keys(es.orig || {}).forEach(k=>{ if(!e.fields.some(f=>f.label===k)) values[k] = es.orig[k]; });
   if(spMergeMode) values['同行人员'] = mergeName;
+  if(spCompEnabled(e)){
+    const cc = spCompCollect(); if(cc.error){ spToast(cc.error); return; }
+    if(cc.list.length){ values['随行人员'] = cc.list; values[spPeopleKey(e) || '人数'] = spCompBase() + cc.list.length; }
+    else delete values['随行人员'];
+  }
+  // 内置人数框：原来没记录人数、这次也没增加（仍是默认值）时，不凭空写入 人数
+  if(e._synthPeople && !Object.prototype.hasOwnProperty.call(es.orig || {}, '人数') && !spCompanions.length
+     && Number(values['人数']) === spCompBase()) delete values['人数'];
   const sameVals = (a,b)=>{ const ka = Object.keys(a).sort(), kb = Object.keys(b).sort(); return ka.length===kb.length && ka.every((k,i)=>k===kb[i] && JSON.stringify(a[k])===JSON.stringify(b[k])); };
   if(sameVals(values, es.orig || {})){ spToast('内容没有变化'); return; }
 
@@ -920,10 +1021,10 @@ async function spSaveEdit(){
   const resetBtn = ()=>{ if(btn){ btn.disabled = false; btn.textContent = '保存修改'; } };
   try{
     // 名额：按人数计名额时，只检查「新增」的人数是否放得下（自己原来占的名额不重复计算）
-    if(e.capacity){
-      const cs = spCapState(e, await spFetchUsage(e));
+    if(eo.capacity){
+      const cs = spCapState(eo, await spFetchUsage(eo));   // 用活动原样判断：没有人数字段的活动按「份数」计名额
       if(cs.used!=null && cs.mode==='people'){
-        const key = spPeopleKey(e);
+        const key = spPeopleKey(eo);
         const oldN = Number((es.orig||{})[key]) || 0, newN = Number(values[key]) || 1;
         if(newN - oldN > cs.remaining){ spToast(`剩余名额不足（最多还能增加 ${cs.remaining} 人）`); resetBtn(); return; }
       }
@@ -1121,6 +1222,7 @@ function spOpenEditor(id){
   document.getElementById('spfDeadline').value = e.deadline || '';
   document.getElementById('spfShowRemaining').checked = e.showRemaining;
   document.getElementById('spfAllowMerge').checked = !!e.allowMerge;
+  document.getElementById('spfAllowCompanions').checked = !!e.allowCompanions;
   const prev = document.getElementById('spEditorCoverPreview');
   prev.dataset.url = e.coverImage || '';
   prev.src = e.coverImage || ''; prev.style.display = e.coverImage ? '' : 'none';
@@ -1228,6 +1330,7 @@ async function spSaveEvent(){
     deadline: document.getElementById('spfDeadline').value || '',
     showRemaining: document.getElementById('spfShowRemaining').checked,
     allowMerge: document.getElementById('spfAllowMerge').checked,
+    allowCompanions: document.getElementById('spfAllowCompanions').checked,
     fields,
     createdAt: (spEditingId && spGetEvent(spEditingId)) ? spGetEvent(spEditingId).createdAt : new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -1489,7 +1592,7 @@ function spRenderSubs(){
         ${spSelectMode?`<input type="checkbox" class="sp-sub-check" aria-label="选择" ${sel?'checked':''} onclick="event.stopPropagation()" onchange="spPickSub('${sid}',this.checked)">`:''}
         <div class="sp-sub-avatar" style="background:${color}">${spEscapeHtml(sm.name.trim().charAt(0).toUpperCase()||'?')}</div>
         <div class="sp-sub-main">
-          <div class="sp-sub-name">${spEscapeHtml(sm.name)}${isNew?'<span class="sp-sub-new">NEW</span>':''}${spIsMergedVals(s.values)?'<span class="sp-sub-merge">并入同行</span>':''}</div>
+          <div class="sp-sub-name">${spEscapeHtml(sm.name)}${isNew?'<span class="sp-sub-new">NEW</span>':''}${spIsMergedVals(s.values)?'<span class="sp-sub-merge">并入同行</span>':''}${spCompCount(s.values)?`<span class="sp-sub-merge">+${spCompCount(s.values)}随行</span>`:''}</div>
           <div class="sp-sub-time">${pill}<i class="ti ti-clock"></i>${inTrash&&s.deleted_at?'删除于 '+spRelTime(s.deleted_at):spRelTime(s.created_at)}${sm.tel?` · <i class="ti ti-phone"></i>${spEscapeHtml(sm.tel)}`:''}</div>
         </div>
         ${sm.num?`<span class="sp-sub-badge"><i class="ti ti-users"></i>${sm.num}人</span>`:''}
@@ -1647,7 +1750,7 @@ async function spSaveNote(id, el){
   if(await spUpdateSubs(id, { admin_note: val || null })){ el.dataset.orig = val; spToast('备注已保存'); }
 }
 let spUndoTm = null;
-const SP_BUILD = '20261016c';
+const SP_BUILD = '20261016e';
 // 撤销提示条：由 JS 动态创建、样式全部内联，不依赖 HTML 结构和 CSS 文件是否为最新
 function spEnsureUndoEl(){
   let box = document.getElementById('spUndoToast');
@@ -1936,7 +2039,7 @@ function spBuildSignSheetHtml(list){
   const ev = spSubsCurrentEvent || {};
   const rows = list.map((s,i)=>{
     const sm = spSubSummary(s);
-    return `<tr><td class="c">${i+1}</td><td>${spEscapeHtml(sm.name)}</td><td>${spEscapeHtml(sm.tel)}</td><td class="c">${sm.num||''}</td><td>${spEscapeHtml([spIsMergedVals(s.values) ? '并入「'+(((s.values||{})['同行人员'])||'')+'」同行' : '', s.admin_note||''].filter(Boolean).join('；'))}</td><td></td></tr>`;
+    return `<tr><td class="c">${i+1}</td><td>${spEscapeHtml(sm.name)}</td><td>${spEscapeHtml(sm.tel)}</td><td class="c">${sm.num||''}</td><td>${spEscapeHtml([spIsMergedVals(s.values) ? '并入「'+(((s.values||{})['同行人员'])||'')+'」同行' : '', spCompCount(s.values) ? '随行：' + s.values['随行人员'].join('、') : '', s.admin_note||''].filter(Boolean).join('；'))}</td><td></td></tr>`;
   }).join('');
   const total = list.reduce((n,s)=>n+(spSubSummary(s).num||0),0);
   return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>签到表 - ${spEscapeHtml(ev.title||'')}</title>

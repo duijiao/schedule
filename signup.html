@@ -41,9 +41,9 @@
 <!-- 图标字体不阻塞首屏：先出内容，图标随后加载 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
-<link rel="stylesheet" href="signup.css?v=20261016c">
+<link rel="stylesheet" href="signup.css?v=20261016e">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script defer src="signup.js?v=20261016c"></script>
+<script defer src="signup.js?v=20261016e"></script>
 </head>
 <body>
 <div class="sp-shell">
@@ -161,6 +161,11 @@
       <label>允许「没有手机号，并入同行人员」报名</label>
       <label class="sp-switch" style="margin-top:6px"><input type="checkbox" id="spfAllowMerge"><span class="track"></span><span class="thumb"></span></label>
       <div style="font-size:12px;color:var(--text-3);margin-top:6px;line-height:1.6">开启后，报名表单顶部会出现勾选项：没有手机号的人填写同行人员的手机号和姓名，最少按 2 人计。需要活动里有手机号字段。</div>
+    </div>
+    <div class="sp-form-row">
+      <label>同行人员逐个登记姓名</label>
+      <label class="sp-switch" style="margin-top:6px"><input type="checkbox" id="spfAllowCompanions"><span class="track"></span><span class="thumb"></span></label>
+      <div style="font-size:12px;color:var(--text-3);margin-top:6px;line-height:1.6">开启后，报名表单会多出「同行人员」一栏：每位同行的人填写姓名（可标记儿童），总人数自动等于「本人 + 同行人员」。</div>
     </div>
 
     <hr class="sp-divider">
