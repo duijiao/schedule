@@ -17,7 +17,8 @@ body {
     'Microsoft YaHei', 'Helvetica Neue', sans-serif;
   background: var(--c-bg);
   color: var(--c-text-1);
-  line-height: 1.5;
+  font-size: 16px;
+  line-height: 1.6;
   display: flex;
   justify-content: center;
   -webkit-font-smoothing: antialiased;
@@ -31,8 +32,8 @@ body {
   padding: 16px 18px; padding-top: max(16px, env(safe-area-inset-top));
 }
 .church-icon-btn {
-  width: 38px; height: 38px; border-radius: 10px; border: none; background: none;
-  display: flex; align-items: center; justify-content: center; font-size: 20px;
+  width: 46px; height: 46px; border-radius: 12px; border: none; background: none;
+  display: flex; align-items: center; justify-content: center; font-size: 23px;
   color: var(--c-text-1); cursor: pointer;
 }
 .church-icon-btn:hover { background: var(--c-orange-light); color: var(--c-orange); }
@@ -42,8 +43,8 @@ body {
 .church-logo-wrap { width: 86px; height: 86px; margin-bottom: 14px; position: relative; }
 .church-logo-img { width: 100%; height: 100%; object-fit: cover; border-radius: 20px; }
 .church-logo-fallback { width: 100%; height: 100%; }
-.church-name { font-size: 27px; font-weight: 800; color: var(--c-text-1); letter-spacing: 0.5px; }
-.church-name-sub { font-size: 14px; font-style: italic; color: var(--c-text-3); margin-top: 6px; }
+.church-name { font-size: 29px; font-weight: 800; color: var(--c-text-1); letter-spacing: 0.5px; }
+.church-name-sub { font-size: 15px; font-style: italic; color: var(--c-text-3); margin-top: 6px; }
 
 /* ── 欢迎横幅 ─────────────────────────────────────── */
 .church-welcome-banner {
@@ -56,8 +57,8 @@ body {
   background: linear-gradient(100deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.72) 32%, rgba(255,255,255,0.15) 62%, rgba(255,255,255,0) 80%);
 }
 .church-welcome-text { position: relative; padding: 24px 24px 26px; max-width: 78%; }
-.church-welcome-title { font-size: 25px; font-weight: 800; color: var(--c-text-1); margin-bottom: 12px; }
-.church-welcome-body { font-size: 14px; color: var(--c-text-2); line-height: 1.85; font-weight: 500; }
+.church-welcome-title { font-size: 26px; font-weight: 800; color: var(--c-text-1); margin-bottom: 12px; }
+.church-welcome-body { font-size: 16px; color: var(--c-text-2); line-height: 1.95; font-weight: 500; }
 
 /* ── 通用卡片 ─────────────────────────────────────── */
 .church-card {
@@ -72,14 +73,20 @@ body {
   display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
 }
 .church-card-icon-outline { background: none; color: var(--c-orange); font-size: 20px; }
-.church-card-title { font-size: 17px; font-weight: 800; color: var(--c-text-1); }
+.church-card-title { font-size: 19px; font-weight: 800; color: var(--c-text-1); }
 .church-link-btn {
-  display: inline-flex; align-items: center; gap: 3px; font-size: 12.5px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 700;
   color: var(--c-orange); text-decoration: none; border: 1px solid rgba(232,98,44,0.3);
-  border-radius: 20px; padding: 6px 12px; white-space: nowrap; flex-shrink: 0;
+  border-radius: 20px; padding: 8px 14px; white-space: nowrap; flex-shrink: 0;
 }
-.church-link-btn i { font-size: 13px; }
+.church-link-btn i { font-size: 15px; }
 .church-link-btn-shrink { margin-top: 10px; align-self: flex-start; }
+
+/* 重点入口用实心按钮，比普通链接更醒目，方便长辈一眼找到（如"查看历史证道"） */
+.church-link-btn-primary {
+  background: var(--c-orange); color: #fff; border: none; font-size: 14.5px;
+  font-weight: 800; padding: 9px 16px;
+}
 
 /* ── 教会基本信息 ─────────────────────────────────── */
 .church-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -88,33 +95,33 @@ body {
   width: 30px; height: 30px; border-radius: 50%; background: var(--c-orange); color: #fff;
   display: flex; align-items: center; justify-content: center; font-size: 15px; margin-bottom: 10px;
 }
-.church-info-label { font-size: 13.5px; font-weight: 800; color: var(--c-text-1); margin-bottom: 5px; }
-.church-info-value { font-size: 12px; color: var(--c-text-2); line-height: 1.6; }
+.church-info-label { font-size: 15px; font-weight: 800; color: var(--c-text-1); margin-bottom: 5px; }
+.church-info-value { font-size: 14px; color: var(--c-text-2); line-height: 1.7; }
 
 /* ── 本周证道信息 ─────────────────────────────────── */
 .church-sermon-loading, .cs-empty {
-  font-size: 13px; color: var(--c-text-3); padding: 24px 10px; text-align: center;
+  font-size: 15px; color: var(--c-text-3); padding: 24px 10px; text-align: center;
 }
 .cs-empty i { opacity: 0.5; }
 
 .cs-top { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
 .cs-thumb {
-  width: 64px; height: 64px; border-radius: 14px; flex-shrink: 0; overflow: hidden; position: relative;
-  background: var(--c-orange-light); color: var(--c-orange); font-size: 26px;
+  width: 72px; height: 72px; border-radius: 16px; flex-shrink: 0; overflow: hidden; position: relative;
+  background: var(--c-orange-light); color: var(--c-orange); font-size: 28px;
   display: flex; align-items: center; justify-content: center;
 }
 .cs-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .cs-thumb .cs-live-badge {
-  position: absolute; left: 2px; right: 2px; bottom: 2px; font-size: 8.5px; font-weight: 700;
-  letter-spacing: .5px; text-align: center; background: rgba(0,0,0,.55); color: #fff; border-radius: 4px; padding: 1.5px 0;
+  position: absolute; left: 2px; right: 2px; bottom: 2px; font-size: 9px; font-weight: 700;
+  letter-spacing: .5px; text-align: center; background: rgba(0,0,0,.55); color: #fff; border-radius: 4px; padding: 2px 0;
 }
 .cs-meta { flex: 1; min-width: 0; padding-top: 2px; }
 .cs-tag {
-  display: inline-block; font-size: 11.5px; font-weight: 700; color: var(--c-orange);
-  background: var(--c-orange-light); border-radius: 8px; padding: 4px 11px; margin-bottom: 8px;
+  display: inline-block; font-size: 13px; font-weight: 700; color: var(--c-orange);
+  background: var(--c-orange-light); border-radius: 8px; padding: 5px 12px; margin-bottom: 8px;
 }
-.cs-title { font-size: 19px; font-weight: 800; color: var(--c-text-1); line-height: 1.35; word-break: break-word; }
-.cs-title-muted { color: var(--c-text-3); font-weight: 700; font-size: 15px; }
+.cs-title { font-size: 22px; font-weight: 800; color: var(--c-text-1); line-height: 1.4; word-break: break-word; }
+.cs-title-muted { color: var(--c-text-3); font-weight: 700; font-size: 17px; }
 
 /* 多段经文：横向滑动卡片 + 圆点指示器，一段经文一张卡，可左右滑动查看 */
 .cs-passages { margin-bottom: 14px; }
@@ -125,14 +132,14 @@ body {
 .cs-passage-track::-webkit-scrollbar { display: none; }
 .cs-passage-card {
   scroll-snap-align: start; flex: 0 0 100%; min-width: 0; background: #faf7f3;
-  border: 1px solid var(--c-border); border-radius: 14px; padding: 12px 14px; box-sizing: border-box;
-  max-height: 190px; overflow-y: auto;
+  border: 1px solid var(--c-border); border-radius: 14px; padding: 14px 16px; box-sizing: border-box;
+  max-height: 260px; overflow-y: auto;
 }
-.cs-passage-ref { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--c-orange-dark); margin-bottom: 6px; }
-.cs-passage-ref i { font-size: 14px; }
-.cs-passage-quote { font-size: 13.5px; line-height: 1.9; color: var(--c-text-2); }
-.cs-passage-quote .v-num { color: var(--c-orange); font-weight: 700; margin-right: 3px; font-size: 11px; vertical-align: 1px; }
-.cs-passage-empty, .cs-passage-loading { font-size: 12.5px; color: var(--c-text-3); }
+.cs-passage-ref { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: var(--c-orange-dark); margin-bottom: 8px; }
+.cs-passage-ref i { font-size: 16px; }
+.cs-passage-quote { font-size: 16px; line-height: 2.05; color: var(--c-text-2); }
+.cs-passage-quote .v-num { color: var(--c-orange); font-weight: 700; margin-right: 3px; font-size: 12.5px; vertical-align: 1px; }
+.cs-passage-empty, .cs-passage-loading { font-size: 14px; color: var(--c-text-3); }
 .cs-dots { display: flex; justify-content: center; gap: 6px; margin-top: 8px; }
 .cs-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-border); transition: background .2s, width .2s; cursor: pointer; border: none; padding: 0; }
 .cs-dot.active { background: var(--c-orange); width: 16px; border-radius: 3px; }
@@ -143,14 +150,14 @@ body {
 }
 .cs-preacher { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .cs-avatar {
-  width: 36px; height: 36px; border-radius: 50%; background: var(--c-orange-light); color: var(--c-orange);
-  display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+  width: 42px; height: 42px; border-radius: 50%; background: var(--c-orange-light); color: var(--c-orange);
+  display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0;
 }
-.cs-preacher-name { font-size: 13px; font-weight: 700; color: var(--c-text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cs-preacher-date { font-size: 11.5px; color: var(--c-text-3); margin-top: 2px; }
+.cs-preacher-name { font-size: 15px; font-weight: 700; color: var(--c-text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cs-preacher-date { font-size: 13px; color: var(--c-text-3); margin-top: 3px; }
 .cs-watch-btn {
   display: inline-flex; align-items: center; gap: 6px; background: var(--c-orange); color: #fff;
-  font-size: 12.5px; font-weight: 700; border-radius: 20px; padding: 9px 17px; text-decoration: none;
+  font-size: 14.5px; font-weight: 700; border-radius: 20px; padding: 11px 20px; text-decoration: none;
   white-space: nowrap; border: none; font-family: inherit;
 }
 .cs-watch-btn-disabled { background: var(--c-border); color: var(--c-text-3); cursor: default; }
@@ -162,25 +169,25 @@ body {
 }
 .cs-live-tap:active { background: var(--c-orange-light); }
 .cs-live-tap-icon {
-  width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg,#e5312e,#c4211f); color: #fff;
-  display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+  width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg,#e5312e,#c4211f); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
 }
 .cs-live-tap-text { flex: 1; min-width: 0; }
-.cs-live-tap-title { font-size: 14px; font-weight: 700; color: var(--c-text-1); }
-.cs-live-tap-sub { font-size: 11.5px; color: var(--c-text-3); margin-top: 3px; line-height: 1.5; }
-.cs-live-tap-arrow { font-size: 16px; color: var(--c-text-3); flex-shrink: 0; }
+.cs-live-tap-title { font-size: 16px; font-weight: 700; color: var(--c-text-1); }
+.cs-live-tap-sub { font-size: 13px; color: var(--c-text-3); margin-top: 3px; line-height: 1.6; }
+.cs-live-tap-arrow { font-size: 17px; color: var(--c-text-3); flex-shrink: 0; }
 
 /* ── 关于我们 ─────────────────────────────────────── */
 .church-about-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
-.church-about-text { font-size: 12.5px; color: var(--c-text-2); line-height: 1.75; flex: 1; min-width: 200px; }
+.church-about-text { font-size: 14px; color: var(--c-text-2); line-height: 1.85; flex: 1; min-width: 200px; }
 .church-about-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .church-about-item { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
 .church-about-icon {
   width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
   font-size: 20px;
 }
-.church-about-item-title { font-size: 11.5px; font-weight: 700; color: var(--c-text-1); }
-.church-about-item-sub { font-size: 10px; color: var(--c-text-3); }
+.church-about-item-title { font-size: 12.5px; font-weight: 700; color: var(--c-text-1); }
+.church-about-item-sub { font-size: 11px; color: var(--c-text-3); }
 
 /* ── 底部经文 ─────────────────────────────────────── */
 .church-footer {
@@ -188,8 +195,8 @@ body {
   background: linear-gradient(180deg,#fbf1e6,#f7e6d3);
   display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
-.church-footer-verse { font-size: 13.5px; font-weight: 600; color: #7a5c3e; line-height: 1.7; max-width: 340px; }
-.church-footer-ref { font-size: 12px; color: #9c7f5c; font-weight: 600; }
+.church-footer-verse { font-size: 15.5px; font-weight: 600; color: #7a5c3e; line-height: 1.8; max-width: 340px; }
+.church-footer-ref { font-size: 13.5px; color: #9c7f5c; font-weight: 600; }
 .church-footer-cross { font-size: 20px; color: #b08c5f; margin-top: 4px; }
 
 @media (max-width: 380px) {
@@ -197,4 +204,84 @@ body {
   .church-about-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .church-about-icon { width: 40px; height: 40px; font-size: 17px; }
   .cs-passage-card { max-height: 230px; }
+}
+
+/* ── 本周诗歌：双列歌谱网格 ───────────────────────── */
+.cs-song-count { font-size: 14px; font-weight: 700; color: var(--c-text-3); }
+.cs-song-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; }
+.cs-song-item {
+  display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 0; border: none; background: none;
+  font-family: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.cs-song-item:disabled { cursor: default; }
+.cs-song-thumb {
+  position: relative; width: 100%; aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden;
+  background: #faf7f3; border: 1px solid var(--c-border);
+  display: flex; align-items: center; justify-content: center; color: var(--c-text-3); font-size: 30px;
+}
+.cs-song-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+.cs-song-item:active .cs-song-thumb { border-color: var(--c-orange); }
+.cs-song-num {
+  position: absolute; top: 6px; left: 6px; min-width: 26px; height: 26px; padding: 0 7px; border-radius: 13px;
+  background: var(--c-orange); color: #fff; font-size: 14px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+.cs-song-zoom {
+  position: absolute; right: 6px; bottom: 6px; width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(0,0,0,.55); color: #fff; font-size: 17px; display: flex; align-items: center; justify-content: center;
+}
+.cs-song-title {
+  font-size: 15.5px; font-weight: 700; color: var(--c-text-1); line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;
+}
+.cs-song-nosrc { font-size: 13px; color: var(--c-text-3); }
+
+/* ── 歌谱大图查看器 ───────────────────────────────── */
+.sl-overlay {
+  position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.94); display: none; flex-direction: column;
+  user-select: none; -webkit-user-select: none;
+}
+.sl-overlay.open { display: flex; }
+.sl-top {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; padding-top: max(12px, env(safe-area-inset-top));
+  color: #fff; flex-shrink: 0;
+}
+.sl-title { flex: 1; min-width: 0; font-size: 18px; font-weight: 800; line-height: 1.35; word-break: break-word; }
+.sl-counter { font-size: 15px; font-weight: 700; color: rgba(255,255,255,.7); flex-shrink: 0; }
+.sl-close {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; height: 46px; padding: 0 16px;
+  border: none; border-radius: 23px; background: rgba(255,255,255,.18); color: #fff;
+  font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+}
+.sl-close i { font-size: 22px; }
+.sl-stage {
+  position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none;
+  display: flex; align-items: center; justify-content: center; cursor: zoom-in;
+}
+.sl-stage.zoomed { cursor: grab; }
+.sl-stage img {
+  max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center center;
+  will-change: transform; background: #fff; pointer-events: none;
+}
+.sl-nav {
+  position: absolute; top: 50%; transform: translateY(-50%); width: 46px; height: 64px; border: none;
+  background: rgba(255,255,255,.2); color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 2;
+}
+.sl-prev { left: 0; border-radius: 0 12px 12px 0; }
+.sl-next { right: 0; border-radius: 12px 0 0 12px; }
+.sl-nav:disabled { opacity: .25; cursor: default; }
+.sl-bar {
+  display: flex; justify-content: center; gap: 12px; padding: 12px 14px 6px; flex-shrink: 0;
+}
+.sl-btn {
+  flex: 1; max-width: 130px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0;
+  border: none; border-radius: 14px; background: rgba(255,255,255,.18); color: #fff; font-family: inherit;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.sl-btn i { font-size: 26px; }
+.sl-btn:active { background: var(--c-orange); }
+.sl-hint {
+  text-align: center; font-size: 13px; color: rgba(255,255,255,.55); padding: 4px 14px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom)); flex-shrink: 0;
 }

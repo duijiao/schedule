@@ -115,7 +115,7 @@ function getPassageVerses(item) {
 }
 
 async function loadChurchData() {
-  if (!window.supabase) { renderSermonEmpty(); return; }
+  if (!window.supabase) { renderSermonEmpty(); renderSongsEmpty(); return; }
   const client = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
   const { data: row, error } = await client
     .from(SUPABASE_CONFIG.table)
@@ -126,6 +126,7 @@ async function loadChurchData() {
   if (error || !row) {
     console.error('教会主页数据加载失败：', error);
     renderSermonEmpty();
+    renderSongsEmpty();
     return;
   }
 
@@ -134,6 +135,8 @@ async function loadChurchData() {
   await renderSermon(row);
   applyChurchSite(row.church_site || {});
   startLiveSlidePolling(client);
+  // 本周诗歌单独查询：即使 song_data 读取失败，也不会影响上面的证道卡片
+  loadWeeklySongs(client);
 }
 
 function applyChurchSite(site) {
@@ -144,8 +147,9 @@ function applyChurchSite(site) {
     logoImg.style.display = '';
     logoFallback.style.display = 'none';
   }
+  // 欢迎横幅已从首页移除，这里保留判断，避免元素不存在时报错
   const banner = document.getElementById('churchWelcomeBanner');
-  if (site.bannerUrl) {
+  if (banner && site.bannerUrl) {
     banner.style.backgroundImage = `url("${site.bannerUrl}")`;
   }
   applyLiveSlide(site.liveSlideUrl || '');
@@ -290,6 +294,233 @@ function setupPassageDots() {
 function renderSermonEmpty() {
   document.getElementById('churchSermonBody').innerHTML =
     `<div class="cs-empty"><i class="ti ti-book-off" style="font-size:22px;display:block;margin-bottom:8px"></i>本周证道信息暂未发布，敬请期待</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 本周诗歌：读取排班系统 song_data（{ 'YYYY-MM-DD': [{title, src}] }），
+// 取本周主日（跟证道同一个日期规则）的歌谱图片，双列展示；点击进入大图查看器，可放大缩小。
+// ══════════════════════════════════════════════════════════════
+let weeklySongs = [];   // 只保留有图片的歌，供大图查看器翻页使用
+
+async function loadWeeklySongs(client) {
+  try {
+    const { data: row, error } = await client
+      .from(SUPABASE_CONFIG.table)
+      .select('song_data')
+      .eq('id', SUPABASE_CONFIG.rowId)
+      .single();
+    if (error || !row) {
+      console.error('本周诗歌加载失败：', error);
+      renderSongsEmpty();
+      return;
+    }
+    const key = toKey(upcomingSunday(new Date()));
+    const list = Array.isArray((row.song_data || {})[key]) ? row.song_data[key] : [];
+    renderSongs(list.map(s => ({ title: (s && s.title) || '', src: (s && (s.src || s.image_url)) || '' }))
+      .filter(s => s.title || s.src));
+  } catch (e) {
+    console.error('本周诗歌加载出错：', e);
+    renderSongsEmpty();
+  }
+}
+
+function renderSongsEmpty() {
+  const body = document.getElementById('churchSongBody');
+  if (!body) return;
+  const cnt = document.getElementById('csSongCount');
+  if (cnt) cnt.textContent = '';
+  body.innerHTML = `<div class="cs-empty"><i class="ti ti-music-off" style="font-size:22px;display:block;margin-bottom:8px"></i>本周诗歌暂未发布，敬请期待</div>`;
+}
+
+function renderSongs(list) {
+  const body = document.getElementById('churchSongBody');
+  if (!body) return;
+  if (!list.length) { renderSongsEmpty(); return; }
+
+  weeklySongs = list.filter(s => s.src);
+  const cnt = document.getElementById('csSongCount');
+  if (cnt) cnt.textContent = `共 ${list.length} 首`;
+
+  body.innerHTML = `<div class="cs-song-grid">${list.map((s, i) => {
+    const title = escapeHtml(s.title || `诗歌 ${i + 1}`);
+    if (!s.src) {
+      return `<div class="cs-song-item"><div class="cs-song-thumb"><span class="cs-song-num">${i + 1}</span><i class="ti ti-photo-off"></i></div>
+        <div class="cs-song-title">${title}</div><div class="cs-song-nosrc">暂无歌谱图片</div></div>`;
+    }
+    const lbIdx = weeklySongs.indexOf(s);
+    return `<button type="button" class="cs-song-item" data-idx="${lbIdx}" aria-label="查看歌谱：${title}">
+      <div class="cs-song-thumb">
+        <span class="cs-song-num">${i + 1}</span>
+        <img src="${escapeHtml(s.src)}" alt="${title}" loading="lazy">
+        <span class="cs-song-zoom"><i class="ti ti-zoom-in"></i></span>
+      </div>
+      <div class="cs-song-title">${title}</div>
+    </button>`;
+  }).join('')}</div>`;
+
+  // 图片加载失败时显示占位图标，避免出现破图
+  body.querySelectorAll('.cs-song-thumb img').forEach(img => {
+    img.addEventListener('error', () => {
+      img.replaceWith(Object.assign(document.createElement('i'), { className: 'ti ti-photo-off' }));
+    });
+  });
+  body.querySelectorAll('.cs-song-item[data-idx]').forEach(btn => {
+    btn.addEventListener('click', () => openSongLightbox(Number(btn.dataset.idx)));
+  });
+}
+
+// ── 歌谱大图查看器：放大/缩小/还原、双指缩放、拖动、左右切换 ──
+const SL = { idx: 0, scale: 1, tx: 0, ty: 0, min: 1, max: 5, pointers: new Map(), pinchDist: 0, pinchScale: 1,
+             downX: 0, downY: 0, downT: 0, moved: false, swipeStartX: 0, ready: false };
+
+function slEls() {
+  return {
+    overlay: document.getElementById('songLightbox'), stage: document.getElementById('slStage'),
+    img: document.getElementById('slImg'), title: document.getElementById('slTitle'),
+    counter: document.getElementById('slCounter'), prev: document.getElementById('slPrev'), next: document.getElementById('slNext'),
+  };
+}
+
+function slApply() {
+  const { img, stage } = slEls();
+  // 限制拖动范围：图片放大后不能被拖出可视区域
+  const maxX = Math.max(0, (img.clientWidth * SL.scale - stage.clientWidth) / 2);
+  const maxY = Math.max(0, (img.clientHeight * SL.scale - stage.clientHeight) / 2);
+  SL.tx = Math.max(-maxX, Math.min(maxX, SL.tx));
+  SL.ty = Math.max(-maxY, Math.min(maxY, SL.ty));
+  img.style.transform = `translate(${SL.tx}px, ${SL.ty}px) scale(${SL.scale})`;
+  stage.classList.toggle('zoomed', SL.scale > 1.01);
+}
+
+// 以舞台中心为原点的坐标 (cx, cy) 为焦点缩放，让手指/鼠标所在位置保持不动
+function slZoomTo(newScale, cx = 0, cy = 0) {
+  newScale = Math.max(SL.min, Math.min(SL.max, newScale));
+  const ratio = newScale / SL.scale;
+  SL.tx = cx - (cx - SL.tx) * ratio;
+  SL.ty = cy - (cy - SL.ty) * ratio;
+  SL.scale = newScale;
+  if (newScale <= SL.min) { SL.tx = 0; SL.ty = 0; }
+  slApply();
+}
+function slReset() { SL.scale = 1; SL.tx = 0; SL.ty = 0; slApply(); }
+
+function slShow() {
+  const { img, title, counter, prev, next } = slEls();
+  const s = weeklySongs[SL.idx];
+  if (!s) return;
+  slReset();
+  img.src = s.src;
+  title.textContent = s.title || `诗歌 ${SL.idx + 1}`;
+  const total = weeklySongs.length;
+  counter.textContent = total > 1 ? `${SL.idx + 1} / ${total}` : '';
+  prev.style.display = next.style.display = total > 1 ? 'flex' : 'none';
+  prev.disabled = SL.idx <= 0;
+  next.disabled = SL.idx >= total - 1;
+}
+function slStep(d) {
+  const n = SL.idx + d;
+  if (n < 0 || n >= weeklySongs.length) return;
+  SL.idx = n;
+  slShow();
+}
+
+function openSongLightbox(idx) {
+  if (!weeklySongs.length) return;
+  setupSongLightbox();
+  SL.idx = Math.max(0, Math.min(idx, weeklySongs.length - 1));
+  const { overlay } = slEls();
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  slShow();
+}
+function closeSongLightbox() {
+  const { overlay } = slEls();
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+  SL.pointers.clear();
+}
+
+function setupSongLightbox() {
+  if (SL.ready) return;
+  SL.ready = true;
+  const { overlay, stage } = slEls();
+  const stageCenter = (clientX, clientY) => {
+    const r = stage.getBoundingClientRect();
+    return { x: clientX - (r.left + r.width / 2), y: clientY - (r.top + r.height / 2) };
+  };
+  const dist = () => { const [a, b] = [...SL.pointers.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+
+  document.getElementById('slClose').addEventListener('click', closeSongLightbox);
+  document.getElementById('slPrev').addEventListener('click', e => { e.stopPropagation(); slStep(-1); });
+  document.getElementById('slNext').addEventListener('click', e => { e.stopPropagation(); slStep(1); });
+  document.getElementById('slZoomIn').addEventListener('click', () => slZoomTo(SL.scale * 1.4));
+  document.getElementById('slZoomOut').addEventListener('click', () => slZoomTo(SL.scale / 1.4));
+  document.getElementById('slReset').addEventListener('click', slReset);
+
+  document.addEventListener('keydown', e => {
+    if (!overlay.classList.contains('open')) return;
+    if (e.key === 'Escape') closeSongLightbox();
+    else if (e.key === 'ArrowLeft') slStep(-1);
+    else if (e.key === 'ArrowRight') slStep(1);
+    else if (e.key === '+' || e.key === '=') slZoomTo(SL.scale * 1.4);
+    else if (e.key === '-') slZoomTo(SL.scale / 1.4);
+    else if (e.key === '0') slReset();
+  });
+
+  // 电脑端：滚轮缩放
+  stage.addEventListener('wheel', e => {
+    e.preventDefault();
+    const c = stageCenter(e.clientX, e.clientY);
+    slZoomTo(SL.scale * (e.deltaY < 0 ? 1.2 : 1 / 1.2), c.x, c.y);
+  }, { passive: false });
+
+  // 触摸/鼠标统一用 Pointer 事件：单指拖动/点按切换缩放/左右滑动换歌，双指捏合缩放
+  stage.addEventListener('pointerdown', e => {
+    if (e.target.closest('.sl-nav')) return;
+    stage.setPointerCapture(e.pointerId);
+    SL.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (SL.pointers.size === 1) {
+      SL.downX = SL.swipeStartX = e.clientX; SL.downY = e.clientY; SL.downT = Date.now(); SL.moved = false;
+    } else if (SL.pointers.size === 2) {
+      SL.pinchDist = dist(); SL.pinchScale = SL.scale; SL.moved = true;
+    }
+  });
+  stage.addEventListener('pointermove', e => {
+    const p = SL.pointers.get(e.pointerId);
+    if (!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    if (SL.pointers.size === 2) {
+      const [a, b] = [...SL.pointers.values()];
+      const c = stageCenter((a.x + b.x) / 2, (a.y + b.y) / 2);
+      if (SL.pinchDist > 0) slZoomTo(SL.pinchScale * dist() / SL.pinchDist, c.x, c.y);
+    } else if (SL.pointers.size === 1) {
+      if (Math.hypot(e.clientX - SL.downX, e.clientY - SL.downY) > 8) SL.moved = true;
+      if (SL.scale > 1.01) { SL.tx += dx; SL.ty += dy; slApply(); }
+    }
+  });
+  const endPointer = e => {
+    if (!SL.pointers.has(e.pointerId)) return;
+    const wasSingle = SL.pointers.size === 1;
+    SL.pointers.delete(e.pointerId);
+    if (SL.pointers.size === 1) { // 捏合结束后剩一根手指，重置起点，避免误触发点按
+      SL.moved = true;
+    }
+    if (!wasSingle || e.type === 'pointercancel') return;
+    const dx = e.clientX - SL.swipeStartX;
+    if (!SL.moved && Date.now() - SL.downT < 400) {
+      // 轻点：在 1 倍和 2.5 倍之间切换
+      if (SL.scale > 1.01) slReset();
+      else { const c = stageCenter(e.clientX, e.clientY); slZoomTo(2.5, c.x, c.y); }
+    } else if (SL.scale <= 1.01 && Math.abs(dx) > 60 && Math.abs(e.clientY - SL.downY) < Math.abs(dx)) {
+      slStep(dx > 0 ? -1 : 1); // 没放大时左右滑动切换上一首/下一首
+    }
+  };
+  stage.addEventListener('pointerup', endPointer);
+  stage.addEventListener('pointercancel', endPointer);
+  window.addEventListener('resize', () => { if (overlay.classList.contains('open')) slApply(); });
 }
 
 function shareChurchPage() {
